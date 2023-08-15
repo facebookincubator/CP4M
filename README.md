@@ -5,10 +5,9 @@ CP4M is a conversational marketing platform which enables advertisers to integra
 ## ⚠️ Under Active Development
 This project is changing fast, we've decided to develop this project in the public from the start in order to promote visibility and encourage collaboration. However that also means at this time we cannot guarantee stability, but we'll be stable soon! So please reach out if you're interested in running this in production we'd love to have your perspective.
 
-
 # Details
 CP4M acts as a bridge between existing Messenger and Whatsapp APIs and existing LLM APIs (OpenAI, LLaMa, etc)  
-![cp4m_integration_diagram](https://github.com/facebookincubator/CP4M/assets/6844618/5763d685-dc55-4b58-9d63-a652dcbe03e4)
+![cp4m_integration_diagram2](https://github.com/facebookincubator/CP4M/assets/6844618/13b18d6c-dabc-4307-93ff-c57490eda3d6)
 
 ## License
 
