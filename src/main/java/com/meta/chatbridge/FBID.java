@@ -24,7 +24,7 @@ public class FBID {
 
   public static FBID from(String value) {
     Objects.requireNonNull(value);
-    long longValue = Long.valueOf(value);
+    long longValue = Long.parseLong(value);
     return new FBID(longValue);
   }
 
