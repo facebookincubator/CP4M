@@ -14,10 +14,10 @@ import com.meta.chatbridge.message.Message;
 import java.time.Instant;
 import java.util.List;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 class MessageStackTest {
 
@@ -96,5 +96,10 @@ class MessageStackTest {
     assertThat(ms.messages()).hasSize(2);
     assertThat(ms.messages()).first().isSameAs(message1);
     assertThat(ms.messages()).last().isSameAs(message2);
+  }
+
+  @Test
+  void failingTest() {
+    fail("this is just to confirm that github actions fail");
   }
 }
