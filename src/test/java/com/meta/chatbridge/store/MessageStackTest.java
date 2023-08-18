@@ -8,31 +8,19 @@
 
 package com.meta.chatbridge.store;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+
 import com.google.common.collect.Lists;
 import com.meta.chatbridge.FBID;
 import com.meta.chatbridge.message.Message;
 import java.time.Instant;
 import java.util.List;
-
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 
 class MessageStackTest {
 
-  static class TestMessage implements Message {
-
-    private final Instant timestamp;
-
-    TestMessage(Instant timestamp) {
-      this.timestamp = timestamp;
-    }
-
-    @Override
-    public Instant timestamp() {
-      return timestamp;
-    }
+  record TestMessage(Instant timestamp) implements Message {
 
     @Override
     public FBID conversationId() {
