@@ -8,10 +8,18 @@
 
 package com.meta.chatbridge.message;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import io.javalin.http.Context;
+import java.util.Optional;
 
 public interface MessageHandler<T extends Message> {
-  T processRequest(JsonNode request);
+
+  /**
+   * Process incoming messages from users
+   *
+   * @param ctx incoming message from user
+   * @return return a {@link Message} object
+   */
+  Optional<T> processRequest(Context ctx);
 
   void respond(T message);
 }

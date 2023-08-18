@@ -10,10 +10,7 @@ package com.meta.chatbridge.store;
 
 import com.google.common.collect.ImmutableList;
 import com.meta.chatbridge.message.Message;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -42,8 +39,12 @@ public class MessageStack<T extends Message> {
     }
   }
 
+  public static <T extends Message> MessageStack<T> of(T message) {
+    return new MessageStack<>(List.of(message));
+  }
+
   public static <T extends Message> MessageStack<T> of(Collection<T> messages) {
-    return new MessageStack<T>(messages);
+    return new MessageStack<>(messages);
   }
 
   public MessageStack<T> with(T message) {
