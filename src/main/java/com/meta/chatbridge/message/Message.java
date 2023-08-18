@@ -24,8 +24,6 @@ public interface Message {
 
   Role role();
 
-  byte[] serialize();
-
   enum Role {
     ASSISTANT,
     USER,
