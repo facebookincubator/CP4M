@@ -9,7 +9,6 @@
 package com.meta.chatbridge.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 
 import com.google.common.collect.Lists;
 import com.meta.chatbridge.FBID;
@@ -84,10 +83,5 @@ class MessageStackTest {
     assertThat(ms.messages()).hasSize(2);
     assertThat(ms.messages()).first().isSameAs(message1);
     assertThat(ms.messages()).last().isSameAs(message2);
-  }
-
-  @Test
-  void failingTest() {
-    fail("this is just to confirm that github actions fail");
   }
 }
