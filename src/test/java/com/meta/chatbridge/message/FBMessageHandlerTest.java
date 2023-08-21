@@ -8,13 +8,33 @@
 
 package com.meta.chatbridge.message;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.meta.chatbridge.FBID;
 import com.meta.chatbridge.Pipeline;
 import com.meta.chatbridge.PipelinesRunner;
 import com.meta.chatbridge.llm.DummyLLMHandler;
 import com.meta.chatbridge.store.MemoryStore;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.apache.hc.client5.http.fluent.Request;
+import org.apache.hc.client5.http.fluent.Response;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
+import org.apache.hc.core5.net.URIBuilder;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.in;
 
 class FBMessageHandlerTest {
 
@@ -27,15 +47,39 @@ class FBMessageHandlerTest {
           "this is a dummy message",
           Message.Role.ASSISTANT);
 
+  private HttpResponse getRequest(String path, int port, Map<String, String> params)
+      throws IOException, URISyntaxException {
+    URIBuilder uriBuilder = URIBuilder.loopbackAddress().setScheme("http").setPort(port).appendPath(path);
+    params.forEach(uriBuilder::addParameter);
+    return Request.get(uriBuilder.build()).execute().returnResponse();
+  }
+
   @Test
-  void inbound() {
+  void inbound() throws IOException, URISyntaxException {
+    String token = "243af3c6-9994-4869-ae13-ad61a38323f5";
+    int challenge = 1158201444;
     Pipeline<FBMessage> pipeline =
         new Pipeline<>(
             new MemoryStore<>(),
-            new FBMessageHandler(),
+            new FBMessageHandler(token),
             new DummyLLMHandler<>(DUMMY_ASSISTANT_MESSAGE),
             "/testfbmessage");
-    PipelinesRunner runner = PipelinesRunner.newInstance().pipeline(pipeline).port(0);
-    runner.start();
+    final PipelinesRunner runner = PipelinesRunner.newInstance().pipeline(pipeline).port(0);
+    HttpResponse response;
+    try (PipelinesRunner ignored = runner.start()) {
+      ImmutableMap<String, String> params =
+          ImmutableMap.<String, String>builder()
+              .put("hub.mode", "subscribe")
+              .put("hub.challenge", Integer.toString(challenge))
+              .put("hub.verify_token", token)
+              .build();
+      response = getRequest("testfbmessage", runner.port(), params);
+    }
+    assertThat(response.getCode()).isEqualTo(200);
+    InputStream inputStream = ((BasicClassicHttpResponse) response).getEntity().getContent();
+    byte[] input = new byte[inputStream.available()];
+    inputStream.read(input);
+    String text = new String(input, StandardCharsets.UTF_8);
+    assertThat(text).isEqualTo(Integer.toString(challenge));
   }
 }

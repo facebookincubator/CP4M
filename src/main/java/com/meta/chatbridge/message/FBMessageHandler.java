@@ -9,33 +9,51 @@
 package com.meta.chatbridge.message;
 
 import io.javalin.http.Context;
+import io.javalin.http.HandlerType;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public class FBMessageHandler implements MessageHandler<FBMessage> {
 
-  public FBMessageHandler() {}
+  private final String verifyToken;
+
+  public FBMessageHandler(String verifyToken) {
+    this.verifyToken = verifyToken;
+  }
 
   @Override
   public Optional<FBMessage> processRequest(Context ctx) {
     switch (ctx.handlerType()) {
       case GET -> {
-        return getHandler();
+        return getHandler(ctx);
       }
       case POST -> {
-        return postHandler();
+        return postHandler(ctx);
       }
-      default -> throw new RuntimeException("Only accepting get and post methods");
+      default -> throw new UnsupportedOperationException("Only accepting get and post methods");
     }
   }
 
-  private Optional<FBMessage> getHandler() {
+  private Optional<FBMessage> getHandler(Context ctx) {
+    ctx.queryParamAsClass("hub.mode", String.class)
+        .check(v -> v.equals("subscribe"), "hub.mode must be subscribe");
+    ctx.queryParamAsClass("hub.verify_token", String.class)
+        .check(v -> v.equals(verifyToken), "verify_token is incorrect");
+    int challenge = ctx.queryParamAsClass("hub.challenge", int.class).get();
+    ctx.result(String.valueOf(challenge));
     return Optional.empty();
   }
 
-  private Optional<FBMessage> postHandler() {
+  private Optional<FBMessage> postHandler(Context ctx) {
     return Optional.empty();
   }
 
   @Override
   public void respond(FBMessage message) {}
+
+  @Override
+  public Collection<HandlerType> handlers() {
+    return List.of(HandlerType.GET, HandlerType.POST);
+  }
 }

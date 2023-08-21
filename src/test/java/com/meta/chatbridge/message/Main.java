@@ -30,7 +30,7 @@ public class Main {
     Pipeline<FBMessage> pipeline =
         new Pipeline<>(
             new MemoryStore<>(),
-            new FBMessageHandler(),
+            new FBMessageHandler("da0df13a-fb7d-4dbc-8162-f2ce94ca85c2"),
             new DummyLLMHandler<>(DUMMY_ASSISTANT_MESSAGE),
             "/testfbmessage");
     PipelinesRunner runner = PipelinesRunner.newInstance().pipeline(pipeline).port(8080);

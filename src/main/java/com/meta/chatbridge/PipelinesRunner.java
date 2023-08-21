@@ -47,7 +47,7 @@ public class PipelinesRunner implements AutoCloseable {
 
   public int port() {
     if (started) {
-      app.port();
+      return app.port();
     }
     return port;
   }

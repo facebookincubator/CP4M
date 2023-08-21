@@ -15,6 +15,7 @@ import com.meta.chatbridge.store.ChatStore;
 import com.meta.chatbridge.store.MessageStack;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -46,7 +47,7 @@ public class Pipeline<T extends Message> {
   }
 
   public void register(Javalin app) {
-    app.get(endpoint, this::handle);
+    handler.handlers().forEach(m -> app.addHandler(m, endpoint, this::handle));
   }
 
   private void execute(MessageStack<T> stack) {
