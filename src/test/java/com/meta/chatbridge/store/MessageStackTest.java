@@ -22,8 +22,8 @@ class MessageStackTest {
   record TestMessage(Instant timestamp) implements Message {
 
     @Override
-    public FBID conversationId() {
-      return FBID.from(0);
+    public String instanceId() {
+      return "0";
     }
 
     @Override

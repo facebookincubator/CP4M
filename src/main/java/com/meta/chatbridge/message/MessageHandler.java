@@ -11,7 +11,7 @@ package com.meta.chatbridge.message;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import java.util.Collection;
-import java.util.Optional;
+import java.util.List;
 
 public interface MessageHandler<T extends Message> {
 
@@ -21,7 +21,7 @@ public interface MessageHandler<T extends Message> {
    * @param ctx the context corresponding to an incoming request
    * @return return a {@link Message} object if appropriate
    */
-  Optional<T> processRequest(Context ctx);
+  List<T> processRequest(Context ctx);
 
   /**
    * The method needed to respond to a message from a user

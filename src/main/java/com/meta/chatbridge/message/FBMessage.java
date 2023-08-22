@@ -13,7 +13,7 @@ import java.time.Instant;
 
 public record FBMessage(
     Instant timestamp,
-    FBID conversationId,
+    String instanceId,
     FBID senderId,
     FBID recipientId,
     String message,

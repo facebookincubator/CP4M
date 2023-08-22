@@ -10,19 +10,19 @@ package com.meta.chatbridge.store;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.meta.chatbridge.FBID;
 import com.meta.chatbridge.message.Message;
+import com.meta.chatbridge.message.Message.ConversationId;
 import java.time.Duration;
 
 public class MemoryStore<T extends Message> implements ChatStore<T> {
-  private final Cache<FBID, MessageStack<T>> store;
+  private final Cache<ConversationId, MessageStack<T>> store;
 
   public MemoryStore() {
     this.store =
         CacheBuilder.newBuilder()
             .expireAfterWrite(Duration.ofDays(3))
             .maximumWeight((long) (10 * Math.pow(2, 20))) // 10 megabytes
-            .<FBID, MessageStack<T>>weigher(
+            .<ConversationId, MessageStack<T>>weigher(
                 (k, v) ->
                     v.messages().stream().map(m -> m.message().length()).reduce(0, Integer::sum))
             .build();
@@ -33,7 +33,7 @@ public class MemoryStore<T extends Message> implements ChatStore<T> {
     return this.store
         .asMap()
         .compute(
-            message.conversationId(),
+            new ConversationId(message.recipientId(), message.senderId()),
             (k, v) -> {
               if (v == null) {
                 return MessageStack.of(message);

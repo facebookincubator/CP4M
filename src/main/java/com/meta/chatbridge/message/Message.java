@@ -12,9 +12,12 @@ import com.meta.chatbridge.FBID;
 import java.time.Instant;
 
 public interface Message {
+
+  record ConversationId(FBID recipientId, FBID senderId) {}
+
   Instant timestamp();
 
-  FBID conversationId();
+  String instanceId();
 
   FBID senderId();
 
@@ -28,5 +31,9 @@ public interface Message {
     ASSISTANT,
     USER,
     SYSTEM
+  }
+
+  default ConversationId conversationId() {
+    return new ConversationId(recipientId(), senderId());
   }
 }
