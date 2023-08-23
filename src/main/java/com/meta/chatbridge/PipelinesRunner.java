@@ -10,6 +10,8 @@ package com.meta.chatbridge;
 
 import com.google.common.base.Preconditions;
 import io.javalin.Javalin;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.common.returnsreceiver.qual.This;
@@ -45,6 +47,10 @@ public class PipelinesRunner implements AutoCloseable {
     return this;
   }
 
+  public Collection<Pipeline<?>> pipelines() {
+    return Collections.unmodifiableCollection(pipelines);
+  }
+
   public int port() {
     if (started) {
       return app.port();
@@ -55,7 +61,7 @@ public class PipelinesRunner implements AutoCloseable {
   /**
    * Set the port that the server will start on. 0 means first available port
    *
-   * @param port the por the server will start on
+   * @param port the port the server will start on
    * @return this
    */
   @This

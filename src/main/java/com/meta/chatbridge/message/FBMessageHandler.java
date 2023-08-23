@@ -16,26 +16,66 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.chatbridge.FBID;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.*;
+import java.util.function.Function;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.apache.hc.client5.http.fluent.Request;
+import org.apache.hc.client5.http.fluent.Response;
 import org.apache.hc.client5.http.utils.Hex;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.net.URIBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.TestOnly;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FBMessageHandler implements MessageHandler<FBMessage> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(FBMessageHandler.class);
+
+  private static final String API_VERSION = "v17.0";
   private static final JsonMapper MAPPER = new JsonMapper();
 
   private final String verifyToken;
-  private final @Nullable String appSecret;
 
-  public FBMessageHandler(String verifyToken, @Nullable String appSecret) {
+  private final String appSecret;
+
+  private final String accessToken;
+  private Function<FBID, URI> baseURLFactory =
+      pageId -> {
+        try {
+          return new URIBuilder()
+              .setScheme("https")
+              .setHost("graph.facebook.com")
+              .appendPath(API_VERSION)
+              .appendPath(pageId.toString())
+              .appendPath("messages")
+              .build();
+        } catch (URISyntaxException e) {
+          // this should be impossible
+          throw new RuntimeException(e);
+        }
+      };
+
+  public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret) {
     this.verifyToken = verifyToken;
     this.appSecret = appSecret;
+    this.accessToken = pageAccessToken;
+  }
+
+  @TestOnly
+  FBMessageHandler baseURLFactory(Function<FBID, URI> baseURLFactory) {
+    this.baseURLFactory = Objects.requireNonNull(baseURLFactory);
+    return this;
   }
 
   @Override
@@ -50,6 +90,8 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         }
         default -> throw new UnsupportedOperationException("Only accepting get and post methods");
       }
+    } catch (RuntimeException e) {
+      throw e;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -67,26 +109,24 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
 
   private String hmac(String body) {
     Objects.requireNonNull(appSecret);
-    Mac sha256_HMAC;
-    SecretKeySpec secret_key;
+    Mac sha256HMAC;
+    SecretKeySpec secretKey;
     try {
-      sha256_HMAC = Mac.getInstance("HmacSHA256");
-      secret_key = new SecretKeySpec(appSecret.getBytes("UTF-8"), "HmacSHA256");
-      sha256_HMAC.init(secret_key);
-      return Hex.encodeHexString(sha256_HMAC.doFinal(body.getBytes("UTF-8")));
-    } catch (UnsupportedEncodingException | NoSuchAlgorithmException | InvalidKeyException e) {
+      sha256HMAC = Mac.getInstance("HmacSHA256");
+      secretKey = new SecretKeySpec(appSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+      sha256HMAC.init(secretKey);
+    } catch (NoSuchAlgorithmException | InvalidKeyException e) {
       throw new RuntimeException(e); // Algorithms guaranteed to exist
     }
+    return Hex.encodeHexString(sha256HMAC.doFinal(body.getBytes(StandardCharsets.UTF_8)));
   }
 
   private List<FBMessage> postHandler(Context ctx) throws JsonProcessingException {
+    // https://developers.facebook.com/docs/messenger-platform/reference/webhook-events
 
-    ctx.headerAsClass("x-hub-signature-256", String.class)
+    ctx.headerAsClass("X-Hub-Signature-256", String.class)
         .check(
             h -> {
-              if (appSecret == null) {
-                return true;
-              }
               String[] hashParts = h.strip().split("=");
               if (hashParts.length != 2) {
                 return false;
@@ -94,9 +134,10 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
               String calculatedHmac = hmac(ctx.body());
               return hashParts[1].equals(calculatedHmac);
             },
-            "x-hub-signature-256 could not be validated");
+            "X-Hub-Signature-256 could not be validated")
+        .get();
 
-    ObjectNode body = (ObjectNode) MAPPER.readTree(ctx.body());
+    JsonNode body = MAPPER.readTree(ctx.body());
     String object = body.get("object").asText();
     if (!object.equals("page")) {
       return Collections.emptyList();
@@ -106,7 +147,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     ArrayList<FBMessage> output = new ArrayList<>();
     for (JsonNode entry : entries) {
       @Nullable JsonNode messaging = entry.get("messaging");
-      if (entry.get("messaging") == null) {
+      if (messaging == null) {
         continue;
       }
       for (JsonNode message : messaging) {
@@ -128,8 +169,41 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     return output;
   }
 
+  private String jsonObject(String key, String value) throws JsonProcessingException {
+    return MAPPER.writeValueAsString(MAPPER.createObjectNode().put(key, value));
+  }
+
   @Override
-  public void respond(FBMessage message) {}
+  public void respond(FBMessage message) throws IOException {
+    URI url;
+    ObjectNode body = MAPPER.createObjectNode();
+    body.put("messaging_type", "RESPONSE")
+        .putObject("recipient")
+        .put("id", message.recipientId().toString());
+    body.putObject("message").put("text", message.message());
+    String bodyString;
+    try {
+      bodyString = MAPPER.writeValueAsString(body);
+      url =
+          new URIBuilder(baseURLFactory.apply(message.senderId()))
+              .addParameter("access_token", accessToken)
+              .build();
+    } catch (JsonProcessingException | URISyntaxException e) {
+      // should be impossible
+      throw new RuntimeException(e);
+    }
+
+    Response response =
+        Request.post(url).bodyString(bodyString, ContentType.APPLICATION_JSON).execute();
+    HttpResponse responseContent = response.returnResponse();
+    if (responseContent.getCode() != 200) {
+      throw new IOException(
+          "received a "
+              + responseContent.getCode()
+              + " error code when attempting to reply. "
+              + responseContent.getReasonPhrase());
+    }
+  }
 
   @Override
   public Collection<HandlerType> handlers() {

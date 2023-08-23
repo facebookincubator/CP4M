@@ -19,22 +19,25 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Pipeline<T extends Message> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(Pipeline.class);
   private final ExecutorService executorService = Executors.newCachedThreadPool();
   private final MessageHandler<T> handler;
   private final ChatStore<T> store;
   private final LLMHandler<T> llmHandler;
 
-  private final String endpoint;
+  private final String path;
 
   public Pipeline(
-      ChatStore<T> store, MessageHandler<T> handler, LLMHandler<T> llmHandler, String endpoint) {
+      ChatStore<T> store, MessageHandler<T> handler, LLMHandler<T> llmHandler, String path) {
     this.handler = Objects.requireNonNull(handler);
     this.store = Objects.requireNonNull(store);
     this.llmHandler = llmHandler;
-    this.endpoint = endpoint;
+    this.path = path;
   }
 
   void handle(Context ctx) {
@@ -47,13 +50,23 @@ public class Pipeline<T extends Message> {
   }
 
   public void register(Javalin app) {
-    handler.handlers().forEach(m -> app.addHandler(m, endpoint, this::handle));
+    handler.handlers().forEach(m -> app.addHandler(m, path, this::handle));
+  }
+
+  public String path() {
+    return path;
   }
 
   private void execute(MessageStack<T> stack) {
     System.out.println(stack.messages().get(stack.messages().size() - 1).message());
     T llmResponse = llmHandler.handle(stack);
     store.add(llmResponse);
-    handler.respond(llmResponse);
+    try {
+      handler.respond(llmResponse);
+    } catch (Exception e) {
+      LOGGER.error("failed to respond to user", e);
+      // TODO: create transactional store add
+      // TODO: retry
+    }
   }
 }

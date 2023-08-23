@@ -10,6 +10,7 @@ package com.meta.chatbridge.message;
 
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
@@ -28,7 +29,7 @@ public interface MessageHandler<T extends Message> {
    *
    * @param message the response
    */
-  void respond(T message);
+  void respond(T message) throws IOException;
 
   /**
    * @return The different {@link HandlerType}s that this handler expects to receive

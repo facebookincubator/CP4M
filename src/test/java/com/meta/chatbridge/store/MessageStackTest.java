@@ -54,8 +54,8 @@ class MessageStackTest {
     TestMessage message2 = new TestMessage(start.plusSeconds(1));
     MessageStack<TestMessage> ms = MessageStack.of(Lists.newArrayList(message1, message2));
     assertThat(ms.messages()).hasSize(2);
-    assertThat(ms.messages()).first().isSameAs(message1);
-    assertThat(ms.messages()).last().isSameAs(message2);
+    assertThat(ms.messages().get(0)).isSameAs(message1);
+    assertThat(ms.messages().get(1)).isSameAs(message2);
 
     ms = MessageStack.of(List.of());
     assertThat(ms.messages()).hasSize(0);
@@ -63,8 +63,8 @@ class MessageStackTest {
     assertThat(ms.messages()).hasSize(1);
     ms = ms.with(message2);
     assertThat(ms.messages()).hasSize(2);
-    assertThat(ms.messages()).first().isSameAs(message1);
-    assertThat(ms.messages()).last().isSameAs(message2);
+    assertThat(ms.messages().get(0)).isSameAs(message1);
+    assertThat(ms.messages().get(1)).isSameAs(message2);
   }
 
   @Test
@@ -73,15 +73,15 @@ class MessageStackTest {
     TestMessage message1 = new TestMessage(start);
     TestMessage message2 = new TestMessage(start.plusSeconds(1));
     MessageStack<TestMessage> ms = MessageStack.of(Lists.newArrayList(message2, message1));
-    assertThat(ms.messages()).first().isSameAs(message1);
-    assertThat(ms.messages()).last().isSameAs(message2);
+    assertThat(ms.messages().get(0)).isSameAs(message1);
+    assertThat(ms.messages().get(1)).isSameAs(message2);
 
     ms = MessageStack.of(List.of());
     ms = ms.with(message2);
     assertThat(ms.messages()).hasSize(1);
     ms = ms.with(message1);
     assertThat(ms.messages()).hasSize(2);
-    assertThat(ms.messages()).first().isSameAs(message1);
-    assertThat(ms.messages()).last().isSameAs(message2);
+    assertThat(ms.messages().get(0)).isSameAs(message1);
+    assertThat(ms.messages().get(1)).isSameAs(message2);
   }
 }
