@@ -41,4 +41,8 @@ public class MemoryStore<T extends Message> implements ChatStore<T> {
               return v.with(message);
             });
   }
+
+  public long size() {
+    return store.size();
+  }
 }

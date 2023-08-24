@@ -38,6 +38,10 @@ public class DummyFBMessageLLMHandler implements LLMHandler<FBMessage> {
     return receivedMessageStacks.take();
   }
 
+  public @Nullable MessageStack<FBMessage> poll() {
+    return receivedMessageStacks.poll();
+  }
+
   public String dummyResponse() {
     return dummyLLMResponse;
   }

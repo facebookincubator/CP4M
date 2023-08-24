@@ -57,6 +57,10 @@ public class Pipeline<T extends Message> {
     return path;
   }
 
+  public MessageHandler<T> messageHandler() {
+    return this.handler;
+  }
+
   private void execute(MessageStack<T> stack) {
     System.out.println(stack.messages().get(stack.messages().size() - 1).message());
     T llmResponse = llmHandler.handle(stack);

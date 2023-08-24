@@ -11,9 +11,9 @@ package com.meta.chatbridge.message;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.chatbridge.FBID;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import java.io.IOException;
@@ -40,16 +40,18 @@ import org.slf4j.LoggerFactory;
 
 public class FBMessageHandler implements MessageHandler<FBMessage> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(FBMessageHandler.class);
-
   private static final String API_VERSION = "v17.0";
   private static final JsonMapper MAPPER = new JsonMapper();
 
   private final String verifyToken;
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(FBMessageHandler.class);
+
   private final String appSecret;
 
   private final String accessToken;
+
+  private final Deduplicator<JsonNode> bodyDeduplicator = new Deduplicator<>(10_000);
   private Function<FBID, URI> baseURLFactory =
       pageId -> {
         try {
@@ -90,9 +92,20 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         }
         default -> throw new UnsupportedOperationException("Only accepting get and post methods");
       }
+    } catch (JsonProcessingException | NullPointerException e) {
+      LOGGER
+          .atWarn()
+          .setMessage("Unable to parse message form Meta webhook")
+          .setCause(e)
+          .addKeyValue("body", ctx.body())
+          .addKeyValue("headers", ctx.headerMap())
+          .log();
+      throw new BadRequestResponse("Invalid body");
     } catch (RuntimeException e) {
+      LOGGER.error(e.getMessage(), e);
       throw e;
     } catch (Exception e) {
+      LOGGER.error(e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -107,7 +120,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     return Collections.emptyList();
   }
 
-  private String hmac(String body) {
+  String hmac(String body) {
     Objects.requireNonNull(appSecret);
     Mac sha256HMAC;
     SecretKeySpec secretKey;
@@ -138,12 +151,17 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         .get();
 
     JsonNode body = MAPPER.readTree(ctx.body());
-    String object = body.get("object").asText();
+    String object = body.get("object").textValue();
     if (!object.equals("page")) {
+      LOGGER
+          .atWarn()
+          .setMessage("received body that has a different value for 'object' than 'page'")
+          .addKeyValue("body", ctx.body())
+          .log();
       return Collections.emptyList();
     }
     // TODO: need better validation
-    ArrayNode entries = (ArrayNode) body.get("entry");
+    JsonNode entries = body.get("entry");
     ArrayList<FBMessage> output = new ArrayList<>();
     for (JsonNode entry : entries) {
       @Nullable JsonNode messaging = entry.get("messaging");
@@ -151,6 +169,11 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         continue;
       }
       for (JsonNode message : messaging) {
+
+        if (bodyDeduplicator.addAndGetIsDuplicate(message)) {
+          continue;
+        }
+
         FBID senderId = FBID.from(message.get("sender").get("id").asLong());
         FBID recipientId = FBID.from(message.get("recipient").get("id").asLong());
         Instant timestamp = Instant.ofEpochMilli(message.get("timestamp").asLong());
@@ -167,10 +190,6 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     }
 
     return output;
-  }
-
-  private String jsonObject(String key, String value) throws JsonProcessingException {
-    return MAPPER.writeValueAsString(MAPPER.createObjectNode().put(key, value));
   }
 
   @Override
