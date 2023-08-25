@@ -29,7 +29,7 @@ public class MemoryStore<T extends Message> implements ChatStore<T> {
   }
 
   @Override
-  public synchronized MessageStack<T> add(T message) {
+  public MessageStack<T> add(T message) {
     return this.store
         .asMap()
         .compute(

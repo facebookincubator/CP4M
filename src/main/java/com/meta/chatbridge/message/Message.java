@@ -32,8 +32,4 @@ public interface Message {
     USER,
     SYSTEM
   }
-
-  default ConversationId conversationId() {
-    return new ConversationId(recipientId(), senderId());
-  }
 }

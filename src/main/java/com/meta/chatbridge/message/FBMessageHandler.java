@@ -42,11 +42,8 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
 
   private static final String API_VERSION = "v17.0";
   private static final JsonMapper MAPPER = new JsonMapper();
-
-  private final String verifyToken;
-
   private static final Logger LOGGER = LoggerFactory.getLogger(FBMessageHandler.class);
-
+  private final String verifyToken;
   private final String appSecret;
 
   private final String accessToken;
@@ -121,7 +118,6 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   }
 
   String hmac(String body) {
-    Objects.requireNonNull(appSecret);
     Mac sha256HMAC;
     SecretKeySpec secretKey;
     try {
