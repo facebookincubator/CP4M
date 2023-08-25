@@ -8,14 +8,14 @@
 
 package com.meta.chatbridge.message;
 
-import com.meta.chatbridge.FBID;
+import com.meta.chatbridge.Identifier;
 import java.time.Instant;
 
 public record FBMessage(
     Instant timestamp,
-    String instanceId,
-    FBID senderId,
-    FBID recipientId,
+    Identifier instanceId,
+    Identifier senderId,
+    Identifier recipientId,
     String message,
     Role role)
     implements Message {}

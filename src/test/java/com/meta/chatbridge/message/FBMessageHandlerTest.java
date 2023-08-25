@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableMap;
-import com.meta.chatbridge.FBID;
+import com.meta.chatbridge.Identifier;
 import com.meta.chatbridge.Pipeline;
 import com.meta.chatbridge.PipelinesRunner;
 import com.meta.chatbridge.llm.DummyFBMessageLLMHandler;
@@ -165,7 +165,7 @@ class FBMessageHandlerTest {
     return createMessageRequest(body, runner, true);
   }
 
-  private Function<FBID, URI> testURLFactoryFactory(FBID pageId) {
+  private Function<Identifier, URI> testURLFactoryFactory(Identifier pageId) {
     return p -> {
       assertThat(p).isEqualTo(pageId);
       try {
@@ -310,7 +310,7 @@ class FBMessageHandlerTest {
       int timesToSendMessage)
       throws Exception {
     String path = "/testfbmessage";
-    FBID pageId = FBID.from(106195825075770L);
+    Identifier pageId = Identifier.from(106195825075770L);
     String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake don't worry
     String secret = "f74a638462f975e9eadfcbb84e4aa06b"; // it's been rolled don't worry
     FBMessageHandler messageHandler = new FBMessageHandler("0", token, secret);
@@ -341,13 +341,14 @@ class FBMessageHandlerTest {
       JsonNode messageObject = PARSED_SAMPLE_MESSAGE.get("entry").get(0).get("messaging").get(0);
       String messageText = messageObject.get("message").get("text").textValue();
       String mid = messageObject.get("message").get("mid").textValue();
-      FBID recipientId = FBID.from(messageObject.get("recipient").get("id").textValue());
-      FBID senderId = FBID.from(messageObject.get("sender").get("id").textValue());
+      Identifier recipientId =
+          Identifier.from(messageObject.get("recipient").get("id").textValue());
+      Identifier senderId = Identifier.from(messageObject.get("sender").get("id").textValue());
       Instant timestamp = Instant.ofEpochMilli(messageObject.get("timestamp").longValue());
       assertThat(stack.messages())
           .hasSize(1)
           .allSatisfy(m -> assertThat(m.message()).isEqualTo(messageText))
-          .allSatisfy(m -> assertThat(m.instanceId()).isEqualTo(mid))
+          .allSatisfy(m -> assertThat(m.instanceId().toString()).isEqualTo(mid))
           .allSatisfy(m -> assertThat(m.role()).isSameAs(Role.USER))
           .allSatisfy(m -> assertThat(m.timestamp()).isEqualTo(timestamp))
           .allSatisfy(m -> assertThat(m.recipientId()).isEqualTo(recipientId))
@@ -360,7 +361,7 @@ class FBMessageHandlerTest {
           .allSatisfy(t -> assertThat(t).isEqualTo(token));
       JsonNode body = MAPPER.readTree(r.body);
       assertThat(body.get("messaging_type").textValue()).isEqualTo("RESPONSE");
-      assertThat(body.get("recipient").get("id").asLong()).isEqualTo(senderId.longValue());
+      assertThat(body.get("recipient").get("id").textValue()).isEqualTo(senderId.toString());
       assertThat(body.get("message").get("text").textValue()).isEqualTo(llmHandler.dummyResponse());
     }
   }

@@ -8,6 +8,7 @@
 
 package com.meta.chatbridge.llm;
 
+import com.meta.chatbridge.Identifier;
 import com.meta.chatbridge.message.FBMessage;
 import com.meta.chatbridge.message.Message;
 import com.meta.chatbridge.store.MessageStack;
@@ -53,7 +54,7 @@ public class DummyFBMessageLLMHandler implements LLMHandler<FBMessage> {
         messageStack.messages().stream().filter(m -> m.role() == Message.Role.USER).findAny().get();
     return new FBMessage(
         Instant.now(),
-        "test_message",
+        Identifier.from("test_message"),
         inbound.recipientId(),
         inbound.senderId(),
         dummyLLMResponse,

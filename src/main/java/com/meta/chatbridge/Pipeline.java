@@ -25,8 +25,6 @@ public class Pipeline<T extends Message> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Pipeline.class);
   private final ExecutorService executorService = Executors.newCachedThreadPool();
-  private final ScheduledExecutorService scheduledExecutorService =
-      Executors.newSingleThreadScheduledExecutor();
   private final MessageHandler<T> handler;
   private final ChatStore<T> store;
   private final LLMHandler<T> llmHandler;
@@ -70,9 +68,7 @@ public class Pipeline<T extends Message> {
     } catch (Exception e) {
       LOGGER.error("failed to respond to user", e);
       // TODO: create transactional store add
-      // TODO: implement exponential backoff
-      scheduledExecutorService.schedule(
-          () -> executorService.submit(() -> stack), 30, TimeUnit.SECONDS);
+      // TODO: implement retry with exponential backoff
     }
   }
 }

@@ -11,7 +11,7 @@ package com.meta.chatbridge.store;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.Lists;
-import com.meta.chatbridge.FBID;
+import com.meta.chatbridge.Identifier;
 import com.meta.chatbridge.message.Message;
 import java.time.Instant;
 import java.util.List;
@@ -22,18 +22,18 @@ class MessageStackTest {
   record TestMessage(Instant timestamp) implements Message {
 
     @Override
-    public String instanceId() {
-      return "0";
+    public Identifier instanceId() {
+      return Identifier.from("0");
     }
 
     @Override
-    public FBID senderId() {
-      return FBID.from(0);
+    public Identifier senderId() {
+      return Identifier.from(0);
     }
 
     @Override
-    public FBID recipientId() {
-      return FBID.from(0);
+    public Identifier recipientId() {
+      return Identifier.from(0);
     }
 
     @Override

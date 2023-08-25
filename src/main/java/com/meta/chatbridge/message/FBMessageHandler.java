@@ -12,7 +12,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.meta.chatbridge.FBID;
+import com.meta.chatbridge.Identifier;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
@@ -34,6 +34,7 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.net.URIBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.common.returnsreceiver.qual.This;
 import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +50,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   private final String accessToken;
 
   private final Deduplicator<JsonNode> bodyDeduplicator = new Deduplicator<>(10_000);
-  private Function<FBID, URI> baseURLFactory =
+  private Function<Identifier, URI> baseURLFactory =
       pageId -> {
         try {
           return new URIBuilder()
@@ -72,7 +73,8 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   }
 
   @TestOnly
-  FBMessageHandler baseURLFactory(Function<FBID, URI> baseURLFactory) {
+  @This
+  FBMessageHandler baseURLFactory(Function<Identifier, URI> baseURLFactory) {
     this.baseURLFactory = Objects.requireNonNull(baseURLFactory);
     return this;
   }
@@ -170,12 +172,12 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
           continue;
         }
 
-        FBID senderId = FBID.from(message.get("sender").get("id").asLong());
-        FBID recipientId = FBID.from(message.get("recipient").get("id").asLong());
+        Identifier senderId = Identifier.from(message.get("sender").get("id").asLong());
+        Identifier recipientId = Identifier.from(message.get("recipient").get("id").asLong());
         Instant timestamp = Instant.ofEpochMilli(message.get("timestamp").asLong());
         @Nullable JsonNode messageObject = message.get("message");
         if (messageObject != null) {
-          String messageId = messageObject.get("mid").textValue();
+          Identifier messageId = Identifier.from(messageObject.get("mid").textValue());
           String messageText = messageObject.get("text").textValue();
           FBMessage m =
               new FBMessage(
