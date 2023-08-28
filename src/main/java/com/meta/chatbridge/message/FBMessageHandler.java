@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.chatbridge.Identifier;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HandlerType;
 import java.io.IOException;
 import java.net.URI;
@@ -49,7 +50,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
 
   private final String accessToken;
 
-  private final Deduplicator<JsonNode> bodyDeduplicator = new Deduplicator<>(10_000);
+  private final Deduplicator<Identifier> messageDeduplicator = new Deduplicator<>(10_000);
   private Function<Identifier, URI> baseURLFactory =
       pageId -> {
         try {
@@ -146,15 +147,16 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
               return hashParts[1].equals(calculatedHmac);
             },
             "X-Hub-Signature-256 could not be validated")
-        .get();
+        .getOrThrow(ignored -> new ForbiddenResponse("X-Hub-Signature-256 could not be validated"));
 
-    JsonNode body = MAPPER.readTree(ctx.body());
+    String bodyString = ctx.body();
+    JsonNode body = MAPPER.readTree(bodyString);
     String object = body.get("object").textValue();
     if (!object.equals("page")) {
       LOGGER
           .atWarn()
           .setMessage("received body that has a different value for 'object' than 'page'")
-          .addKeyValue("body", ctx.body())
+          .addKeyValue("body", bodyString)
           .log();
       return Collections.emptyList();
     }
@@ -168,21 +170,42 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
       }
       for (JsonNode message : messaging) {
 
-        if (bodyDeduplicator.addAndGetIsDuplicate(message)) {
-          continue;
-        }
-
         Identifier senderId = Identifier.from(message.get("sender").get("id").asLong());
         Identifier recipientId = Identifier.from(message.get("recipient").get("id").asLong());
         Instant timestamp = Instant.ofEpochMilli(message.get("timestamp").asLong());
         @Nullable JsonNode messageObject = message.get("message");
         if (messageObject != null) {
+          // https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/messages
           Identifier messageId = Identifier.from(messageObject.get("mid").textValue());
-          String messageText = messageObject.get("text").textValue();
-          FBMessage m =
-              new FBMessage(
-                  timestamp, messageId, senderId, recipientId, messageText, Message.Role.USER);
-          output.add(m);
+          if (messageDeduplicator.addAndGetIsDuplicate(messageId)) {
+            continue;
+          }
+
+          @Nullable JsonNode textObject = messageObject.get("text");
+          if (textObject != null && textObject.isTextual()) {
+            FBMessage m =
+                new FBMessage(
+                    timestamp,
+                    messageId,
+                    senderId,
+                    recipientId,
+                    textObject.textValue(),
+                    Message.Role.USER);
+            output.add(m);
+          } else {
+            LOGGER
+                .atWarn()
+                .setMessage("received message without text, unable to handle this")
+                .addKeyValue("body", bodyString)
+                .log();
+          }
+        } else {
+          LOGGER
+              .atWarn()
+              .setMessage(
+                  "received a message without a 'message' key, unable to handle this message type")
+              .addKeyValue("body", bodyString)
+              .log();
         }
       }
     }

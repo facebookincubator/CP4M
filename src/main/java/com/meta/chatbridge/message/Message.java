@@ -13,7 +13,6 @@ import java.time.Instant;
 
 public interface Message {
 
-
   Instant timestamp();
 
   Identifier instanceId();
@@ -33,9 +32,9 @@ public interface Message {
   }
 
   default Identifier conversationId() {
-    if (senderId().compare(senderId(), recipientId()) >= 0) {
-      return Identifier.from(senderId().toString() + recipientId());
+    if (senderId().compareTo(recipientId()) >= 0) {
+      return Identifier.from(senderId().toString() + '|' + recipientId());
     }
-    return Identifier.from(recipientId().toString() + senderId());
+    return Identifier.from(recipientId().toString() + '|' + senderId());
   }
 }

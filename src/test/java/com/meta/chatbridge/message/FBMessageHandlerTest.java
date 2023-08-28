@@ -279,14 +279,22 @@ class FBMessageHandlerTest {
                         r),
                 false),
             new TestArgument(
-                "missing hmac", 400, r -> createMessageRequest(SAMPLE_MESSAGE, r, false), false),
+                "message object without text",
+                200,
+                r ->
+                    createMessageRequest(
+                        "{\"object\": \"page\", \"entry\": [{\"messaging\": [{\"recipient\": {\"id\": 123}, \"sender\": {\"id\": 123}, \"timestamp\": 0, \"message\": {\"mid\": \"abc123789\"}}]}]}",
+                        r),
+                false),
+            new TestArgument(
+                "missing hmac", 403, r -> createMessageRequest(SAMPLE_MESSAGE, r, false), false),
             new TestArgument(
                 "invalid json", 400, r -> createMessageRequest("invalid_json.", r), false),
             new TestArgument(
                 "valid json, invalid body", 400, r -> createMessageRequest("{}", r), false),
             new TestArgument(
                 "invalid hmac",
-                400,
+                403,
                 r ->
                     createMessageRequest(SAMPLE_MESSAGE, r, false)
                         .addHeader("X-Hub-Signature-256", "abcdef0123456789"),

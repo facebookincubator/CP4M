@@ -10,9 +10,10 @@ package com.meta.chatbridge;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
-public class Identifier implements Comparator<Identifier> {
+public class Identifier implements Comparable<Identifier> {
 
   private final byte[] id;
 
@@ -34,11 +35,6 @@ public class Identifier implements Comparator<Identifier> {
   }
 
   @Override
-  public int compare(Identifier o1, Identifier o2) {
-    return Comparator.<String>naturalOrder().compare(o1.toString(), o2.toString());
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
@@ -49,5 +45,11 @@ public class Identifier implements Comparator<Identifier> {
   @Override
   public int hashCode() {
     return Arrays.hashCode(id);
+  }
+
+  @Override
+  public int compareTo(@NotNull Identifier o) {
+    Objects.requireNonNull(o);
+    return toString().compareTo(o.toString());
   }
 }
