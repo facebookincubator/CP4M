@@ -32,7 +32,7 @@ public interface Message {
   }
 
   default Identifier conversationId() {
-    if (senderId().compareTo(recipientId()) >= 0) {
+    if (senderId().compareTo(recipientId()) <= 0) {
       return Identifier.from(senderId().toString() + '|' + recipientId());
     }
     return Identifier.from(recipientId().toString() + '|' + senderId());
