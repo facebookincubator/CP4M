@@ -21,7 +21,5 @@ import com.meta.chatbridge.message.Message;
  */
 public interface ChatStore<T extends Message> {
 
-  void add(T message);
-
-  MessageStack<T> get();
+  MessageStack<T> add(T message);
 }

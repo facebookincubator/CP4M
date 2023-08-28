@@ -8,17 +8,18 @@
 
 package com.meta.chatbridge.message;
 
-import com.meta.chatbridge.FBID;
+import com.meta.chatbridge.Identifier;
 import java.time.Instant;
 
 public interface Message {
+
   Instant timestamp();
 
-  FBID conversationId();
+  Identifier instanceId();
 
-  FBID senderId();
+  Identifier senderId();
 
-  FBID recipientId();
+  Identifier recipientId();
 
   String message();
 
@@ -28,5 +29,12 @@ public interface Message {
     ASSISTANT,
     USER,
     SYSTEM
+  }
+
+  default Identifier conversationId() {
+    if (senderId().compareTo(recipientId()) <= 0) {
+      return Identifier.from(senderId().toString() + '|' + recipientId());
+    }
+    return Identifier.from(recipientId().toString() + '|' + senderId());
   }
 }
