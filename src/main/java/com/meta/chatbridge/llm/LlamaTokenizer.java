@@ -12,14 +12,14 @@ import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
-import com.meta.chatbridge.message.FBMessage;
+import com.meta.chatbridge.store.MessageStack;
 import com.meta.chatbridge.message.Message;
 
 import java.util.*;
 
 public class LlamaTokenizer {
 
-    private final int MAX_TOKENS = 4096;
+    private final int MAX_TOKENS = 4000; // We subtract 96 to be safe when accounting for different counting of tokens between models
     private final int MAX_RESPONSE_TOKENS = 256;
     private final int MAX_CONTEXT_TOKENS = 1536;
 
@@ -49,23 +49,12 @@ public class LlamaTokenizer {
      *
      * @param context        The "system message" context string, possibly needs to be updated to be more complicated and different across Llama and ChatGPT
      * @param history        The history of messages. The last message is the user question, do not remove it.
-     * @return The capped messages that can be sent to the OpenAI API.
+     * @return The capped messages that can be sent to the Llama endpoint.
      */
-    private List<Message> capMessages(String context,
-                                                    List<Message> history) {
-        var availableTokens = MAX_TOKENS - getContextStringTokens(context);
-        var cappedHistory = new ArrayList<>(history);
-        // Update history to use messagestack
-
-//        Message contextMessage =
-//                new Message(
-//                        timestamp,
-//                        messageId,
-//                        senderId,
-//                        recipientId,
-//                        context,
-//                        Message.Role.SYSTEM);
-//        Where should this be set? Do we want to bother with initializing a context message for every user?
+    public List<Message> getCappedMessages(String context,
+                                           MessageStack history) {
+        var availableTokens = MAX_TOKENS - MAX_RESPONSE_TOKENS - getContextStringTokens(context);
+        var cappedHistory = new ArrayList<>(history.messages());
 
         var tokens = getTokenCount(cappedHistory);
 
@@ -105,7 +94,7 @@ public class LlamaTokenizer {
      * @return The number of tokens in the message
      */
     private int getMessageTokenCount(Message message) {
-        var tokens = 4; // every message follows <|start|>{role/name}\n{content}<|end|>\n
+        var tokens = 4; // Also figure out the basic token overhead here
 
         tokens += tokenizer.encode(message.role().toString()).size();
         tokens += tokenizer.encode(message.message()).size();

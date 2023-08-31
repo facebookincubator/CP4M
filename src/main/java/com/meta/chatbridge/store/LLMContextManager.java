@@ -9,13 +9,13 @@
 package com.meta.chatbridge.store;
 
 public class LLMContextManager {
-    private static String context = "";
+    private final String context;
 
-    public static void setContext(String newContext) {
-        context = newContext;
+    public LLMContextManager(String context) {
+        this.context = context;
     }
 
-    public static String getContext() {
+    public String getContext() {
         return context;
     }
 }

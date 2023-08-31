@@ -55,7 +55,7 @@ public class AmazonRequestSignatureV4Utils {
             String awsIdentity, String awsSecret, String awsRegion, String awsService
     ) {
         try {
-            String bodySha256 = hex(sha256(body));
+            String bodySha256 = "UNSIGNED-PAYLOAD"; // hex(sha256(body));
             String isoJustDate = isoDateTime.substring(0, 8); // Cut the date portion of a string like '20150830T123600Z';
 
             headers.put("Host", host);
@@ -63,8 +63,11 @@ public class AmazonRequestSignatureV4Utils {
             headers.put("X-Amz-Date", isoDateTime);
 
             // (1) https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
+//            String canon = "POST" +
+//            System.out.println(canon.getBytes(StandardCharsets.UTF_8));
+
             List<String> canonicalRequestLines = new ArrayList<>();
-            canonicalRequestLines.add(method);
+//            canonicalRequestLines.add(method);
             canonicalRequestLines.add(path);
             canonicalRequestLines.add(query);
             List<String> hashedHeaders = new ArrayList<>();
@@ -88,6 +91,7 @@ public class AmazonRequestSignatureV4Utils {
             stringToSignLines.add(credentialScope);
             stringToSignLines.add(canonicalRequestHash);
             String stringToSign = stringToSignLines.stream().collect(Collectors.joining("\n"));
+            System.out.println(stringToSign);
 
             // (3) https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
             byte[] kDate = hmac(("AWS4" + awsSecret).getBytes(StandardCharsets.UTF_8), isoJustDate);
