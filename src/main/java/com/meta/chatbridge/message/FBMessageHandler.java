@@ -26,6 +26,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.hc.client5.http.fluent.Request;
@@ -73,11 +74,11 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     this.accessToken = pageAccessToken;
   }
 
-  @TestOnly
-  @This
-  FBMessageHandler baseURLFactory(Function<Identifier, URI> baseURLFactory) {
-    this.baseURLFactory = Objects.requireNonNull(baseURLFactory);
-    return this;
+  private static Stream<String> textChunker(String text, String regexSeparator) {
+    if (text.length() > 2000) {
+      return Arrays.stream(text.split(regexSeparator)).map(String::strip);
+    }
+    return Stream.of(text);
   }
 
   @Override
@@ -213,19 +214,37 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     return output;
   }
 
+  @TestOnly
+  public @This FBMessageHandler baseURLFactory(Function<Identifier, URI> baseURLFactory) {
+    this.baseURLFactory = Objects.requireNonNull(baseURLFactory);
+    return this;
+  }
+
   @Override
   public void respond(FBMessage message) throws IOException {
+    List<String> chunkedText =
+        Stream.of(message.message().strip())
+            .flatMap(m -> textChunker(m, "\n\n\n+"))
+            .flatMap(m -> textChunker(m, "\n\n"))
+            .flatMap(m -> textChunker(m, "\n"))
+            .flatMap(m -> textChunker(m, "\\. +"))
+            .flatMap(m -> textChunker(m, " +"))
+            .toList();
+    for (String text : chunkedText) {
+      send(text, message.recipientId(), message.senderId());
+    }
+  }
+
+  private void send(String message, Identifier recipient, Identifier sender) throws IOException {
     URI url;
     ObjectNode body = MAPPER.createObjectNode();
-    body.put("messaging_type", "RESPONSE")
-        .putObject("recipient")
-        .put("id", message.recipientId().toString());
-    body.putObject("message").put("text", message.message());
+    body.put("messaging_type", "RESPONSE").putObject("recipient").put("id", recipient.toString());
+    body.putObject("message").put("text", message);
     String bodyString;
     try {
       bodyString = MAPPER.writeValueAsString(body);
       url =
-          new URIBuilder(baseURLFactory.apply(message.senderId()))
+          new URIBuilder(baseURLFactory.apply(sender))
               .addParameter("access_token", accessToken)
               .build();
     } catch (JsonProcessingException | URISyntaxException e) {
@@ -237,6 +256,13 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         Request.post(url).bodyString(bodyString, ContentType.APPLICATION_JSON).execute();
     HttpResponse responseContent = response.returnResponse();
     if (responseContent.getCode() != 200) {
+      String errorMessage =
+          "received a "
+              + responseContent.getCode()
+              + " error code when attempting to reply. "
+              + responseContent.getReasonPhrase();
+
+      LOGGER.atError().addKeyValue("body", bodyString).setMessage(errorMessage).log();
       throw new IOException(
           "received a "
               + responseContent.getCode()

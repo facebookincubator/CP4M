@@ -8,58 +8,40 @@
 
 package com.meta.chatbridge.store;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.*;
 
-import com.google.common.collect.Lists;
 import com.meta.chatbridge.Identifier;
+import com.meta.chatbridge.message.FBMessage;
 import com.meta.chatbridge.message.Message;
+import com.meta.chatbridge.message.MessageFactory;
+import com.meta.chatbridge.message.MessageStack;
 import java.time.Instant;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class MessageStackTest {
 
-  record TestMessage(Instant timestamp) implements Message {
-
-    @Override
-    public Identifier instanceId() {
-      return Identifier.from("0");
-    }
-
-    @Override
-    public Identifier senderId() {
-      return Identifier.from(0);
-    }
-
-    @Override
-    public Identifier recipientId() {
-      return Identifier.from(0);
-    }
-
-    @Override
-    public String message() {
-      return "";
-    }
-
-    @Override
-    public Role role() {
-      return Role.SYSTEM;
-    }
-  }
+  private static final MessageFactory<FBMessage> FACTORY = MessageFactory.instance(FBMessage.class);
 
   @Test
   void orderPreservation() {
     Instant start = Instant.now();
-    TestMessage message1 = new TestMessage(start);
-    TestMessage message2 = new TestMessage(start.plusSeconds(1));
-    MessageStack<TestMessage> ms = MessageStack.of(Lists.newArrayList(message1, message2));
+    FBMessage message1 =
+        FACTORY.newMessage(
+            start,
+            "sample message",
+            Identifier.random(),
+            Identifier.random(),
+            Identifier.random(),
+            Message.Role.USER);
+
+    MessageStack<FBMessage> ms = MessageStack.of(message1);
+    FBMessage message2 = ms.newMessageFromBot(start.plusSeconds(1), "other sample message");
+    ms = ms.with(message2);
     assertThat(ms.messages()).hasSize(2);
     assertThat(ms.messages().get(0)).isSameAs(message1);
     assertThat(ms.messages().get(1)).isSameAs(message2);
 
-    ms = MessageStack.of(List.of());
-    assertThat(ms.messages()).hasSize(0);
-    ms = ms.with(message1);
+    ms = MessageStack.of(message1);
     assertThat(ms.messages()).hasSize(1);
     ms = ms.with(message2);
     assertThat(ms.messages()).hasSize(2);
@@ -70,18 +52,105 @@ class MessageStackTest {
   @Test
   void orderCorrection() {
     Instant start = Instant.now();
-    TestMessage message1 = new TestMessage(start);
-    TestMessage message2 = new TestMessage(start.plusSeconds(1));
-    MessageStack<TestMessage> ms = MessageStack.of(Lists.newArrayList(message2, message1));
+    FBMessage message2 =
+        FACTORY.newMessage(
+            start,
+            "sample message",
+            Identifier.random(),
+            Identifier.random(),
+            Identifier.random(),
+            Message.Role.USER);
+    MessageStack<FBMessage> ms = MessageStack.of(message2);
+
+    FBMessage message1 = ms.newMessageFromBot(start.minusSeconds(1), "other sample message");
+
+    ms = ms.with(message1);
     assertThat(ms.messages().get(0)).isSameAs(message1);
     assertThat(ms.messages().get(1)).isSameAs(message2);
 
-    ms = MessageStack.of(List.of());
-    ms = ms.with(message2);
+    ms = MessageStack.of(message2);
     assertThat(ms.messages()).hasSize(1);
     ms = ms.with(message1);
     assertThat(ms.messages()).hasSize(2);
     assertThat(ms.messages().get(0)).isSameAs(message1);
     assertThat(ms.messages().get(1)).isSameAs(message2);
+  }
+
+  @Test
+  void botAndUserId() {
+    Instant start = Instant.now();
+    FBMessage message1 =
+        FACTORY.newMessage(
+            start,
+            "sample message",
+            Identifier.random(),
+            Identifier.random(),
+            Identifier.random(),
+            Message.Role.USER);
+
+    MessageStack<FBMessage> ms = MessageStack.of(message1);
+    FBMessage message2 =
+        FACTORY.newMessage(
+            start,
+            "sample message",
+            message1.recipientId(),
+            message1.senderId(),
+            Identifier.random(),
+            Message.Role.ASSISTANT);
+
+    final MessageStack<FBMessage> finalMs = ms;
+    assertThatCode(() -> finalMs.with(message2)).doesNotThrowAnyException();
+    assertThatCode(() -> finalMs.with(finalMs.newMessageFromBot(start, "")))
+        .doesNotThrowAnyException();
+    assertThatCode(() -> finalMs.with(finalMs.newMessageFromUser(start, "", Identifier.random())))
+        .doesNotThrowAnyException();
+    ms = ms.with(message2);
+    assertThat(ms.userId()).isEqualTo(message1.senderId());
+    assertThat(ms.botId()).isEqualTo(message1.recipientId());
+    FBMessage mDifferentSenderId =
+        FACTORY.newMessage(
+            start,
+            "",
+            Identifier.random(),
+            message1.recipientId(),
+            Identifier.random(),
+            Message.Role.USER);
+
+    MessageStack<FBMessage> finalMs1 = ms;
+    assertThatThrownBy(() -> finalMs1.with(mDifferentSenderId))
+        .isInstanceOf(IllegalArgumentException.class);
+
+    FBMessage mDifferentRecipientId =
+        FACTORY.newMessage(
+            start,
+            "",
+            message1.senderId(),
+            Identifier.random(),
+            Identifier.random(),
+            Message.Role.USER);
+    assertThatThrownBy(() -> finalMs1.with(mDifferentRecipientId))
+        .isInstanceOf(IllegalArgumentException.class);
+
+    FBMessage illegalSenderId =
+        FACTORY.newMessage(
+            start,
+            "",
+            message1.recipientId(),
+            message1.senderId(),
+            Identifier.random(),
+            Message.Role.USER);
+    assertThatThrownBy(() -> finalMs1.with(illegalSenderId))
+        .isInstanceOf(IllegalArgumentException.class);
+
+    FBMessage illegalRecipientId =
+        FACTORY.newMessage(
+            start,
+            "",
+            message1.senderId(),
+            message1.recipientId(),
+            Identifier.random(),
+            Message.Role.ASSISTANT);
+    assertThatThrownBy(() -> finalMs1.with(illegalRecipientId))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 }

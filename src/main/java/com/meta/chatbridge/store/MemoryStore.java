@@ -12,6 +12,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.meta.chatbridge.Identifier;
 import com.meta.chatbridge.message.Message;
+import com.meta.chatbridge.message.MessageStack;
 import java.time.Duration;
 
 public class MemoryStore<T extends Message> implements ChatStore<T> {

@@ -31,10 +31,14 @@ public interface Message {
     SYSTEM
   }
 
-  default Identifier conversationId() {
-    if (senderId().compareTo(recipientId()) <= 0) {
-      return Identifier.from(senderId().toString() + '|' + recipientId());
+  static Identifier conversationId(Identifier id1, Identifier id2) {
+    if (id1.compareTo(id2) <= 0) {
+      return Identifier.from(id1.toString() + '|' + id2);
     }
-    return Identifier.from(recipientId().toString() + '|' + senderId());
+    return Identifier.from(id2.toString() + '|' + id1);
+  }
+
+  default Identifier conversationId() {
+    return conversationId(senderId(), recipientId());
   }
 }

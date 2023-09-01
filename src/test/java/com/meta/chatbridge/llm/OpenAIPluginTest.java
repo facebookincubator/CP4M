@@ -1,0 +1,213 @@
+/*
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+package com.meta.chatbridge.llm;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.meta.chatbridge.Configuration;
+import com.meta.chatbridge.Identifier;
+import com.meta.chatbridge.Pipeline;
+import com.meta.chatbridge.PipelinesRunner;
+import com.meta.chatbridge.message.*;
+import com.meta.chatbridge.message.Message.Role;
+import com.meta.chatbridge.store.ChatStore;
+import com.meta.chatbridge.store.MemoryStore;
+import io.javalin.Javalin;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+import org.apache.hc.client5.http.fluent.Request;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.net.URIBuilder;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
+
+public class OpenAIPluginTest {
+
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+  public static final JsonNode SAMPLE_RESPONSE = MAPPER.createObjectNode();
+  private static final String PATH = "/";
+  private static final String TEST_MESSAGE = "this is a test message";
+  private static final MessageStack<FBMessage> STACK =
+      MessageStack.of(
+          MessageFactory.instance(FBMessage.class)
+              .newMessage(
+                  Instant.now(),
+                  "test message",
+                  Identifier.random(),
+                  Identifier.random(),
+                  Identifier.random(),
+                  Role.USER));
+
+  static {
+    ((ObjectNode) SAMPLE_RESPONSE)
+        .put("created", Instant.now().getEpochSecond())
+        .put("object", "chat.completion")
+        .put("id", UUID.randomUUID().toString())
+        .putArray("choices")
+        .addObject()
+        .put("index", 0)
+        .put("finish_reason", "stop")
+        .putObject("message")
+        .put("role", "assistant")
+        .put("content", TEST_MESSAGE);
+  }
+
+  private BlockingQueue<OutboundRequest> openAIRequests;
+  private Javalin app;
+  private URI endpoint;
+  private ObjectNode minimalConfig;
+
+  static Stream<OpenAIConfigTest.ConfigItem> modelOptions() {
+    Set<String> non_model_options = Set.of("model", "api_key");
+    return OpenAIConfigTest.CONFIG_ITEMS.stream().filter(c -> !non_model_options.contains(c.key()));
+  }
+
+  @BeforeEach
+  void setUp() throws UnknownHostException, URISyntaxException {
+    openAIRequests = new LinkedBlockingDeque<>();
+    app = Javalin.create();
+    app.before(
+        PATH,
+        ctx ->
+            openAIRequests.add(
+                new OutboundRequest(ctx.body(), ctx.headerMap(), ctx.queryParamMap())));
+    app.post(PATH, ctx -> ctx.result(MAPPER.writeValueAsString(SAMPLE_RESPONSE)));
+    app.start(0);
+    endpoint =
+        URIBuilder.localhost().setScheme("http").appendPath(PATH).setPort(app.port()).build();
+  }
+
+  @ParameterizedTest
+  @EnumSource(OpenAIModel.class)
+  void sampleValid(OpenAIModel model) throws IOException, InterruptedException {
+    String apiKey = UUID.randomUUID().toString();
+    OpenAIConfig config = OpenAIConfig.builder(model, apiKey).build();
+    OpenAIPlugin<FBMessage> plugin = new OpenAIPlugin<FBMessage>(config).endpoint(endpoint);
+    FBMessage message = plugin.handle(STACK);
+    assertThat(message.message()).isEqualTo(TEST_MESSAGE);
+    assertThat(message.role()).isSameAs(Role.ASSISTANT);
+    assertThatCode(() -> STACK.with(message)).doesNotThrowAnyException();
+    @Nullable OutboundRequest or = openAIRequests.poll(500, TimeUnit.MILLISECONDS);
+    assertThat(or).isNotNull();
+    assertThat(or.headerMap().get("Authorization")).isNotNull().isEqualTo("Bearer " + apiKey);
+    assertThat(MAPPER.readTree(or.body()).get("model").textValue()).isEqualTo(model.toString());
+  }
+
+  @BeforeEach
+  void setUpMinConfig() {
+    minimalConfig = MAPPER.createObjectNode();
+    OpenAIConfigTest.CONFIG_ITEMS.forEach(
+        t -> {
+          if (t.required()) {
+            minimalConfig.set(t.key(), t.validValue());
+          }
+        });
+  }
+
+  @ParameterizedTest
+  @MethodSource("modelOptions")
+  void validConfigValues(OpenAIConfigTest.ConfigItem configItem)
+      throws IOException, InterruptedException {
+    minimalConfig.set(configItem.key(), configItem.validValue());
+    OpenAIConfig config = Configuration.MAPPER.convertValue(minimalConfig, OpenAIConfig.class);
+    OpenAIPlugin<FBMessage> plugin = new OpenAIPlugin<FBMessage>(config).endpoint(endpoint);
+    FBMessage message = plugin.handle(STACK);
+    assertThat(message.message()).isEqualTo(TEST_MESSAGE);
+    assertThat(message.role()).isSameAs(Role.ASSISTANT);
+    assertThatCode(() -> STACK.with(message)).doesNotThrowAnyException();
+    @Nullable OutboundRequest or = openAIRequests.poll(500, TimeUnit.MILLISECONDS);
+    assertThat(or).isNotNull();
+    assertThat(or.headerMap().get("Authorization"))
+        .isNotNull()
+        .isEqualTo("Bearer " + config.apiKey());
+    JsonNode body = Configuration.MAPPER.readTree(or.body());
+    assertThat(body.get("model").textValue()).isEqualTo(config.model().toString());
+    if (configItem.key().equals("system_message")) {
+      assertThat(body.get("messages"))
+          .satisfiesOnlyOnce(
+              m -> {
+                assertThat(m.get("role").textValue())
+                    .isEqualTo(Role.SYSTEM.toString().toLowerCase());
+                assertThat(m.get("content").textValue())
+                    .isEqualTo(configItem.validValue().textValue());
+              });
+    } else {
+      assertThat(body.get(configItem.key())).isEqualTo(minimalConfig.get(configItem.key()));
+    }
+  }
+
+  @Test
+  void inPipeline() throws IOException, URISyntaxException, InterruptedException {
+    ChatStore<FBMessage> store = new MemoryStore<>();
+    String appSecret = "app secret";
+    String accessToken = "access token";
+    String verifyToken = "verify token";
+
+    BlockingQueue<OutboundRequest> metaRequests = new LinkedBlockingDeque<>();
+    String metaPath = "/meta";
+    URI messageReceiver =
+        URIBuilder.localhost().appendPath(metaPath).setScheme("http").setPort(app.port()).build();
+    app.post(
+        metaPath,
+        ctx ->
+            metaRequests.put(
+                new OutboundRequest(ctx.body(), ctx.headerMap(), ctx.queryParamMap())));
+    FBMessageHandler handler =
+        new FBMessageHandler(verifyToken, accessToken, appSecret)
+            .baseURLFactory(ignored -> messageReceiver);
+
+    String apiKey = "api key";
+    OpenAIConfig config = OpenAIConfig.builder(OpenAIModel.GPT4, apiKey).build();
+    OpenAIPlugin<FBMessage> plugin = new OpenAIPlugin<FBMessage>(config).endpoint(endpoint);
+
+    String webhookPath = "/webhook";
+    Pipeline<FBMessage> pipeline = new Pipeline<>(store, handler, plugin, webhookPath);
+    PipelinesRunner runner = PipelinesRunner.newInstance().pipeline(pipeline).port(0);
+    runner.start();
+
+    // TODO: create test harness
+    Request request =
+        FBMessageHandlerTest.createMessageRequest(FBMessageHandlerTest.SAMPLE_MESSAGE, runner);
+    HttpResponse response = request.execute().returnResponse();
+    assertThat(response.getCode()).isEqualTo(200);
+    @Nullable OutboundRequest or = openAIRequests.poll(500, TimeUnit.MILLISECONDS);
+    assertThat(or).isNotNull();
+    assertThat(or.headerMap().get("Authorization"))
+        .isNotNull()
+        .isEqualTo("Bearer " + config.apiKey());
+    JsonNode body = Configuration.MAPPER.readTree(or.body());
+    assertThat(body.get("model").textValue()).isEqualTo(config.model().toString());
+
+    or = metaRequests.poll(500, TimeUnit.MILLISECONDS);
+    // plugin output got back to meta
+    assertThat(or).isNotNull().satisfies(r -> assertThat(r.body()).contains(TEST_MESSAGE));
+  }
+
+  private record OutboundRequest(
+      String body, Map<String, String> headerMap, Map<String, List<String>> queryParamMap) {}
+}
