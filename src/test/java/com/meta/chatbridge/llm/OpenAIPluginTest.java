@@ -10,6 +10,7 @@ package com.meta.chatbridge.llm;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -180,6 +181,40 @@ public class OpenAIPluginTest {
     FBMessage response = plugin.handle(stack);
     assertThat(response.message()).isEqualTo("I'm sorry but that request was too long for me.");
     assertThat(openAIRequests).hasSize(0);
+  }
+
+  @Test
+  void orderedCorrectly() throws IOException, InterruptedException {
+    OpenAIConfig config =
+        OpenAIConfig.builder(OpenAIModel.GPT35TURBO, "lkjasdlkjasdf").maxInputTokens(100).build();
+    OpenAIPlugin<FBMessage> plugin = new OpenAIPlugin<FBMessage>(config).endpoint(endpoint);
+    MessageStack<FBMessage> stack =
+        MessageStack.of(
+            MessageFactory.instance(FBMessage.class)
+                .newMessage(
+                    Instant.now(),
+                    "1",
+                    Identifier.random(),
+                    Identifier.random(),
+                    Identifier.random(),
+                    Role.SYSTEM));
+    stack = stack.with(stack.newMessageFromUser(Instant.now(), "2", Identifier.from(2)));
+    stack = stack.with(stack.newMessageFromUser(Instant.now(), "3", Identifier.from(3)));
+    stack = stack.with(stack.newMessageFromUser(Instant.now(), "4", Identifier.from(4)));
+    plugin.handle(stack);
+    @Nullable OutboundRequest or = openAIRequests.poll(500, TimeUnit.MILLISECONDS);
+    assertThat(or).isNotNull();
+    JsonNode body = MAPPER.readTree(or.body());
+
+    for (int i = 0; i < stack.messages().size(); i++) {
+      FBMessage stackMessage = stack.messages().get(i);
+      JsonNode sentMessage = body.get("messages").get(i);
+      assertSoftly(
+          s ->
+              s.assertThat(stackMessage.message())
+                  .isEqualTo(sentMessage.get("content").textValue()));
+      ;
+    }
   }
 
   @Test

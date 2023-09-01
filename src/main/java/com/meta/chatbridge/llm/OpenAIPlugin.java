@@ -112,11 +112,7 @@ public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
       if (totalTokens > config.maxInputTokens()) {
         break;
       }
-      if (hasSystemMessage) {
-        output.insert(1, m);
-      } else {
-        output.insert(0, m);
-      }
+      output.insert(0, m);
     }
     if (hasSystemMessage) {
       output.insert(0, systemMessage);
