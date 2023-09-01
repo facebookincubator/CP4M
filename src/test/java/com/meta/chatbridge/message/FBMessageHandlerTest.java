@@ -15,7 +15,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 import com.meta.chatbridge.Identifier;
 import com.meta.chatbridge.Pipeline;
@@ -194,12 +193,6 @@ public class FBMessageHandlerTest {
     JsonNode duplicateMessage = MAPPER.readTree(SAMPLE_MESSAGE);
     ArrayNode messagingArray = (ArrayNode) duplicateMessage.get("entry").get(0).get("messaging");
     messagingArray.add(messagingArray.get(0));
-
-    JsonNode giantMessage = MAPPER.readTree(SAMPLE_MESSAGE);
-    messagingArray = (ArrayNode) giantMessage.get("entry").get(0).get("messaging");
-    ObjectNode messageObject = (ObjectNode) messagingArray.get("message");
-    messageObject.put(
-        "text", Stream.generate(() -> "0123456789").limit(300).collect(Collectors.joining(" ")));
 
     JsonNode duplicateEntry = MAPPER.readTree(SAMPLE_MESSAGE);
     ArrayNode entryArray = (ArrayNode) duplicateMessage.get("entry");
