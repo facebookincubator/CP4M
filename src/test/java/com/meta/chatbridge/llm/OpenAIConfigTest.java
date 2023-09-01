@@ -48,7 +48,15 @@ class OpenAIConfigTest {
               DoubleNode.valueOf(0.5),
               List.of(DoubleNode.valueOf(0), DoubleNode.valueOf(1.1))),
           new ConfigItem(
-              "max_tokens",
+              "stop",
+              false,
+              MAPPER.createArrayNode().add("10").add("stop"),
+              List.of(
+                  TextNode.valueOf("I'm a stop"),
+                  DoubleNode.valueOf(10),
+                  MAPPER.createArrayNode().addObject())),
+          new ConfigItem(
+              "max_output_tokens",
               false,
               LongNode.valueOf(100),
               List.of(
@@ -75,7 +83,12 @@ class OpenAIConfigTest {
               "system_message",
               false,
               TextNode.valueOf("you're a helpful assistant"),
-              List.of(TextNode.valueOf(""), TextNode.valueOf("  "))));
+              List.of(TextNode.valueOf(""), TextNode.valueOf("  "))),
+          new ConfigItem(
+              "max_input_tokens",
+              false,
+              LongNode.valueOf(4000),
+              List.of(LongNode.valueOf(-1), LongNode.valueOf(100_000))));
   private ObjectNode minimalConfig;
 
   static Stream<ConfigItem> configItems() {
@@ -111,7 +124,7 @@ class OpenAIConfigTest {
     assertThat(config.temperature().isPresent()).isTrue();
     assertThat(config.frequencyPenalty().isPresent()).isTrue();
     assertThat(config.topP().isPresent()).isTrue();
-    assertThat(config.maxTokens().isPresent()).isTrue();
+    assertThat(config.maxOutputTokens().isPresent()).isTrue();
     assertThat(config.presencePenalty().isPresent()).isTrue();
     assertThat(config.frequencyPenalty().isPresent()).isTrue();
     assertThat(config.logitBias().isEmpty()).isFalse();
@@ -131,7 +144,7 @@ class OpenAIConfigTest {
     assertThat(config.temperature().isEmpty()).isTrue();
     assertThat(config.frequencyPenalty().isEmpty()).isTrue();
     assertThat(config.topP().isEmpty()).isTrue();
-    assertThat(config.maxTokens().isEmpty()).isTrue();
+    assertThat(config.maxOutputTokens().isEmpty()).isTrue();
     assertThat(config.presencePenalty().isEmpty()).isTrue();
     assertThat(config.frequencyPenalty().isEmpty()).isTrue();
     assertThat(config.logitBias().isEmpty()).isTrue();

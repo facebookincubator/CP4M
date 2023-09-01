@@ -35,6 +35,7 @@ import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.HttpResponse;
@@ -83,7 +84,7 @@ public class OpenAIPluginTest {
   private ObjectNode minimalConfig;
 
   static Stream<OpenAIConfigTest.ConfigItem> modelOptions() {
-    Set<String> non_model_options = Set.of("model", "api_key");
+    Set<String> non_model_options = Set.of("model", "api_key", "max_input_tokens");
     return OpenAIConfigTest.CONFIG_ITEMS.stream().filter(c -> !non_model_options.contains(c.key()));
   }
 
@@ -157,8 +158,28 @@ public class OpenAIPluginTest {
                     .isEqualTo(configItem.validValue().textValue());
               });
     } else {
-      assertThat(body.get(configItem.key())).isEqualTo(minimalConfig.get(configItem.key()));
+      if (configItem.key().equals("max_output_tokens")) {
+        assertThat(body.get("max_tokens")).isEqualTo(minimalConfig.get(configItem.key()));
+      } else {
+        assertThat(body.get(configItem.key())).isEqualTo(minimalConfig.get(configItem.key()));
+      }
     }
+  }
+
+  @Test
+  void contextTooBig() throws IOException {
+    OpenAIConfig config =
+        OpenAIConfig.builder(OpenAIModel.GPT35TURBO, "lkjasdlkjasdf").maxInputTokens(100).build();
+    OpenAIPlugin<FBMessage> plugin = new OpenAIPlugin<FBMessage>(config).endpoint(endpoint);
+    MessageStack<FBMessage> stack =
+        STACK.with(
+            STACK.newMessageFromUser(
+                Instant.now(),
+                Stream.generate(() -> "0123456789").limit(100).collect(Collectors.joining()),
+                Identifier.random()));
+    FBMessage response = plugin.handle(stack);
+    assertThat(response.message()).isEqualTo("I'm sorry but that request was too long for me.");
+    assertThat(openAIRequests).hasSize(0);
   }
 
   @Test
