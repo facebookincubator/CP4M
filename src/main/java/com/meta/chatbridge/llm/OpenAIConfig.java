@@ -17,8 +17,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
 
 @JsonDeserialize(builder = OpenAIConfig.Builder.class)
-public class OpenAIConfig {
+public class OpenAIConfig implements LLMConfig {
 
+  private final String name;
   private final OpenAIModel model;
   private final String apiKey;
   @Nullable private final Double temperature;
@@ -33,6 +34,7 @@ public class OpenAIConfig {
   private final long maxInputTokens;
 
   private OpenAIConfig(
+      String name,
       OpenAIModel model,
       String apiKey,
       @Nullable Double temperature,
@@ -44,6 +46,7 @@ public class OpenAIConfig {
       Map<Long, Double> logitBias,
       @Nullable String systemMessage,
       long maxInputTokens) {
+    this.name = name;
     this.apiKey = apiKey;
     this.temperature = temperature;
     this.topP = topP;
@@ -58,7 +61,11 @@ public class OpenAIConfig {
   }
 
   public static Builder builder(OpenAIModel model, String apiKey) {
-    return new Builder().model(model).apiKey(apiKey);
+    return new Builder().name("non-config").model(model).apiKey(apiKey);
+  }
+
+  public String name() {
+    return name;
   }
 
   public OpenAIModel model() {
@@ -105,8 +112,15 @@ public class OpenAIConfig {
     return maxInputTokens;
   }
 
+  public OpenAIPlugin<?> plugin() {
+    return new OpenAIPlugin<>(this);
+  }
+
   @JsonPOJOBuilder(withPrefix = "")
   public static class Builder {
+
+    private @Nullable String name;
+
     private @Nullable OpenAIModel model;
 
     @JsonProperty("api_key")
@@ -136,6 +150,12 @@ public class OpenAIConfig {
 
     @JsonProperty("max_input_tokens")
     private @Nullable Long maxInputTokens;
+
+    public @This Builder name(String name) {
+      Preconditions.checkArgument(!name.isBlank(), "name cannot be blank");
+      this.name = name;
+      return this;
+    }
 
     public @This Builder model(OpenAIModel model) {
       this.model = model;
@@ -212,6 +232,7 @@ public class OpenAIConfig {
     }
 
     public OpenAIConfig build() {
+      Objects.requireNonNull(name, "name is a required parameter");
       Objects.requireNonNull(model, "model is a required parameter");
       Objects.requireNonNull(apiKey, "api_key is a required parameter");
       if (maxOutputTokens != null) {
@@ -241,6 +262,7 @@ public class OpenAIConfig {
               + ", the total context tokens allowed by this model");
 
       return new OpenAIConfig(
+          name,
           model,
           apiKey,
           temperature,
