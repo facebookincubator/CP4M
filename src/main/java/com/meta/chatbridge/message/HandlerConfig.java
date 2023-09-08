@@ -6,19 +6,17 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.chatbridge.llm;
+package com.meta.chatbridge.message;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.meta.chatbridge.message.Message;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-  @JsonSubTypes.Type(value = OpenAIConfig.class, name = "openai"),
+  @JsonSubTypes.Type(value = FBMessengerConfig.class, name = "messenger"),
 })
-public interface LLMConfig {
-
+public interface HandlerConfig {
   String name();
 
-  <T extends Message> LLMPlugin<T> toPlugin();
+  MessageHandler<?> toMessageHandler();
 }

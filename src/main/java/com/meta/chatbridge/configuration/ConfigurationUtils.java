@@ -11,6 +11,9 @@ package com.meta.chatbridge.configuration;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.toml.TomlMapper;
+import com.google.common.io.Files;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 
@@ -49,6 +52,17 @@ public class ConfigurationUtils {
 
   public static TomlMapper tomlMapper() {
     return TOML_MAPPER;
+  }
+
+  public static RootConfiguration loadConfigurationFile(Path file) throws IOException {
+    String extension = Files.getFileExtension(file.toString());
+    if (extension.equals("json")) {
+      return jsonMapper().readValue(file.toFile(), RootConfiguration.class);
+    } else if (extension.equals("toml")) {
+      return tomlMapper().readValue(file.toFile(), RootConfiguration.class);
+    }
+    throw new IOException(
+        "Unknown file extension '" + extension + "', extension must be either json or toml.");
   }
 
   private record DeserializationFeatureConfig(DeserializationFeature feature, boolean state) {}

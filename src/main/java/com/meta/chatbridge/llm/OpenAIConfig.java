@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.google.common.base.Preconditions;
+import com.meta.chatbridge.message.Message;
 import java.util.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
@@ -61,7 +62,8 @@ public class OpenAIConfig implements LLMConfig {
   }
 
   public static Builder builder(OpenAIModel model, String apiKey) {
-    return new Builder().name("non-config").model(model).apiKey(apiKey);
+    // readability of the name is not important unless it comes from the config
+    return new Builder().name(UUID.randomUUID().toString()).model(model).apiKey(apiKey);
   }
 
   public String name() {
@@ -84,8 +86,8 @@ public class OpenAIConfig implements LLMConfig {
     return Optional.ofNullable(topP);
   }
 
-  public List<String> stop() {
-    return stop;
+  public Collection<String> stop() {
+    return Collections.unmodifiableCollection(stop);
   }
 
   public Optional<Long> maxOutputTokens() {
@@ -112,7 +114,7 @@ public class OpenAIConfig implements LLMConfig {
     return maxInputTokens;
   }
 
-  public OpenAIPlugin<?> plugin() {
+  public <T extends Message> OpenAIPlugin<T> toPlugin() {
     return new OpenAIPlugin<>(this);
   }
 
@@ -150,6 +152,8 @@ public class OpenAIConfig implements LLMConfig {
 
     @JsonProperty("max_input_tokens")
     private @Nullable Long maxInputTokens;
+
+    private Builder() {}
 
     public @This Builder name(String name) {
       Preconditions.checkArgument(!name.isBlank(), "name cannot be blank");
@@ -246,7 +250,8 @@ public class OpenAIConfig implements LLMConfig {
       }
       if (maxInputTokens == null) {
         if (maxOutputTokens == null) {
-          // set the max input size to 50% of the total context size so that there is always some
+          // set the default max input size to 50% of the total context size so that there is always
+          // some
           // room for the output
           maxInputTokens = (long) (model.properties().tokenLimit() * 0.50);
         } else {

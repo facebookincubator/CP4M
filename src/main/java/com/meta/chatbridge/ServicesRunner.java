@@ -16,20 +16,20 @@ import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.common.returnsreceiver.qual.This;
 
-public class PipelinesRunner implements AutoCloseable {
+public class ServicesRunner implements AutoCloseable {
   private final Javalin app = Javalin.create();
   private boolean started = false;
   private int port = 8080;
 
-  private final Set<Pipeline<?>> pipelines = new HashSet<>();
+  private final Set<Service<?>> services = new HashSet<>();
 
-  private PipelinesRunner() {}
+  private ServicesRunner() {}
 
-  public static PipelinesRunner newInstance() {
-    return new PipelinesRunner();
+  public static ServicesRunner newInstance() {
+    return new ServicesRunner();
   }
 
-  public @This PipelinesRunner start() {
+  public @This ServicesRunner start() {
     if (!started) {
       started = true;
       app.start(port);
@@ -37,16 +37,16 @@ public class PipelinesRunner implements AutoCloseable {
     return this;
   }
 
-  public @This PipelinesRunner pipeline(Pipeline<?> pipeline) {
-    Preconditions.checkState(!started, "cannot add pipeline, server already started");
-    if (pipelines.add(pipeline)) {
-      pipeline.register(app);
+  public @This ServicesRunner service(Service<?> service) {
+    Preconditions.checkState(!started, "cannot add service, server already started");
+    if (services.add(service)) {
+      service.register(app);
     }
     return this;
   }
 
-  public Collection<Pipeline<?>> pipelines() {
-    return Collections.unmodifiableCollection(pipelines);
+  public Collection<Service<?>> services() {
+    return Collections.unmodifiableCollection(services);
   }
 
   public int port() {
@@ -62,7 +62,7 @@ public class PipelinesRunner implements AutoCloseable {
    * @param port the port the server will start on
    * @return this
    */
-  public @This PipelinesRunner port(int port) {
+  public @This ServicesRunner port(int port) {
     Preconditions.checkState(!started, "cannot change port, server already started");
     this.port = port;
     return this;

@@ -17,11 +17,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableMap;
 import com.meta.chatbridge.Identifier;
-import com.meta.chatbridge.Pipeline;
-import com.meta.chatbridge.PipelinesRunner;
+import com.meta.chatbridge.Service;
+import com.meta.chatbridge.ServicesRunner;
 import com.meta.chatbridge.llm.DummyFBMessageLLMHandler;
 import com.meta.chatbridge.message.Message.Role;
 import com.meta.chatbridge.store.MemoryStore;
+import com.meta.chatbridge.store.MemoryStoreConfig;
 import io.javalin.Javalin;
 import io.javalin.http.HandlerType;
 import java.io.IOException;
@@ -108,19 +109,47 @@ public class FBMessageHandlerTest {
     app.close();
   }
 
+  private static Request createMessageRequest(
+      String body, ServicesRunner runner, boolean calculateHmac)
+      throws IOException, URISyntaxException {
+    @SuppressWarnings("unchecked") // for the scope of this test this is guaranteed
+    Service<FBMessage> service =
+        (Service<FBMessage>) runner.services().stream().findAny().orElseThrow();
+    String path = service.path();
+
+    // for the scope of this test this is guaranteed
+    FBMessageHandler messageHandler = (FBMessageHandler) service.messageHandler();
+
+    URI uri =
+        URIBuilder.localhost().setScheme("http").setPort(runner.port()).appendPath(path).build();
+
+    Request request = Request.post(uri).bodyString(body, ContentType.APPLICATION_JSON);
+    if (calculateHmac) {
+      String hmac = messageHandler.hmac(body);
+      request.setHeader("X-Hub-Signature-256", "sha256=" + hmac);
+    }
+
+    return request;
+  }
+
+  public static Request createMessageRequest(String body, ServicesRunner runner)
+      throws IOException, URISyntaxException {
+    return createMessageRequest(body, runner, true);
+  }
+
   @Test
   void validation() throws IOException, URISyntaxException {
     String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake
     int challenge = 1158201444;
-    Pipeline<FBMessage> pipeline =
-        new Pipeline<>(
-            new MemoryStore<>(),
+    Service<FBMessage> service =
+        new Service<>(
+            MemoryStoreConfig.of(1, 1).toStore(),
             new FBMessageHandler("0", token, "dummy"),
             new DummyFBMessageLLMHandler("this is a dummy message"),
             "/testfbmessage");
-    final PipelinesRunner runner = PipelinesRunner.newInstance().pipeline(pipeline).port(0);
+    final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
     HttpResponse response;
-    try (PipelinesRunner ignored = runner.start()) {
+    try (ServicesRunner ignored = runner.start()) {
       ImmutableMap<String, String> params =
           ImmutableMap.<String, String>builder()
               .put("hub.mode", "subscribe")
@@ -137,34 +166,6 @@ public class FBMessageHandlerTest {
     assertThat(text).isEqualTo(Integer.toString(challenge));
   }
 
-  private static Request createMessageRequest(
-      String body, PipelinesRunner runner, boolean calculateHmac)
-      throws IOException, URISyntaxException {
-    @SuppressWarnings("unchecked") // for the scope of this test this is guaranteed
-    Pipeline<FBMessage> pipeline =
-        (Pipeline<FBMessage>) runner.pipelines().stream().findAny().orElseThrow();
-    String path = pipeline.path();
-
-    // for the scope of this test this is guaranteed
-    FBMessageHandler messageHandler = (FBMessageHandler) pipeline.messageHandler();
-
-    URI uri =
-        URIBuilder.localhost().setScheme("http").setPort(runner.port()).appendPath(path).build();
-
-    Request request = Request.post(uri).bodyString(body, ContentType.APPLICATION_JSON);
-    if (calculateHmac) {
-      String hmac = messageHandler.hmac(body);
-      request.setHeader("X-Hub-Signature-256", "sha256=" + hmac);
-    }
-
-    return request;
-  }
-
-  public static Request createMessageRequest(String body, PipelinesRunner runner)
-      throws IOException, URISyntaxException {
-    return createMessageRequest(body, runner, true);
-  }
-
   private Function<Identifier, URI> testURLFactoryFactory(Identifier pageId) {
     return p -> {
       assertThat(p).isEqualTo(pageId);
@@ -177,15 +178,68 @@ public class FBMessageHandlerTest {
     };
   }
 
-  private record TestArgument(
-      String name,
+  @ParameterizedTest
+  @MethodSource("requestFactory")
+  void invalidMessage(
       int expectedReturnCode,
-      ThrowableFunction<PipelinesRunner, Request> requestFactory,
-      boolean messageExpected) {
+      ThrowableFunction<ServicesRunner, Request> requestFactory,
+      boolean messageExpected,
+      int timesToSendMessage)
+      throws Exception {
+    String path = "/testfbmessage";
+    Identifier pageId = Identifier.from(106195825075770L);
+    String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake don't worry
+    String secret = "f74a638462f975e9eadfcbb84e4aa06b"; // it's been rolled don't worry
+    FBMessageHandler messageHandler = new FBMessageHandler("0", token, secret);
+    DummyFBMessageLLMHandler llmHandler = new DummyFBMessageLLMHandler("this is a dummy message");
+    MemoryStore<FBMessage> memoryStore = MemoryStoreConfig.of(1, 1).toStore();
+    Service<FBMessage> service = new Service<>(memoryStore, messageHandler, llmHandler, path);
+    final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
 
-    // hacky way to try the send twice scenario
-    int timesToSendMessage() {
-      return name.contains("send it twice") ? 2 : 1;
+    app.start(0);
+    runner.start();
+    messageHandler.baseURLFactory(testURLFactoryFactory(pageId));
+
+    @Nullable Response response = null;
+    for (int ignored = 0; ignored < timesToSendMessage; ignored++) {
+      Request request = requestFactory.apply(runner);
+      response = request.execute();
+    }
+    assert response != null;
+    assertThat(response.returnResponse().getCode()).isEqualTo(expectedReturnCode);
+    if (!messageExpected) {
+      assertThat(llmHandler.poll())
+          .isNull(); // make sure the message wasn't processed and send to the llm handler
+      assertThat(memoryStore.size())
+          .isEqualTo(0); // make sure the message wasn't processed and stored
+      assertThat(requests).hasSize(0);
+    } else {
+      MessageStack<FBMessage> stack = llmHandler.take(500);
+      JsonNode messageObject = PARSED_SAMPLE_MESSAGE.get("entry").get(0).get("messaging").get(0);
+      String messageText = messageObject.get("message").get("text").textValue();
+      String mid = messageObject.get("message").get("mid").textValue();
+      Identifier recipientId =
+          Identifier.from(messageObject.get("recipient").get("id").textValue());
+      Identifier senderId = Identifier.from(messageObject.get("sender").get("id").textValue());
+      Instant timestamp = Instant.ofEpochMilli(messageObject.get("timestamp").longValue());
+      assertThat(stack.messages())
+          .hasSize(1)
+          .allSatisfy(m -> assertThat(m.message()).isEqualTo(messageText))
+          .allSatisfy(m -> assertThat(m.instanceId().toString()).isEqualTo(mid))
+          .allSatisfy(m -> assertThat(m.role()).isSameAs(Role.USER))
+          .allSatisfy(m -> assertThat(m.timestamp()).isEqualTo(timestamp))
+          .allSatisfy(m -> assertThat(m.recipientId()).isEqualTo(recipientId))
+          .allSatisfy(m -> assertThat(m.senderId()).isEqualTo(senderId));
+
+      @Nullable OutboundRequest r = requests.poll(500, TimeUnit.MILLISECONDS);
+      assertThat(r).isNotNull();
+      assertThat(r.queryParamMap().get("access_token"))
+          .hasSize(1)
+          .allSatisfy(t -> assertThat(t).isEqualTo(token));
+      JsonNode body = MAPPER.readTree(r.body);
+      assertThat(body.get("messaging_type").textValue()).isEqualTo("RESPONSE");
+      assertThat(body.get("recipient").get("id").textValue()).isEqualTo(senderId.toString());
+      assertThat(body.get("message").get("text").textValue()).isEqualTo(llmHandler.dummyResponse());
     }
   }
 
@@ -309,68 +363,15 @@ public class FBMessageHandlerTest {
                 Named.of("_", a.timesToSendMessage())));
   }
 
-  @ParameterizedTest
-  @MethodSource("requestFactory")
-  void invalidMessage(
+  private record TestArgument(
+      String name,
       int expectedReturnCode,
-      ThrowableFunction<PipelinesRunner, Request> requestFactory,
-      boolean messageExpected,
-      int timesToSendMessage)
-      throws Exception {
-    String path = "/testfbmessage";
-    Identifier pageId = Identifier.from(106195825075770L);
-    String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake don't worry
-    String secret = "f74a638462f975e9eadfcbb84e4aa06b"; // it's been rolled don't worry
-    FBMessageHandler messageHandler = new FBMessageHandler("0", token, secret);
-    DummyFBMessageLLMHandler llmHandler = new DummyFBMessageLLMHandler("this is a dummy message");
-    MemoryStore<FBMessage> memoryStore = new MemoryStore<>();
-    Pipeline<FBMessage> pipeline = new Pipeline<>(memoryStore, messageHandler, llmHandler, path);
-    final PipelinesRunner runner = PipelinesRunner.newInstance().pipeline(pipeline).port(0);
+      ThrowableFunction<ServicesRunner, Request> requestFactory,
+      boolean messageExpected) {
 
-    app.start(0);
-    runner.start();
-    messageHandler.baseURLFactory(testURLFactoryFactory(pageId));
-
-    @Nullable Response response = null;
-    for (int ignored = 0; ignored < timesToSendMessage; ignored++) {
-      Request request = requestFactory.apply(runner);
-      response = request.execute();
-    }
-    assert response != null;
-    assertThat(response.returnResponse().getCode()).isEqualTo(expectedReturnCode);
-    if (!messageExpected) {
-      assertThat(llmHandler.poll())
-          .isNull(); // make sure the message wasn't processed and send to the llm handler
-      assertThat(memoryStore.size())
-          .isEqualTo(0); // make sure the message wasn't processed and stored
-      assertThat(requests).hasSize(0);
-    } else {
-      MessageStack<FBMessage> stack = llmHandler.take(500);
-      JsonNode messageObject = PARSED_SAMPLE_MESSAGE.get("entry").get(0).get("messaging").get(0);
-      String messageText = messageObject.get("message").get("text").textValue();
-      String mid = messageObject.get("message").get("mid").textValue();
-      Identifier recipientId =
-          Identifier.from(messageObject.get("recipient").get("id").textValue());
-      Identifier senderId = Identifier.from(messageObject.get("sender").get("id").textValue());
-      Instant timestamp = Instant.ofEpochMilli(messageObject.get("timestamp").longValue());
-      assertThat(stack.messages())
-          .hasSize(1)
-          .allSatisfy(m -> assertThat(m.message()).isEqualTo(messageText))
-          .allSatisfy(m -> assertThat(m.instanceId().toString()).isEqualTo(mid))
-          .allSatisfy(m -> assertThat(m.role()).isSameAs(Role.USER))
-          .allSatisfy(m -> assertThat(m.timestamp()).isEqualTo(timestamp))
-          .allSatisfy(m -> assertThat(m.recipientId()).isEqualTo(recipientId))
-          .allSatisfy(m -> assertThat(m.senderId()).isEqualTo(senderId));
-
-      @Nullable OutboundRequest r = requests.poll(500, TimeUnit.MILLISECONDS);
-      assertThat(r).isNotNull();
-      assertThat(r.queryParamMap().get("access_token"))
-          .hasSize(1)
-          .allSatisfy(t -> assertThat(t).isEqualTo(token));
-      JsonNode body = MAPPER.readTree(r.body);
-      assertThat(body.get("messaging_type").textValue()).isEqualTo("RESPONSE");
-      assertThat(body.get("recipient").get("id").textValue()).isEqualTo(senderId.toString());
-      assertThat(body.get("message").get("text").textValue()).isEqualTo(llmHandler.dummyResponse());
+    // hacky way to try the send twice scenario
+    int timesToSendMessage() {
+      return name.contains("send it twice") ? 2 : 1;
     }
   }
 
