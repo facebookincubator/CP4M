@@ -251,8 +251,7 @@ public class OpenAIConfig implements LLMConfig {
       if (maxInputTokens == null) {
         if (maxOutputTokens == null) {
           // set the default max input size to 50% of the total context size so that there is always
-          // some
-          // room for the output
+          // some room for the output
           maxInputTokens = (long) (model.properties().tokenLimit() * 0.50);
         } else {
           maxInputTokens = model.properties().tokenLimit() - maxOutputTokens;
