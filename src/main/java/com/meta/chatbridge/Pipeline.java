@@ -8,13 +8,14 @@
 
 package com.meta.chatbridge;
 
-import com.meta.chatbridge.llm.LLMHandler;
+import com.meta.chatbridge.llm.LLMPlugin;
 import com.meta.chatbridge.message.Message;
 import com.meta.chatbridge.message.MessageHandler;
+import com.meta.chatbridge.message.MessageStack;
 import com.meta.chatbridge.store.ChatStore;
-import com.meta.chatbridge.store.MessageStack;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -27,15 +28,15 @@ public class Pipeline<T extends Message> {
   private final ExecutorService executorService = Executors.newCachedThreadPool();
   private final MessageHandler<T> handler;
   private final ChatStore<T> store;
-  private final LLMHandler<T> llmHandler;
+  private final LLMPlugin<T> llmPlugin;
 
   private final String path;
 
   public Pipeline(
-      ChatStore<T> store, MessageHandler<T> handler, LLMHandler<T> llmHandler, String path) {
+      ChatStore<T> store, MessageHandler<T> handler, LLMPlugin<T> llmPlugin, String path) {
     this.handler = Objects.requireNonNull(handler);
     this.store = Objects.requireNonNull(store);
-    this.llmHandler = llmHandler;
+    this.llmPlugin = llmPlugin;
     this.path = path;
   }
 
@@ -61,12 +62,18 @@ public class Pipeline<T extends Message> {
   }
 
   private void execute(MessageStack<T> stack) {
-    T llmResponse = llmHandler.handle(stack);
+    T llmResponse;
+    try {
+      llmResponse = llmPlugin.handle(stack);
+    } catch (IOException e) {
+      LOGGER.error("failed to communicate with LLM", e);
+      return;
+    }
     store.add(llmResponse);
     try {
       handler.respond(llmResponse);
     } catch (Exception e) {
-      LOGGER.error("failed to respond to user", e);
+      // we log in the handler where we have the body context
       // TODO: create transactional store add
       // TODO: implement retry with exponential backoff
     }

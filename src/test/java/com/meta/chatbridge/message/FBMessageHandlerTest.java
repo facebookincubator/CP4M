@@ -22,7 +22,6 @@ import com.meta.chatbridge.PipelinesRunner;
 import com.meta.chatbridge.llm.DummyFBMessageLLMHandler;
 import com.meta.chatbridge.message.Message.Role;
 import com.meta.chatbridge.store.MemoryStore;
-import com.meta.chatbridge.store.MessageStack;
 import io.javalin.Javalin;
 import io.javalin.http.HandlerType;
 import java.io.IOException;
@@ -36,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.client5.http.fluent.Response;
@@ -49,7 +49,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class FBMessageHandlerTest {
+public class FBMessageHandlerTest {
 
   @FunctionalInterface
   private interface ThrowableFunction<T, R> {
@@ -59,7 +59,7 @@ class FBMessageHandlerTest {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   /** Example message collected directly from the messenger webhook */
-  private static final String SAMPLE_MESSAGE =
+  public static final String SAMPLE_MESSAGE =
       "{\"object\":\"page\",\"entry\":[{\"id\":\"106195825075770\",\"time\":1692813219204,\"messaging\":[{\"sender\":{\"id\":\"6357858494326947\"},\"recipient\":{\"id\":\"106195825075770\"},\"timestamp\":1692813218705,\"message\":{\"mid\":\"m_kT_mWOSYh_eK3kF8chtyCWfcD9-gomvu4mhaMFQl-gt4D3LjORi6k3BXD6_x9a-FOUt-D2LFuywJN6HfrpAnDg\",\"text\":\"asdfa\"}}]}]}";
 
   private static final String SAMPLE_MESSAGE_HMAC =
@@ -78,7 +78,7 @@ class FBMessageHandlerTest {
   private Javalin app;
   private BlockingQueue<OutboundRequest> requests;
 
-  private HttpResponse getRequest(String path, int port, Map<String, String> params)
+  private static HttpResponse getRequest(String path, int port, Map<String, String> params)
       throws IOException, URISyntaxException {
     URIBuilder uriBuilder =
         URIBuilder.loopbackAddress().setScheme("http").setPort(port).appendPath(path);
@@ -142,7 +142,7 @@ class FBMessageHandlerTest {
       throws IOException, URISyntaxException {
     @SuppressWarnings("unchecked") // for the scope of this test this is guaranteed
     Pipeline<FBMessage> pipeline =
-        (Pipeline<FBMessage>) runner.pipelines().stream().findAny().get();
+        (Pipeline<FBMessage>) runner.pipelines().stream().findAny().orElseThrow();
     String path = pipeline.path();
 
     // for the scope of this test this is guaranteed
@@ -160,7 +160,7 @@ class FBMessageHandlerTest {
     return request;
   }
 
-  private static Request createMessageRequest(String body, PipelinesRunner runner)
+  public static Request createMessageRequest(String body, PipelinesRunner runner)
       throws IOException, URISyntaxException {
     return createMessageRequest(body, runner, true);
   }
@@ -372,5 +372,24 @@ class FBMessageHandlerTest {
       assertThat(body.get("recipient").get("id").textValue()).isEqualTo(senderId.toString());
       assertThat(body.get("message").get("text").textValue()).isEqualTo(llmHandler.dummyResponse());
     }
+  }
+
+  @Test
+  void chunkingHappens() throws IOException {
+    app.start(0);
+    Identifier pageId = Identifier.from(106195825075770L);
+    String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake don't worry
+    String secret = "f74a638462f975e9eadfcbb84e4aa06b"; // it's been rolled don't worry
+    FBMessageHandler messageHandler =
+        new FBMessageHandler("0", token, secret).baseURLFactory(testURLFactoryFactory(pageId));
+
+    String bigText =
+        Stream.generate(() -> "0123456789.").limit(300).collect(Collectors.joining(" "));
+    FBMessage bigMessage =
+        new FBMessage(
+            Instant.now(), Identifier.random(), pageId, Identifier.random(), bigText, Role.USER);
+    messageHandler.respond(bigMessage);
+    assertThat(requests.size()).isEqualTo(300);
+    assertThat(requests).allSatisfy(m -> assertThat(m.body()).contains("0123456789"));
   }
 }

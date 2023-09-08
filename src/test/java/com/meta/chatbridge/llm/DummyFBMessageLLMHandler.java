@@ -11,12 +11,12 @@ package com.meta.chatbridge.llm;
 import com.meta.chatbridge.Identifier;
 import com.meta.chatbridge.message.FBMessage;
 import com.meta.chatbridge.message.Message;
-import com.meta.chatbridge.store.MessageStack;
+import com.meta.chatbridge.message.MessageStack;
 import java.time.Instant;
 import java.util.concurrent.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public class DummyFBMessageLLMHandler implements LLMHandler<FBMessage> {
+public class DummyFBMessageLLMHandler implements LLMPlugin<FBMessage> {
 
   private final String dummyLLMResponse;
   private final BlockingQueue<MessageStack<FBMessage>> receivedMessageStacks =
@@ -51,7 +51,10 @@ public class DummyFBMessageLLMHandler implements LLMHandler<FBMessage> {
   public FBMessage handle(MessageStack<FBMessage> messageStack) {
     receivedMessageStacks.add(messageStack);
     FBMessage inbound =
-        messageStack.messages().stream().filter(m -> m.role() == Message.Role.USER).findAny().get();
+        messageStack.messages().stream()
+            .filter(m -> m.role() == Message.Role.USER)
+            .findAny()
+            .orElseThrow();
     return new FBMessage(
         Instant.now(),
         Identifier.from("test_message"),

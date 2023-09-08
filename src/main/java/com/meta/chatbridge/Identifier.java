@@ -11,6 +11,7 @@ package com.meta.chatbridge;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 
 public class Identifier implements Comparable<Identifier> {
@@ -19,6 +20,11 @@ public class Identifier implements Comparable<Identifier> {
 
   private Identifier(byte[] id) {
     this.id = id;
+  }
+
+  public static Identifier random() {
+    UUID uuid = UUID.randomUUID();
+    return new Identifier(uuid.toString().getBytes(StandardCharsets.UTF_8));
   }
 
   public static Identifier from(String id) {

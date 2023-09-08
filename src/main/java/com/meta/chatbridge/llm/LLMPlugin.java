@@ -9,9 +9,10 @@
 package com.meta.chatbridge.llm;
 
 import com.meta.chatbridge.message.Message;
-import com.meta.chatbridge.store.MessageStack;
+import com.meta.chatbridge.message.MessageStack;
+import java.io.IOException;
 
-public interface LLMHandler<T extends Message> {
+public interface LLMPlugin<T extends Message> {
 
-  T handle(MessageStack<T> messageStack);
+  T handle(MessageStack<T> messageStack) throws IOException;
 }

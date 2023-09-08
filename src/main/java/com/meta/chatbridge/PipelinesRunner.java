@@ -29,8 +29,7 @@ public class PipelinesRunner implements AutoCloseable {
     return new PipelinesRunner();
   }
 
-  @This
-  public PipelinesRunner start() {
+  public @This PipelinesRunner start() {
     if (!started) {
       started = true;
       app.start(port);
@@ -38,8 +37,7 @@ public class PipelinesRunner implements AutoCloseable {
     return this;
   }
 
-  @This
-  public PipelinesRunner pipeline(Pipeline<?> pipeline) {
+  public @This PipelinesRunner pipeline(Pipeline<?> pipeline) {
     Preconditions.checkState(!started, "cannot add pipeline, server already started");
     if (pipelines.add(pipeline)) {
       pipeline.register(app);
@@ -64,8 +62,7 @@ public class PipelinesRunner implements AutoCloseable {
    * @param port the port the server will start on
    * @return this
    */
-  @This
-  public PipelinesRunner port(int port) {
+  public @This PipelinesRunner port(int port) {
     Preconditions.checkState(!started, "cannot change port, server already started");
     this.port = port;
     return this;

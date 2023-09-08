@@ -9,6 +9,7 @@
 package com.meta.chatbridge.store;
 
 import com.meta.chatbridge.message.Message;
+import com.meta.chatbridge.message.MessageStack;
 
 /**
  * This class is in charge of both maintaining a chat history and managing a queue of conversations
