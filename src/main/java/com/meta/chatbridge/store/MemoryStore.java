@@ -18,11 +18,11 @@ import java.time.Duration;
 public class MemoryStore<T extends Message> implements ChatStore<T> {
   private final Cache<Identifier, MessageStack<T>> store;
 
-  public MemoryStore() {
+  MemoryStore(MemoryStoreConfig config) {
     this.store =
         CacheBuilder.newBuilder()
-            .expireAfterWrite(Duration.ofDays(3))
-            .maximumWeight((long) (10 * Math.pow(2, 20))) // 10 megabytes
+            .expireAfterWrite(Duration.ofHours(config.storageDurationHours()))
+            .maximumWeight((long) (config.storageCapacityMb() * Math.pow(2, 20))) // megabytes
             .<Identifier, MessageStack<T>>weigher(
                 (k, v) ->
                     v.messages().stream().map(m -> m.message().length()).reduce(0, Integer::sum))

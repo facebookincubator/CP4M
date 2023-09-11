@@ -12,13 +12,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.google.common.base.Preconditions;
+import com.meta.chatbridge.message.Message;
 import java.util.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
 
 @JsonDeserialize(builder = OpenAIConfig.Builder.class)
-public class OpenAIConfig {
+public class OpenAIConfig implements LLMConfig {
 
+  private final String name;
   private final OpenAIModel model;
   private final String apiKey;
   @Nullable private final Double temperature;
@@ -33,6 +35,7 @@ public class OpenAIConfig {
   private final long maxInputTokens;
 
   private OpenAIConfig(
+      String name,
       OpenAIModel model,
       String apiKey,
       @Nullable Double temperature,
@@ -44,6 +47,7 @@ public class OpenAIConfig {
       Map<Long, Double> logitBias,
       @Nullable String systemMessage,
       long maxInputTokens) {
+    this.name = name;
     this.apiKey = apiKey;
     this.temperature = temperature;
     this.topP = topP;
@@ -58,7 +62,12 @@ public class OpenAIConfig {
   }
 
   public static Builder builder(OpenAIModel model, String apiKey) {
-    return new Builder().model(model).apiKey(apiKey);
+    // readability of the name is not important unless it comes from the config
+    return new Builder().name(UUID.randomUUID().toString()).model(model).apiKey(apiKey);
+  }
+
+  public String name() {
+    return name;
   }
 
   public OpenAIModel model() {
@@ -77,8 +86,8 @@ public class OpenAIConfig {
     return Optional.ofNullable(topP);
   }
 
-  public List<String> stop() {
-    return stop;
+  public Collection<String> stop() {
+    return Collections.unmodifiableCollection(stop);
   }
 
   public Optional<Long> maxOutputTokens() {
@@ -105,8 +114,15 @@ public class OpenAIConfig {
     return maxInputTokens;
   }
 
+  public <T extends Message> OpenAIPlugin<T> toPlugin() {
+    return new OpenAIPlugin<>(this);
+  }
+
   @JsonPOJOBuilder(withPrefix = "")
   public static class Builder {
+
+    private @Nullable String name;
+
     private @Nullable OpenAIModel model;
 
     @JsonProperty("api_key")
@@ -136,6 +152,14 @@ public class OpenAIConfig {
 
     @JsonProperty("max_input_tokens")
     private @Nullable Long maxInputTokens;
+
+    private Builder() {}
+
+    public @This Builder name(String name) {
+      Preconditions.checkArgument(!name.isBlank(), "name cannot be blank");
+      this.name = name;
+      return this;
+    }
 
     public @This Builder model(OpenAIModel model) {
       this.model = model;
@@ -212,6 +236,7 @@ public class OpenAIConfig {
     }
 
     public OpenAIConfig build() {
+      Objects.requireNonNull(name, "name is a required parameter");
       Objects.requireNonNull(model, "model is a required parameter");
       Objects.requireNonNull(apiKey, "api_key is a required parameter");
       if (maxOutputTokens != null) {
@@ -225,8 +250,8 @@ public class OpenAIConfig {
       }
       if (maxInputTokens == null) {
         if (maxOutputTokens == null) {
-          // set the max input size to 50% of the total context size so that there is always some
-          // room for the output
+          // set the default max input size to 50% of the total context size so that there is always
+          // some room for the output
           maxInputTokens = (long) (model.properties().tokenLimit() * 0.50);
         } else {
           maxInputTokens = model.properties().tokenLimit() - maxOutputTokens;
@@ -241,6 +266,7 @@ public class OpenAIConfig {
               + ", the total context tokens allowed by this model");
 
       return new OpenAIConfig(
+          name,
           model,
           apiKey,
           temperature,

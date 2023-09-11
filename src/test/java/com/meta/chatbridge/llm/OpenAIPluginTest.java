@@ -15,14 +15,14 @@ import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.meta.chatbridge.Configuration;
 import com.meta.chatbridge.Identifier;
-import com.meta.chatbridge.Pipeline;
-import com.meta.chatbridge.PipelinesRunner;
+import com.meta.chatbridge.Service;
+import com.meta.chatbridge.ServicesRunner;
+import com.meta.chatbridge.configuration.ConfigurationUtils;
 import com.meta.chatbridge.message.*;
 import com.meta.chatbridge.message.Message.Role;
 import com.meta.chatbridge.store.ChatStore;
-import com.meta.chatbridge.store.MemoryStore;
+import com.meta.chatbridge.store.MemoryStoreConfig;
 import io.javalin.Javalin;
 import java.io.IOException;
 import java.net.URI;
@@ -85,7 +85,7 @@ public class OpenAIPluginTest {
   private ObjectNode minimalConfig;
 
   static Stream<OpenAIConfigTest.ConfigItem> modelOptions() {
-    Set<String> non_model_options = Set.of("model", "api_key", "max_input_tokens");
+    Set<String> non_model_options = Set.of("name", "type", "model", "api_key", "max_input_tokens");
     return OpenAIConfigTest.CONFIG_ITEMS.stream().filter(c -> !non_model_options.contains(c.key()));
   }
 
@@ -136,7 +136,8 @@ public class OpenAIPluginTest {
   void validConfigValues(OpenAIConfigTest.ConfigItem configItem)
       throws IOException, InterruptedException {
     minimalConfig.set(configItem.key(), configItem.validValue());
-    OpenAIConfig config = Configuration.MAPPER.convertValue(minimalConfig, OpenAIConfig.class);
+    OpenAIConfig config =
+        ConfigurationUtils.jsonMapper().convertValue(minimalConfig, OpenAIConfig.class);
     OpenAIPlugin<FBMessage> plugin = new OpenAIPlugin<FBMessage>(config).endpoint(endpoint);
     FBMessage message = plugin.handle(STACK);
     assertThat(message.message()).isEqualTo(TEST_MESSAGE);
@@ -147,7 +148,7 @@ public class OpenAIPluginTest {
     assertThat(or.headerMap().get("Authorization"))
         .isNotNull()
         .isEqualTo("Bearer " + config.apiKey());
-    JsonNode body = Configuration.MAPPER.readTree(or.body());
+    JsonNode body = ConfigurationUtils.jsonMapper().readTree(or.body());
     assertThat(body.get("model").textValue()).isEqualTo(config.model().toString());
     if (configItem.key().equals("system_message")) {
       assertThat(body.get("messages"))
@@ -213,13 +214,12 @@ public class OpenAIPluginTest {
           s ->
               s.assertThat(stackMessage.message())
                   .isEqualTo(sentMessage.get("content").textValue()));
-      ;
     }
   }
 
   @Test
   void inPipeline() throws IOException, URISyntaxException, InterruptedException {
-    ChatStore<FBMessage> store = new MemoryStore<>();
+    ChatStore<FBMessage> store = MemoryStoreConfig.of(1, 1).toStore();
     String appSecret = "app secret";
     String accessToken = "access token";
     String verifyToken = "verify token";
@@ -242,8 +242,8 @@ public class OpenAIPluginTest {
     OpenAIPlugin<FBMessage> plugin = new OpenAIPlugin<FBMessage>(config).endpoint(endpoint);
 
     String webhookPath = "/webhook";
-    Pipeline<FBMessage> pipeline = new Pipeline<>(store, handler, plugin, webhookPath);
-    PipelinesRunner runner = PipelinesRunner.newInstance().pipeline(pipeline).port(0);
+    Service<FBMessage> service = new Service<>(store, handler, plugin, webhookPath);
+    ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
     runner.start();
 
     // TODO: create test harness
@@ -256,7 +256,7 @@ public class OpenAIPluginTest {
     assertThat(or.headerMap().get("Authorization"))
         .isNotNull()
         .isEqualTo("Bearer " + config.apiKey());
-    JsonNode body = Configuration.MAPPER.readTree(or.body());
+    JsonNode body = ConfigurationUtils.jsonMapper().readTree(or.body());
     assertThat(body.get("model").textValue()).isEqualTo(config.model().toString());
 
     or = metaRequests.poll(500, TimeUnit.MILLISECONDS);

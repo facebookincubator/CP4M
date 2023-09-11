@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.*;
 import com.google.common.collect.ImmutableList;
-import com.meta.chatbridge.Configuration;
+import com.meta.chatbridge.configuration.ConfigurationUtils;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
@@ -28,9 +28,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class OpenAIConfigTest {
 
-  private static final ObjectMapper MAPPER = Configuration.MAPPER;
+  private static final ObjectMapper MAPPER = ConfigurationUtils.jsonMapper();
   static final Collection<ConfigItem> CONFIG_ITEMS =
       ImmutableList.of(
+          new ConfigItem("name", true, TextNode.valueOf("a name"), List.of(TextNode.valueOf(" "))),
+          new ConfigItem(
+              "type", true, TextNode.valueOf("openai"), List.of(TextNode.valueOf("anything else"))),
           new ConfigItem("model", true, TextNode.valueOf("gpt-4"), List.of(TextNode.valueOf("n"))),
           new ConfigItem(
               "api_key",

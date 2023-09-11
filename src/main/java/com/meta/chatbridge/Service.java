@@ -22,9 +22,9 @@ import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Pipeline<T extends Message> {
+public class Service<T extends Message> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Pipeline.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Service.class);
   private final ExecutorService executorService = Executors.newCachedThreadPool();
   private final MessageHandler<T> handler;
   private final ChatStore<T> store;
@@ -32,7 +32,7 @@ public class Pipeline<T extends Message> {
 
   private final String path;
 
-  public Pipeline(
+  public Service(
       ChatStore<T> store, MessageHandler<T> handler, LLMPlugin<T> llmPlugin, String path) {
     this.handler = Objects.requireNonNull(handler);
     this.store = Objects.requireNonNull(store);

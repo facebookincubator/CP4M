@@ -74,6 +74,12 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     this.accessToken = pageAccessToken;
   }
 
+  FBMessageHandler(FBMessengerConfig config) {
+    this.verifyToken = config.verifyToken();
+    this.appSecret = config.appSecret();
+    this.accessToken = config.pageAccessToken();
+  }
+
   private static Stream<String> textChunker(String text, String regexSeparator) {
     if (text.length() > 2000) {
       return Arrays.stream(text.split(regexSeparator)).map(String::strip);
