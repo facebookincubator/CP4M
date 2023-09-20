@@ -7,7 +7,8 @@ This project is changing fast, we've decided to develop this project in the publ
 
 # Details
 CP4M acts as a bridge between existing Messenger and Whatsapp APIs and existing LLM APIs (OpenAI, LLaMa, etc)  
-![cp4m_integration_diagram2](https://github.com/facebookincubator/CP4M/assets/6844618/8377f796-aab5-4c2f-8b73-19b898232e40)
+![cp4m_diagram](https://github.com/facebookincubator/CP4M/assets/6844618/601433ff-c77d-4d52-a6f8-4f3b0ff45aae)
+
 
 
 ## License
