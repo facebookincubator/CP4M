@@ -32,8 +32,8 @@ public class MessageStack<T extends Message> {
     Objects.requireNonNull(newMessage);
     messageFactory = old.messageFactory;
     Preconditions.checkArgument(
-        old.tail().conversationId().equals(newMessage.conversationId()),
-        "all messages in a stack must have the same conversation id");
+        old.tail().threadId().equals(newMessage.threadId()),
+        "all messages in a stack must have the same thread id");
     List<T> messages = old.messages;
     if (newMessage.timestamp().isBefore(old.tail().timestamp())) {
       this.messages =

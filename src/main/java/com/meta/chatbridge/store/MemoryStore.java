@@ -34,7 +34,7 @@ public class MemoryStore<T extends Message> implements ChatStore<T> {
     return this.store
         .asMap()
         .compute(
-            message.conversationId(),
+            message.threadId(),
             (k, v) -> {
               if (v == null) {
                 return MessageStack.of(message);
