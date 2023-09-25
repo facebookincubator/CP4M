@@ -17,23 +17,23 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class MessageStack<T extends Message> {
+public class ThreadState<T extends Message> {
   private final List<T> messages;
   private final MessageFactory<T> messageFactory;
 
-  private MessageStack(T message) {
+  private ThreadState(T message) {
     Objects.requireNonNull(message);
     this.messages = ImmutableList.of(message);
     messageFactory = MessageFactory.instance(message);
   }
 
   /** Constructor that exists to support the with method */
-  private MessageStack(MessageStack<T> old, T newMessage) {
+  private ThreadState(ThreadState<T> old, T newMessage) {
     Objects.requireNonNull(newMessage);
     messageFactory = old.messageFactory;
     Preconditions.checkArgument(
-        old.tail().conversationId().equals(newMessage.conversationId()),
-        "all messages in a stack must have the same conversation id");
+        old.tail().threadId().equals(newMessage.threadId()),
+        "all messages in a thread must have the same thread id");
     List<T> messages = old.messages;
     if (newMessage.timestamp().isBefore(old.tail().timestamp())) {
       this.messages =
@@ -46,11 +46,11 @@ public class MessageStack<T extends Message> {
 
     Preconditions.checkArgument(
         old.userId().equals(userId()) && old.botId().equals(botId()),
-        "userId and botId not consistent with this message stack");
+        "userId and botId not consistent with this thread state");
   }
 
-  public static <T extends Message> MessageStack<T> of(T message) {
-    return new MessageStack<>(message);
+  public static <T extends Message> ThreadState<T> of(T message) {
+    return new ThreadState<>(message);
   }
 
   public Identifier userId() {
@@ -78,8 +78,8 @@ public class MessageStack<T extends Message> {
     return messageFactory.newMessage(timestamp, message, userId(), botId(), instanceId, Role.USER);
   }
 
-  public MessageStack<T> with(T message) {
-    return new MessageStack<>(this, message);
+  public ThreadState<T> with(T message) {
+    return new ThreadState<>(this, message);
   }
 
   public List<T> messages() {

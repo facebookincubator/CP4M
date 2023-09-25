@@ -17,14 +17,14 @@ import org.junit.jupiter.api.Test;
 class MessageTest {
 
   @Test
-  void conversationId() {
+  void threadId() {
     Instant timestamp = Instant.now();
     Identifier id0 = Identifier.from("0");
     Identifier id1 = Identifier.from("1");
     Identifier id2 = Identifier.from("2");
     Message message = new FBMessage(timestamp, id0, id1, id2, "", Message.Role.ASSISTANT);
     Message response = new FBMessage(timestamp, id0, id2, id1, "", Message.Role.ASSISTANT);
-    assertThat(message.conversationId()).isEqualTo(response.conversationId());
+    assertThat(message.threadId()).isEqualTo(response.threadId());
 
     message =
         new FBMessage(
@@ -42,6 +42,6 @@ class MessageTest {
             Identifier.from("234"),
             "",
             Message.Role.ASSISTANT);
-    assertThat(message.conversationId()).isNotEqualTo(response.conversationId());
+    assertThat(message.threadId()).isNotEqualTo(response.threadId());
   }
 }

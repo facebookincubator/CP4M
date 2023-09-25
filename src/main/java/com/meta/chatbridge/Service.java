@@ -11,7 +11,7 @@ package com.meta.chatbridge;
 import com.meta.chatbridge.llm.LLMPlugin;
 import com.meta.chatbridge.message.Message;
 import com.meta.chatbridge.message.MessageHandler;
-import com.meta.chatbridge.message.MessageStack;
+import com.meta.chatbridge.message.ThreadState;
 import com.meta.chatbridge.store.ChatStore;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
@@ -44,8 +44,8 @@ public class Service<T extends Message> {
     List<T> messages = handler.processRequest(ctx);
     // TODO: once we have a non-volatile store, on startup send stored but not replied to messages
     for (T m : messages) {
-      MessageStack<T> stack = store.add(m);
-      executorService.submit(() -> execute(stack));
+      ThreadState<T> thread = store.add(m);
+      executorService.submit(() -> execute(thread));
     }
   }
 
@@ -61,10 +61,10 @@ public class Service<T extends Message> {
     return this.handler;
   }
 
-  private void execute(MessageStack<T> stack) {
+  private void execute(ThreadState<T> thread) {
     T llmResponse;
     try {
-      llmResponse = llmPlugin.handle(stack);
+      llmResponse = llmPlugin.handle(thread);
     } catch (IOException e) {
       LOGGER.error("failed to communicate with LLM", e);
       return;
