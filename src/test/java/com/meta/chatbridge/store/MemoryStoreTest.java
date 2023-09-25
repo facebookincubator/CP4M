@@ -28,16 +28,16 @@ class MemoryStoreTest {
     FBMessage message =
         messageFactory.newMessage(
             Instant.now(), "", senderId, recipientId, Identifier.random(), Message.Role.SYSTEM);
-    MessageStack<FBMessage> stack = memoryStore.add(message);
+    ThreadState<FBMessage> thread = memoryStore.add(message);
     assertThat(memoryStore.size()).isEqualTo(1);
-    assertThat(stack.messages()).hasSize(1).contains(message);
+    assertThat(thread.messages()).hasSize(1).contains(message);
 
     FBMessage message2 =
         messageFactory.newMessage(
             Instant.now(), "", recipientId, senderId, Identifier.random(), Message.Role.USER);
-    stack = memoryStore.add(message2);
+    thread = memoryStore.add(message2);
     assertThat(memoryStore.size()).isEqualTo(1);
-    assertThat(stack.messages()).hasSize(2).contains(message, message2);
+    assertThat(thread.messages()).hasSize(2).contains(message, message2);
 
     FBMessage message3 =
         messageFactory.newMessage(
@@ -47,8 +47,8 @@ class MemoryStoreTest {
             Identifier.random(),
             Identifier.random(),
             Message.Role.SYSTEM);
-    stack = memoryStore.add(message3);
+    thread = memoryStore.add(message3);
     assertThat(memoryStore.size()).isEqualTo(2);
-    assertThat(stack.messages()).hasSize(1).contains(message3);
+    assertThat(thread.messages()).hasSize(1).contains(message3);
   }
 }
