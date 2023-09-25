@@ -16,6 +16,11 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Optional;
 
+/**
+ * The messages array of objects is nested within the value object and is triggered when a customer
+ * updates their profile information or a customer sends a message to the business that is
+ * subscribed to the webhook.
+ */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(value = AudioWebhookMessage.class, name = "audio"),
@@ -33,14 +38,55 @@ public interface WebhookMessage {
 
   Optional<WebhookMessageContext> context();
 
+  /**
+   * <a
+   * href="https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/components#messages-object">Source
+   * Documentation</a>
+   *
+   * @return The customer's WhatsApp ID. A business can respond to a customer using this ID. This ID
+   *     may not match the customer's phone number, which is returned by the API as input when
+   *     sending a message to the customer.
+   */
   Collection<Error> errors();
 
+  /**
+   * <a
+   * href="https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/components#messages-object">Source
+   * Documentation</a>
+   *
+   * @return The customer's WhatsApp ID. A business can respond to a customer using this ID. This ID
+   *     may not match the customer's phone number, which is returned by the API as input when
+   *     sending a message to the customer.
+   */
   Identifier from();
 
+  /**
+   * <a
+   * href="https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/components#messages-object">Source
+   * Documentation</a>
+   *
+   * @return The ID for the message that was received by the business. You could use messages
+   *     endpoint to mark this specific message as read.
+   */
   Identifier id();
 
+  /**
+   * <a
+   * href="https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/components#messages-object">Source
+   * Documentation</a>
+   *
+   * @return timestamp indicating when the WhatsApp server received the message from the customer.
+   */
   Instant timestamp();
 
+  /**
+   * <a
+   * href="https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/components#messages-object">Source
+   * Documentation</a>
+   *
+   * @return The type of message that has been received by the business that has subscribed to
+   *     Webhooks
+   */
   WebhookMessageType type();
 
   enum WebhookMessageType {

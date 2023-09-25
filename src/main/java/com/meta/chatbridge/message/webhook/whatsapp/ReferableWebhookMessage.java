@@ -11,5 +11,13 @@ package com.meta.chatbridge.message.webhook.whatsapp;
 import java.util.Optional;
 
 public interface ReferableWebhookMessage extends WebhookMessage {
+  /**
+   * <a
+   * href="https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/components#messages-object">Source
+   * Documentation</a>
+   *
+   * @return When a customer clicks an ad that redirects to WhatsApp, this object is included in the
+   *     messages object
+   */
   Optional<Referral> referral();
 }

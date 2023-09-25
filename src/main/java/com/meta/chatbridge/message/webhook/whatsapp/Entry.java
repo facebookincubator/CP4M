@@ -15,7 +15,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 
-public record Entry(Identifier id, Collection<Change> changes) {
+/**
+ * @param businessAccountId The WhatsApp Business Account ID for the business that is subscribed to
+ *     the webhook
+ * @param changes An array of change objects
+ */
+public record Entry(Identifier businessAccountId, Collection<Change> changes) {
 
   @JsonCreator
   public Entry(@JsonProperty("id") String id, @JsonProperty("changes") Collection<Change> changes) {

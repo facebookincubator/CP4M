@@ -11,6 +11,10 @@ package com.meta.chatbridge.message.webhook.whatsapp;
 import com.google.common.base.Preconditions;
 import java.util.Objects;
 
+/**
+ * @param field Notification type. Value will be "messages".
+ * @param value @see {@link Value}
+ */
 public record Change(String field, Value value) {
 
   public Change {

@@ -80,7 +80,7 @@ public final class WebhookMessageContext {
 
   @Override
   public String toString() {
-    return "Context["
+    return "WebhookMessageContext["
         + "forwarded="
         + forwarded
         + ", "
@@ -90,7 +90,7 @@ public final class WebhookMessageContext {
         + "from="
         + from
         + ", "
-        + "id="
+        + "businessAccountId="
         + id
         + ", "
         + "referredProduct="

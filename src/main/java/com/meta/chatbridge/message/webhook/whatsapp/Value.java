@@ -17,6 +17,21 @@ import java.util.Collections;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+/**
+ * The value object contains details for the change that triggered the webhook. This object is
+ * nested within the changes array of the entry array.
+ *
+ * @param messagingProduct Product used to send the message. Value is always whatsapp.
+ * @param metadata A metadata object describing the business subscribed to the webhook.
+ * @param contacts Array of contact objects with information for the customer who sent a message to
+ *     the business.
+ * @param errors An array of error objects describing the error. Error objects have the following
+ *     properties, which map to their equivalent properties in API error response payloads.
+ * @param statuses Status object for a message that was sent by the business that is subscribed to
+ *     the webhook
+ * @param messages Information about a message received by the business that is subscribed to the
+ *     webhook.
+ */
 public record Value(
     String messagingProduct,
     com.meta.chatbridge.message.webhook.whatsapp.Value.Metadata metadata,
@@ -42,6 +57,12 @@ public record Value(
     this.messages = messages == null ? Collections.emptyList() : messages;
   }
 
+  /**
+   * A metadata object describing the business subscribed to the webhook
+   *
+   * @param displayPhoneNumber The phone number that is displayed for a business
+   * @param phoneNumberId ID for the phone number. A business can respond to a message using this ID
+   */
   public record Metadata(String displayPhoneNumber, Identifier phoneNumberId) {
     @JsonCreator
     public Metadata(

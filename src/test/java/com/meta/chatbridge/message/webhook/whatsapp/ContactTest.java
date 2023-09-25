@@ -18,7 +18,7 @@ import com.meta.chatbridge.Identifier;
 import org.junit.jupiter.api.Test;
 
 class ContactTest {
-  static final String VALID = "{\"profile\": {\"name\": \"test\"}, \"waid\": \"test\"}";
+  static final String VALID = "{\"profile\": {\"name\": \"test\"}, \"wa_id\": \"test\"}";
   private static final JsonMapper MAPPER = Utils.JSON_MAPPER;
 
   @Test

@@ -22,7 +22,6 @@ import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Stream;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.client5.http.fluent.Response;
 import org.apache.hc.core5.http.ContentType;
@@ -39,6 +38,15 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   private static final String API_VERSION = "v17.0";
   private static final JsonMapper MAPPER = new JsonMapper();
   private static final Logger LOGGER = LoggerFactory.getLogger(FBMessageHandler.class);
+  private static final TextChunker CHUNKER =
+      TextChunker.from(2000)
+          .withSeparator("\n\n\n+")
+          .withSeparator("\n\n")
+          .withSeparator("\n")
+          .withSeparator("\\. +") // any period, including the following whitespaces
+          .withSeparator("\s\s+") // any set of two or more whitespace characters
+          .withSeparator(" +"); // any set of one or more whitespace spaces
+
   private final String verifyToken;
   private final String appSecret;
 
@@ -71,13 +79,6 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     this.verifyToken = config.verifyToken();
     this.appSecret = config.appSecret();
     this.accessToken = config.pageAccessToken();
-  }
-
-  private static Stream<String> textChunker(String text, String regexSeparator) {
-    if (text.length() > 2000) {
-      return Arrays.stream(text.split(regexSeparator)).map(String::strip);
-    }
-    return Stream.of(text);
   }
 
   @Override
@@ -197,14 +198,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
 
   @Override
   public void respond(FBMessage message) throws IOException {
-    List<String> chunkedText =
-        Stream.of(message.message().strip())
-            .flatMap(m -> textChunker(m, "\n\n\n+"))
-            .flatMap(m -> textChunker(m, "\n\n"))
-            .flatMap(m -> textChunker(m, "\n"))
-            .flatMap(m -> textChunker(m, "\\. +"))
-            .flatMap(m -> textChunker(m, " +"))
-            .toList();
+    List<String> chunkedText = CHUNKER.chunks(message.message()).toList();
     for (String text : chunkedText) {
       send(text, message.recipientId(), message.senderId());
     }
