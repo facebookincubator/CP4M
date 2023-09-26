@@ -12,32 +12,32 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.meta.chatbridge.Identifier;
 import com.meta.chatbridge.message.Message;
-import com.meta.chatbridge.message.MessageStack;
+import com.meta.chatbridge.message.ThreadState;
 import java.time.Duration;
 
 public class MemoryStore<T extends Message> implements ChatStore<T> {
-  private final Cache<Identifier, MessageStack<T>> store;
+  private final Cache<Identifier, ThreadState<T>> store;
 
   MemoryStore(MemoryStoreConfig config) {
     this.store =
         CacheBuilder.newBuilder()
             .expireAfterWrite(Duration.ofHours(config.storageDurationHours()))
             .maximumWeight((long) (config.storageCapacityMb() * Math.pow(2, 20))) // megabytes
-            .<Identifier, MessageStack<T>>weigher(
+            .<Identifier, ThreadState<T>>weigher(
                 (k, v) ->
                     v.messages().stream().map(m -> m.message().length()).reduce(0, Integer::sum))
             .build();
   }
 
   @Override
-  public MessageStack<T> add(T message) {
+  public ThreadState<T> add(T message) {
     return this.store
         .asMap()
         .compute(
-            message.conversationId(),
+            message.threadId(),
             (k, v) -> {
               if (v == null) {
-                return MessageStack.of(message);
+                return ThreadState.of(message);
               }
               return v.with(message);
             });

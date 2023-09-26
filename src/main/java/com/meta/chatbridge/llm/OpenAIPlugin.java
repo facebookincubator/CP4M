@@ -17,7 +17,7 @@ import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.meta.chatbridge.message.Message;
 import com.meta.chatbridge.message.Message.Role;
-import com.meta.chatbridge.message.MessageStack;
+import com.meta.chatbridge.message.ThreadState;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -126,8 +126,8 @@ public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
   }
 
   @Override
-  public T handle(MessageStack<T> messageStack) throws IOException {
-    T fromUser = messageStack.tail();
+  public T handle(ThreadState<T> threadState) throws IOException {
+    T fromUser = threadState.tail();
 
     ObjectNode body = MAPPER.createObjectNode();
     body.put("model", config.model().properties().name())
@@ -156,7 +156,7 @@ public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
                     .addObject()
                     .put("role", Role.SYSTEM.toString().toLowerCase())
                     .put("content", m));
-    for (T message : messageStack.messages()) {
+    for (T message : threadState.messages()) {
       messages
           .addObject()
           .put("role", message.role().toString().toLowerCase())
@@ -165,7 +165,7 @@ public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
 
     Optional<ArrayNode> prunedMessages = pruneMessages(messages, null);
     if (prunedMessages.isEmpty()) {
-      return messageStack.newMessageFromBot(
+      return threadState.newMessageFromBot(
           Instant.now(), "I'm sorry but that request was too long for me.");
     }
     body.set("messages", prunedMessages.get());
@@ -186,6 +186,6 @@ public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
     Instant timestamp = Instant.ofEpochSecond(responseBody.get("created").longValue());
     JsonNode choice = responseBody.get("choices").get(0);
     String messageContent = choice.get("message").get("content").textValue();
-    return messageStack.newMessageFromBot(timestamp, messageContent);
+    return threadState.newMessageFromBot(timestamp, messageContent);
   }
 }
