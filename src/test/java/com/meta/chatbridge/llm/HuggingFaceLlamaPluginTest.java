@@ -55,7 +55,11 @@ public class HuggingFaceLlamaPluginTest {
     public static final ArrayNode SAMPLE_RESPONSE = MAPPER.createArrayNode();
     private static final String PATH = "/";
     private static final String TEST_MESSAGE = "this is a test message";
+    private static final String TEST_SYSTEM_MESSAGE = "this is a system message";
     private static final String TEST_ENDPOINT = "test_endpoint";
+    private static final String TEST_PAYLOAD = "<s>[INST] test message [/INST]";
+    private static final String TEST_PAYLOAD_WITH_SYSTEM = "<s>[INST] <<SYS>>\nthis is a system message\n<</SYS>>\n\nthis is a test message [/INST]";
+
     private static final MessageStack<FBMessage> STACK =
             MessageStack.of(
                     MessageFactory.instance(FBMessage.class)
@@ -110,6 +114,54 @@ public class HuggingFaceLlamaPluginTest {
         @Nullable OutboundRequest or = HuggingFaceLlamaRequests.poll(500, TimeUnit.MILLISECONDS);
         assertThat(or).isNotNull();
         assertThat(or.headerMap().get("Authorization")).isNotNull().isEqualTo("Bearer " + apiKey);
+    }
+
+    @Test
+    void createPayload() {
+        String apiKey = UUID.randomUUID().toString();
+        HuggingFaceConfig config = HuggingFaceConfig.builder(apiKey).endpoint(TEST_ENDPOINT).tokenLimit(100).build();
+        HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<FBMessage>(config).endpoint(endpoint);
+        String createdPayload = plugin.createPrompt(STACK);
+        assertThat(createdPayload).isEqualTo(TEST_PAYLOAD);
+    }
+
+    @Test
+    void createPayloadWithSystemMessage() {
+        String apiKey = UUID.randomUUID().toString();
+        HuggingFaceConfig config = HuggingFaceConfig.builder(apiKey).endpoint(TEST_ENDPOINT).tokenLimit(100).build();
+        HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<FBMessage>(config).endpoint(endpoint);
+        MessageStack<FBMessage> stack =
+                MessageStack.of(
+                        MessageFactory.instance(FBMessage.class)
+                                .newMessage(
+                                        Instant.now(),
+                                        TEST_SYSTEM_MESSAGE,
+                                        Identifier.random(),
+                                        Identifier.random(),
+                                        Identifier.random(),
+                                        Role.SYSTEM));
+        stack = stack.with(stack.newMessageFromUser(Instant.now(), TEST_MESSAGE, Identifier.from(1)));
+        String createdPayload = plugin.createPrompt(stack);
+        assertThat(createdPayload).isEqualTo(TEST_PAYLOAD_WITH_SYSTEM);
+    }
+
+    @Test
+    void createPayloadWithConfigSystemMessage() {
+        String apiKey = UUID.randomUUID().toString();
+        HuggingFaceConfig config = HuggingFaceConfig.builder(apiKey).endpoint(TEST_ENDPOINT).tokenLimit(100).systemMessage(TEST_SYSTEM_MESSAGE).build();
+        HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<FBMessage>(config).endpoint(endpoint);
+        MessageStack<FBMessage> stack =
+                MessageStack.of(
+                        MessageFactory.instance(FBMessage.class)
+                                .newMessage(
+                                        Instant.now(),
+                                        TEST_MESSAGE,
+                                        Identifier.random(),
+                                        Identifier.random(),
+                                        Identifier.random(),
+                                        Role.USER));
+        String createdPayload = plugin.createPrompt(stack);
+        assertThat(createdPayload).isEqualTo(TEST_PAYLOAD_WITH_SYSTEM);
     }
 
     @BeforeEach

@@ -13,6 +13,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.google.common.base.Preconditions;
 import com.meta.chatbridge.message.Message;
+
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
@@ -59,6 +62,14 @@ public class HuggingFaceConfig implements LLMConfig {
         this.logitBias = Collections.unmodifiableMap(logitBias);
         this.systemMessage = systemMessage;
         this.maxInputTokens = maxInputTokens;
+    }
+
+    private static void checkArgumentIsURI(String argument, String errorMessage) {
+        try {
+            new URI(argument);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(errorMessage, e);
+        }
     }
 
     public static Builder builder(String apiKey) {
@@ -153,7 +164,7 @@ public class HuggingFaceConfig implements LLMConfig {
         private @Nullable Long maxInputTokens;
 
         public @This Builder endpoint(String endpoint) {
-            Preconditions.checkArgument(!endpoint.isBlank(), "endpoint cannot be blank");
+            checkArgumentIsURI(endpoint, "endpoint must b a valid URI");
             this.endpoint = endpoint;
             return this;
         }
