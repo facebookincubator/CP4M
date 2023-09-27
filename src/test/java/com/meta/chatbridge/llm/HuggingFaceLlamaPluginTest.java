@@ -218,15 +218,16 @@ public class HuggingFaceLlamaPluginTest {
         assertThat(or).isNotNull();
         JsonNode body = MAPPER.readTree(or.body());
 
+        int prevMessageIndex = 0;
         for (int i = 0; i < stack.messages().size(); i++) {
             FBMessage stackMessage = stack.messages().get(i);
-            JsonNode sentMessageFull = body.get("inputs");
-            String sentMessage = sentMessageFull.textValue().trim().replace("<s>[INST]", "").trim();
-            int assertI = i;
+            String sentMessage = body.get("inputs").textValue();
+            int index = sentMessage.indexOf(stackMessage.message());
+            int finalPrevMessageIndex = prevMessageIndex;
             assertSoftly(
                     s ->
-                            s.assertThat(stackMessage.message())
-                                    .isEqualTo(String.valueOf(sentMessage.charAt(assertI))));
+                            s.assertThat(index).isGreaterThan(finalPrevMessageIndex));
+            prevMessageIndex = index;
         }
     }
 
