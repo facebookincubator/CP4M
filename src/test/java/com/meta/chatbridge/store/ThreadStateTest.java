@@ -14,11 +14,11 @@ import com.meta.chatbridge.Identifier;
 import com.meta.chatbridge.message.FBMessage;
 import com.meta.chatbridge.message.Message;
 import com.meta.chatbridge.message.MessageFactory;
-import com.meta.chatbridge.message.MessageStack;
+import com.meta.chatbridge.message.ThreadState;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
-class MessageStackTest {
+class ThreadStateTest {
 
   private static final MessageFactory<FBMessage> FACTORY = MessageFactory.instance(FBMessage.class);
 
@@ -34,14 +34,14 @@ class MessageStackTest {
             Identifier.random(),
             Message.Role.USER);
 
-    MessageStack<FBMessage> ms = MessageStack.of(message1);
+    ThreadState<FBMessage> ms = ThreadState.of(message1);
     FBMessage message2 = ms.newMessageFromBot(start.plusSeconds(1), "other sample message");
     ms = ms.with(message2);
     assertThat(ms.messages()).hasSize(2);
     assertThat(ms.messages().get(0)).isSameAs(message1);
     assertThat(ms.messages().get(1)).isSameAs(message2);
 
-    ms = MessageStack.of(message1);
+    ms = ThreadState.of(message1);
     assertThat(ms.messages()).hasSize(1);
     ms = ms.with(message2);
     assertThat(ms.messages()).hasSize(2);
@@ -60,7 +60,7 @@ class MessageStackTest {
             Identifier.random(),
             Identifier.random(),
             Message.Role.USER);
-    MessageStack<FBMessage> ms = MessageStack.of(message2);
+    ThreadState<FBMessage> ms = ThreadState.of(message2);
 
     FBMessage message1 = ms.newMessageFromBot(start.minusSeconds(1), "other sample message");
 
@@ -68,7 +68,7 @@ class MessageStackTest {
     assertThat(ms.messages().get(0)).isSameAs(message1);
     assertThat(ms.messages().get(1)).isSameAs(message2);
 
-    ms = MessageStack.of(message2);
+    ms = ThreadState.of(message2);
     assertThat(ms.messages()).hasSize(1);
     ms = ms.with(message1);
     assertThat(ms.messages()).hasSize(2);
@@ -88,7 +88,7 @@ class MessageStackTest {
             Identifier.random(),
             Message.Role.USER);
 
-    MessageStack<FBMessage> ms = MessageStack.of(message1);
+    ThreadState<FBMessage> ms = ThreadState.of(message1);
     FBMessage message2 =
         FACTORY.newMessage(
             start,
@@ -98,7 +98,7 @@ class MessageStackTest {
             Identifier.random(),
             Message.Role.ASSISTANT);
 
-    final MessageStack<FBMessage> finalMs = ms;
+    final ThreadState<FBMessage> finalMs = ms;
     assertThatCode(() -> finalMs.with(message2)).doesNotThrowAnyException();
     assertThatCode(() -> finalMs.with(finalMs.newMessageFromBot(start, "")))
         .doesNotThrowAnyException();
@@ -116,7 +116,7 @@ class MessageStackTest {
             Identifier.random(),
             Message.Role.USER);
 
-    MessageStack<FBMessage> finalMs1 = ms;
+    ThreadState<FBMessage> finalMs1 = ms;
     assertThatThrownBy(() -> finalMs1.with(mDifferentSenderId))
         .isInstanceOf(IllegalArgumentException.class);
 
