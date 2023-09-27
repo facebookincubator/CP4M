@@ -12,7 +12,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.meta.chatbridge.message.FBMessage;
 import com.meta.chatbridge.message.Message;
 import com.meta.chatbridge.message.MessageStack;
 import org.apache.hc.client5.http.fluent.Request;
@@ -33,12 +32,7 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
     public HuggingFaceLlamaPlugin(HuggingFaceConfig config) {
         this.config = config;
-
-        try {
-            this.endpoint = new URI(this.config.endpoint());
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+        this.endpoint = this.config.getURIEndpoint();
     }
 
     @TestOnly

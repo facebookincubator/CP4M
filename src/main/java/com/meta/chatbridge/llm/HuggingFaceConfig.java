@@ -72,6 +72,14 @@ public class HuggingFaceConfig implements LLMConfig {
         }
     }
 
+    public URI getURIEndpoint() {
+        try {
+            return new URI(endpoint);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static Builder builder(String apiKey) {
         // readability of the name is not important unless it comes from the config
         return new Builder().name(UUID.randomUUID().toString()).apiKey(apiKey);
