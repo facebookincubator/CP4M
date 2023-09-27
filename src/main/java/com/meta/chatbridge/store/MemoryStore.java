@@ -14,6 +14,7 @@ import com.meta.chatbridge.Identifier;
 import com.meta.chatbridge.message.Message;
 import com.meta.chatbridge.message.ThreadState;
 import java.time.Duration;
+import java.util.List;
 
 public class MemoryStore<T extends Message> implements ChatStore<T> {
   private final Cache<Identifier, ThreadState<T>> store;
@@ -43,7 +44,13 @@ public class MemoryStore<T extends Message> implements ChatStore<T> {
             });
   }
 
+  @Override
   public long size() {
     return store.size();
+  }
+
+  @Override
+  public List<ThreadState<T>> list() {
+    return store.asMap().values().stream().toList();
   }
 }

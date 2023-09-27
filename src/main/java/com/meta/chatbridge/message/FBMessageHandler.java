@@ -38,14 +38,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   private static final String API_VERSION = "v17.0";
   private static final JsonMapper MAPPER = new JsonMapper();
   private static final Logger LOGGER = LoggerFactory.getLogger(FBMessageHandler.class);
-  private static final TextChunker CHUNKER =
-      TextChunker.from(2000)
-          .withSeparator("\n\n\n+")
-          .withSeparator("\n\n")
-          .withSeparator("\n")
-          .withSeparator("\\. +") // any period, including the following whitespaces
-          .withSeparator("\s\s+") // any set of two or more whitespace characters
-          .withSeparator(" +"); // any set of one or more whitespace spaces
+  private static final TextChunker CHUNKER = TextChunker.standard(2000);
 
   private final String verifyToken;
   private final String appSecret;

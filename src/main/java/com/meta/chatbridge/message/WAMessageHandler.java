@@ -46,16 +46,9 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
    * href="https://developers.facebook.com/docs/whatsapp/on-premises/reference/messages#constraints">A
    * text message can be a max of 4096 characters long.</a>
    */
-  private static final long MAX_CHARS_PER_MESSAGE = 4096;
+  private static final int MAX_CHARS_PER_MESSAGE = 4096;
 
-  private static final TextChunker CHUNKER =
-      TextChunker.from(MAX_CHARS_PER_MESSAGE)
-          .withSeparator("\n\n\n+")
-          .withSeparator("\n\n")
-          .withSeparator("\n")
-          .withSeparator("\\. +") // any period, including the following whitespaces
-          .withSeparator("\s\s+") // any set of two or more whitespace characters
-          .withSeparator(" +"); // any set of one or more whitespace spaces
+  private static final TextChunker CHUNKER = TextChunker.standard(MAX_CHARS_PER_MESSAGE);
 
   private final ExecutorService readExecutor = Executors.newCachedThreadPool();
   private final Deduplicator<Identifier> messageDeduplicator = new Deduplicator<>(10_000);
@@ -83,6 +76,12 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     this.verifyToken = verifyToken;
     this.appSecret = appSecret;
     this.accessToken = accessToken;
+  }
+
+  public WAMessageHandler(WAMessengerConfig config) {
+    this.verifyToken = config.verifyToken();
+    this.accessToken = config.accessToken();
+    this.appSecret = config.appSecret();
   }
 
   @Override
@@ -147,10 +146,10 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                     new WAMessage(
                         message.timestamp(),
                         message.id(),
-                        phoneNumberId,
                         message.from(),
+                        phoneNumberId,
                         textMessage.text().body(),
-                        Message.Role.ASSISTANT));
+                        Message.Role.USER));
                 readExecutor.execute(() -> markRead(phoneNumberId, textMessage.id().toString()));
               }
             });

@@ -19,7 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.meta.chatbridge.Identifier;
 import com.meta.chatbridge.Service;
 import com.meta.chatbridge.ServicesRunner;
-import com.meta.chatbridge.llm.DummyFBMessageLLMHandler;
+import com.meta.chatbridge.llm.DummyLLMPlugin;
 import com.meta.chatbridge.message.Message.Role;
 import com.meta.chatbridge.store.MemoryStore;
 import com.meta.chatbridge.store.MemoryStoreConfig;
@@ -145,7 +145,7 @@ public class FBMessageHandlerTest {
         new Service<>(
             MemoryStoreConfig.of(1, 1).toStore(),
             new FBMessageHandler("0", token, "dummy"),
-            new DummyFBMessageLLMHandler("this is a dummy message"),
+            new DummyLLMPlugin("this is a dummy message"),
             "/testfbmessage");
     final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
     HttpResponse response;
@@ -191,7 +191,7 @@ public class FBMessageHandlerTest {
     String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake don't worry
     String secret = "f74a638462f975e9eadfcbb84e4aa06b"; // it's been rolled don't worry
     FBMessageHandler messageHandler = new FBMessageHandler("0", token, secret);
-    DummyFBMessageLLMHandler llmHandler = new DummyFBMessageLLMHandler("this is a dummy message");
+    DummyLLMPlugin llmHandler = new DummyLLMPlugin("this is a dummy message");
     MemoryStore<FBMessage> memoryStore = MemoryStoreConfig.of(1, 1).toStore();
     Service<FBMessage> service = new Service<>(memoryStore, messageHandler, llmHandler, path);
     final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
