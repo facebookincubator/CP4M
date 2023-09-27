@@ -37,9 +37,6 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final HuggingFaceConfig config;
-//    private final Encoding tokenEncoding;
-//    private final int tokensPerMessage;
-//    private final int tokensPerName;
     private URI endpoint;
 
     public HuggingFaceLlamaPlugin(HuggingFaceConfig config) {
@@ -50,21 +47,6 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
         } catch (URISyntaxException e) {
             throw new RuntimeException(e); // this should be impossible
         }
-//        tokenEncoding =
-//                Encodings.newDefaultEncodingRegistry()
-//                        .getEncodingForModel(config.model().properties().jtokkinModel());
-//
-//        switch (config.model()) {
-//            case GPT4, GPT432K -> {
-//                tokensPerMessage = 3;
-//                tokensPerName = 1;
-//            }
-//            case GPT35TURBO, GPT35TURBO16K -> {
-//                tokensPerMessage = 4; // every message follows <|start|>{role/name}\n{content}<|end|>\n
-//                tokensPerName = -1; // if there's a name, the role is omitted
-//            }
-//            default -> throw new IllegalArgumentException("Unsupported model: " + config.model());
-//        }
     }
 
     @TestOnly
@@ -88,12 +70,6 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
     private Optional<ArrayNode> pruneMessages(ArrayNode messages, @Nullable JsonNode functions)
             throws JsonProcessingException {
-
-//        int functionTokens = 0;
-//        if (functions != null) {
-//            // This is honestly a guess, it's undocumented
-//            functionTokens = tokenEncoding.countTokens(MAPPER.writeValueAsString(functions));
-//        }
 
         ArrayNode output = MAPPER.createArrayNode();
         int totalTokens = 0;
@@ -135,34 +111,14 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
         ObjectNode body = MAPPER.createObjectNode();
         ObjectNode params = MAPPER.createObjectNode();
 
-
-//        body.put("model", config.model().properties().name())
-//                // .put("function_call", "auto") // Update when we support functions
-//                .put("n", 1)
-//                .put("stream", false)
-//                .put("user", fromUser.senderId().toString());
         config.topP().ifPresent(v -> params.put("top_p", v));
         config.temperature().ifPresent(v -> params.put("temperature", v));
         config.maxOutputTokens().ifPresent(v -> params.put("max_new_tokens", v));
-//        config.presencePenalty().ifPresent(v -> body.put("presence_penalty", v));
-//        config.frequencyPenalty().ifPresent(v -> body.put("frequency_penalty", v));
-//        if (!config.logitBias().isEmpty()) {
-//            body.set("logit_bias", MAPPER.valueToTree(config.logitBias()));
-//        }
-//        if (!config.stop().isEmpty()) {
-//            body.set("stop", MAPPER.valueToTree(config.stop()));
-//        }
 
         body.set("parameters", params);
 
-//        String payload = "test";
         String prompt = getPrompt(messageStack);
 
-
-//        if (prunedMessages.isEmpty()) {
-//            return messageStack.newMessageFromBot(
-//                    Instant.now(), "I'm sorry but that request was too long for me.");
-//        }
         body.put("inputs", prompt);
 
         String bodyString;
@@ -182,9 +138,6 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
         String llmResponse = allGeneratedText.trim().replace(prompt.trim(), "");
         Instant timestamp = Instant.now();
 
-//        JsonNode choice = responseBody.get("choices").get(0);
-//        String messageContent = choice.get("message").get("content").textValue();
-
         return messageStack.newMessageFromBot(timestamp, llmResponse);
     }
 
@@ -201,11 +154,6 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
         Message.Role lastMessageSender = Message.Role.SYSTEM;
 
         for (T message : MessageStack.messages()) {
-//            Check if it's user or system and add tokens and text accordingly
-//            If system and previous is user, [/INST] " + response
-//            If user and previous is system, </s><s>[INST] + message
-//            Then end with either one but close brackets, either end with an open
-//            inst or with a user message and no closing
             String text = doStrip ?  message.message().trim() : message.message();
             Message.Role user = message.role();
             boolean isUser = user.equals(Message.Role.USER);
@@ -222,18 +170,12 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
             texts.add(text);
 
             lastMessageSender = user;
-
-//            String response = entry.getValue().trim();
-//            texts.add(userInput + " [/INST] " + response + " </s><s>[INST] ");
         }
         if(lastMessageSender.equals(Message.Role.ASSISTANT)){
             texts.add(" </s>");
         } else if (lastMessageSender.equals(Message.Role.USER)){
             texts.add(" [/INST]");
         }
-
-//        userMessage = doStrip ? userMessage.trim() : userMessage;
-//        texts.add(userMessage + " [/INST]");
 
         StringBuilder promptBuilder = new StringBuilder();
         for (String text : texts) {
