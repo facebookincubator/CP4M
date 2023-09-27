@@ -20,6 +20,7 @@ import org.checkerframework.common.returnsreceiver.qual.This;
 @JsonDeserialize(builder = HuggingFaceConfig.Builder.class)
 public class HuggingFaceConfig implements LLMConfig {
 
+    private final String endpoint;
     private final String name;
     private final String apiKey;
     @Nullable private final Double temperature;
@@ -34,6 +35,7 @@ public class HuggingFaceConfig implements LLMConfig {
     private final long maxInputTokens;
 
     private HuggingFaceConfig(
+            String endpoint,
             String name,
             String apiKey,
             @Nullable Double temperature,
@@ -45,6 +47,7 @@ public class HuggingFaceConfig implements LLMConfig {
             Map<Long, Double> logitBias,
             @Nullable String systemMessage,
             long maxInputTokens) {
+        this.endpoint = endpoint;
         this.name = name;
         this.apiKey = apiKey;
         this.temperature = temperature;
@@ -63,6 +66,9 @@ public class HuggingFaceConfig implements LLMConfig {
         return new Builder().name(UUID.randomUUID().toString()).apiKey(apiKey);
     }
 
+    public String endpoint() {
+        return endpoint;
+    }
     public String name() {
         return name;
     }
@@ -79,7 +85,7 @@ public class HuggingFaceConfig implements LLMConfig {
         return Optional.ofNullable(topP);
     }
 
-    public long tokenLimit() {
+    public Long tokenLimit() {
         return tokenLimit;
     }
 
@@ -107,13 +113,14 @@ public class HuggingFaceConfig implements LLMConfig {
         return maxInputTokens;
     }
 
-    public <T extends Message> HuggingFacePlugin<T> toPlugin() {
-        return new HuggingFacePlugin<>(this);
+    public <T extends Message> HuggingFaceLlamaPlugin<T> toPlugin() {
+        return new HuggingFaceLlamaPlugin<>(this);
     }
 
     @JsonPOJOBuilder(withPrefix = "")
     public static class Builder {
 
+        private @Nullable String endpoint;
         private @Nullable String name;
 
         @JsonProperty("api_key")
@@ -124,7 +131,8 @@ public class HuggingFaceConfig implements LLMConfig {
         @JsonProperty("top_p")
         private @Nullable Double topP;
 
-        private long tokenLimit;
+        @JsonProperty("token_limit")
+        private @Nullable Long tokenLimit;
 
         @JsonProperty("max_output_tokens")
         private @Nullable Long maxOutputTokens;
@@ -144,8 +152,11 @@ public class HuggingFaceConfig implements LLMConfig {
         @JsonProperty("max_input_tokens")
         private @Nullable Long maxInputTokens;
 
-        private Builder() {}
-
+        public @This Builder endpoint(String endpoint) {
+            Preconditions.checkArgument(!endpoint.isBlank(), "endpoint cannot be blank");
+            this.endpoint = endpoint;
+            return this;
+        }
         public @This Builder name(String name) {
             Preconditions.checkArgument(!name.isBlank(), "name cannot be blank");
             this.name = name;
@@ -173,7 +184,8 @@ public class HuggingFaceConfig implements LLMConfig {
         }
 
         public @This Builder tokenLimit(long tokenLimit) {
-            Objects.requireNonNull(tokenLimit);
+            Preconditions.checkArgument(
+                    tokenLimit > 0, "tokenLimit must be greater than zero");
             this.tokenLimit = tokenLimit;
             return this;
         }
@@ -222,8 +234,9 @@ public class HuggingFaceConfig implements LLMConfig {
         }
 
         public HuggingFaceConfig build() {
+            Objects.requireNonNull(endpoint, "endpoint is a required parameter");
             Objects.requireNonNull(name, "name is a required parameter");
-//            Objects.requireNonNull(tokenLimit, "token_limit is a required parameter");
+            Objects.requireNonNull(tokenLimit, "token_limit is a required parameter");
             Objects.requireNonNull(apiKey, "api_key is a required parameter");
             if (maxOutputTokens != null) {
                 Preconditions.checkArgument(
@@ -250,6 +263,7 @@ public class HuggingFaceConfig implements LLMConfig {
                             + ", the total context tokens allowed by this model");
 
             return new HuggingFaceConfig(
+                    endpoint,
                     name,
                     apiKey,
                     temperature,
