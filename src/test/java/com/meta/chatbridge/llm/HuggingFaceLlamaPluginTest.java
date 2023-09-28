@@ -58,8 +58,8 @@ public class HuggingFaceLlamaPluginTest {
   private static final String TEST_PAYLOAD_WITH_SYSTEM =
       "<s>[INST] <<SYS>>\nthis is a system message\n<</SYS>>\n\nthis is a test message [/INST]";
 
-  private static final MessageStack<FBMessage> STACK =
-      MessageStack.of(
+  private static final ThreadState<FBMessage> STACK =
+      ThreadState.of(
           MessageFactory.instance(FBMessage.class)
               .newMessage(
                   Instant.now(),
@@ -130,8 +130,8 @@ public class HuggingFaceLlamaPluginTest {
     HuggingFaceConfig config =
         HuggingFaceConfig.builder(apiKey).endpoint(endpoint.toString()).tokenLimit(100).build();
     HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
-    MessageStack<FBMessage> stack =
-        MessageStack.of(
+    ThreadState<FBMessage> stack =
+        ThreadState.of(
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
@@ -155,8 +155,8 @@ public class HuggingFaceLlamaPluginTest {
             .systemMessage(TEST_SYSTEM_MESSAGE)
             .build();
     HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
-    MessageStack<FBMessage> stack =
-        MessageStack.of(
+    ThreadState<FBMessage> stack =
+        ThreadState.of(
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
@@ -210,8 +210,8 @@ public class HuggingFaceLlamaPluginTest {
             .endpoint(endpoint.toString())
             .build();
     HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
-    MessageStack<FBMessage> stack =
-        MessageStack.of(
+    ThreadState<FBMessage> stack =
+        ThreadState.of(
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
