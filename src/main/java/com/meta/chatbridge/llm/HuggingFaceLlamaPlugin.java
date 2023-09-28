@@ -13,16 +13,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.chatbridge.message.Message;
-import com.meta.chatbridge.message.MessageStack;
+import com.meta.chatbridge.message.ThreadState;
+import java.io.IOException;
+import java.net.URI;
+import java.time.Instant;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.client5.http.fluent.Response;
 import org.apache.hc.core5.http.ContentType;
-import org.jetbrains.annotations.TestOnly;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.time.Instant;
 
 public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
@@ -32,17 +29,11 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
     public HuggingFaceLlamaPlugin(HuggingFaceConfig config) {
         this.config = config;
-        this.endpoint = this.config.getURIEndpoint();
+    this.endpoint = this.config.endpoint();
     }
 
-    @TestOnly
-    public HuggingFaceLlamaPlugin<T> endpoint(URI endpoint) {
-        this.endpoint = endpoint;
-        return this;
-    }
-
-    @Override
-    public T handle(MessageStack<T> messageStack) throws IOException {
+  @Override
+  public T handle(ThreadState<T> messageStack) throws IOException {
         T fromUser = messageStack.tail();
 
         ObjectNode body = MAPPER.createObjectNode();
@@ -78,7 +69,7 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
         return messageStack.newMessageFromBot(timestamp, llmResponse);
     }
 
-    public String createPrompt(MessageStack<T> MessageStack) {
+  public String createPrompt(ThreadState<T> MessageStack) {
         StringBuilder promptBuilder = new StringBuilder();
         if(config.systemMessage().isPresent()){
             promptBuilder.append("<s>[INST] <<SYS>>\n").append(config.systemMessage().get()).append("\n<</SYS>>\n\n");
