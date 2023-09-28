@@ -13,6 +13,13 @@ import java.time.Instant;
 
 public interface Message {
 
+  static Identifier threadId(Identifier id1, Identifier id2) {
+    if (id1.compareTo(id2) <= 0) {
+      return Identifier.from(id1.toString() + '|' + id2);
+    }
+    return Identifier.from(id2.toString() + '|' + id1);
+  }
+
   Instant timestamp();
 
   Identifier instanceId();
@@ -25,20 +32,13 @@ public interface Message {
 
   Role role();
 
+  default Identifier threadId() {
+    return threadId(senderId(), recipientId());
+  }
+
   enum Role {
     ASSISTANT,
     USER,
     SYSTEM
-  }
-
-  static Identifier threadId(Identifier id1, Identifier id2) {
-    if (id1.compareTo(id2) <= 0) {
-      return Identifier.from(id1.toString() + '|' + id2);
-    }
-    return Identifier.from(id2.toString() + '|' + id1);
-  }
-
-  default Identifier threadId() {
-    return threadId(senderId(), recipientId());
   }
 }

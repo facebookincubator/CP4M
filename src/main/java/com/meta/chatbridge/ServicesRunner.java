@@ -18,10 +18,9 @@ import org.checkerframework.common.returnsreceiver.qual.This;
 
 public class ServicesRunner implements AutoCloseable {
   private final Javalin app = Javalin.create();
+  private final Set<Service<?>> services = new HashSet<>();
   private boolean started = false;
   private int port = 8080;
-
-  private final Set<Service<?>> services = new HashSet<>();
 
   private ServicesRunner() {}
 
