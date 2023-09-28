@@ -54,8 +54,8 @@ public class OpenAIPluginTest {
   public static final JsonNode SAMPLE_RESPONSE = MAPPER.createObjectNode();
   private static final String PATH = "/";
   private static final String TEST_MESSAGE = "this is a test message";
-  private static final MessageStack<FBMessage> STACK =
-      MessageStack.of(
+  private static final ThreadState<FBMessage> THREAD =
+      ThreadState.of(
           MessageFactory.instance(FBMessage.class)
               .newMessage(
                   Instant.now(),
@@ -110,10 +110,10 @@ public class OpenAIPluginTest {
     String apiKey = UUID.randomUUID().toString();
     OpenAIConfig config = OpenAIConfig.builder(model, apiKey).build();
     OpenAIPlugin<FBMessage> plugin = new OpenAIPlugin<FBMessage>(config).endpoint(endpoint);
-    FBMessage message = plugin.handle(STACK);
+    FBMessage message = plugin.handle(THREAD);
     assertThat(message.message()).isEqualTo(TEST_MESSAGE);
     assertThat(message.role()).isSameAs(Role.ASSISTANT);
-    assertThatCode(() -> STACK.with(message)).doesNotThrowAnyException();
+    assertThatCode(() -> THREAD.with(message)).doesNotThrowAnyException();
     @Nullable OutboundRequest or = openAIRequests.poll(500, TimeUnit.MILLISECONDS);
     assertThat(or).isNotNull();
     assertThat(or.headerMap().get("Authorization")).isNotNull().isEqualTo("Bearer " + apiKey);
@@ -139,10 +139,10 @@ public class OpenAIPluginTest {
     OpenAIConfig config =
         ConfigurationUtils.jsonMapper().convertValue(minimalConfig, OpenAIConfig.class);
     OpenAIPlugin<FBMessage> plugin = new OpenAIPlugin<FBMessage>(config).endpoint(endpoint);
-    FBMessage message = plugin.handle(STACK);
+    FBMessage message = plugin.handle(THREAD);
     assertThat(message.message()).isEqualTo(TEST_MESSAGE);
     assertThat(message.role()).isSameAs(Role.ASSISTANT);
-    assertThatCode(() -> STACK.with(message)).doesNotThrowAnyException();
+    assertThatCode(() -> THREAD.with(message)).doesNotThrowAnyException();
     @Nullable OutboundRequest or = openAIRequests.poll(500, TimeUnit.MILLISECONDS);
     assertThat(or).isNotNull();
     assertThat(or.headerMap().get("Authorization"))
@@ -173,13 +173,13 @@ public class OpenAIPluginTest {
     OpenAIConfig config =
         OpenAIConfig.builder(OpenAIModel.GPT35TURBO, "lkjasdlkjasdf").maxInputTokens(100).build();
     OpenAIPlugin<FBMessage> plugin = new OpenAIPlugin<FBMessage>(config).endpoint(endpoint);
-    MessageStack<FBMessage> stack =
-        STACK.with(
-            STACK.newMessageFromUser(
+    ThreadState<FBMessage> thread =
+        THREAD.with(
+            THREAD.newMessageFromUser(
                 Instant.now(),
                 Stream.generate(() -> "0123456789").limit(100).collect(Collectors.joining()),
                 Identifier.random()));
-    FBMessage response = plugin.handle(stack);
+    FBMessage response = plugin.handle(thread);
     assertThat(response.message()).isEqualTo("I'm sorry but that request was too long for me.");
     assertThat(openAIRequests).hasSize(0);
   }
@@ -189,8 +189,8 @@ public class OpenAIPluginTest {
     OpenAIConfig config =
         OpenAIConfig.builder(OpenAIModel.GPT35TURBO, "lkjasdlkjasdf").maxInputTokens(100).build();
     OpenAIPlugin<FBMessage> plugin = new OpenAIPlugin<FBMessage>(config).endpoint(endpoint);
-    MessageStack<FBMessage> stack =
-        MessageStack.of(
+    ThreadState<FBMessage> thread =
+        ThreadState.of(
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
@@ -199,20 +199,20 @@ public class OpenAIPluginTest {
                     Identifier.random(),
                     Identifier.random(),
                     Role.SYSTEM));
-    stack = stack.with(stack.newMessageFromUser(Instant.now(), "2", Identifier.from(2)));
-    stack = stack.with(stack.newMessageFromUser(Instant.now(), "3", Identifier.from(3)));
-    stack = stack.with(stack.newMessageFromUser(Instant.now(), "4", Identifier.from(4)));
-    plugin.handle(stack);
+    thread = thread.with(thread.newMessageFromUser(Instant.now(), "2", Identifier.from(2)));
+    thread = thread.with(thread.newMessageFromUser(Instant.now(), "3", Identifier.from(3)));
+    thread = thread.with(thread.newMessageFromUser(Instant.now(), "4", Identifier.from(4)));
+    plugin.handle(thread);
     @Nullable OutboundRequest or = openAIRequests.poll(500, TimeUnit.MILLISECONDS);
     assertThat(or).isNotNull();
     JsonNode body = MAPPER.readTree(or.body());
 
-    for (int i = 0; i < stack.messages().size(); i++) {
-      FBMessage stackMessage = stack.messages().get(i);
+    for (int i = 0; i < thread.messages().size(); i++) {
+      FBMessage threadMessage = thread.messages().get(i);
       JsonNode sentMessage = body.get("messages").get(i);
       assertSoftly(
           s ->
-              s.assertThat(stackMessage.message())
+              s.assertThat(threadMessage.message())
                   .isEqualTo(sentMessage.get("content").textValue()));
     }
   }

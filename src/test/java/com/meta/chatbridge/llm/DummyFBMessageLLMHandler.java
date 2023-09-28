@@ -11,7 +11,7 @@ package com.meta.chatbridge.llm;
 import com.meta.chatbridge.Identifier;
 import com.meta.chatbridge.message.FBMessage;
 import com.meta.chatbridge.message.Message;
-import com.meta.chatbridge.message.MessageStack;
+import com.meta.chatbridge.message.ThreadState;
 import java.time.Instant;
 import java.util.concurrent.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -19,28 +19,28 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class DummyFBMessageLLMHandler implements LLMPlugin<FBMessage> {
 
   private final String dummyLLMResponse;
-  private final BlockingQueue<MessageStack<FBMessage>> receivedMessageStacks =
+  private final BlockingQueue<ThreadState<FBMessage>> receivedThreadStates =
       new LinkedBlockingDeque<>();
 
   public DummyFBMessageLLMHandler(String dummyLLMResponse) {
     this.dummyLLMResponse = dummyLLMResponse;
   }
 
-  public MessageStack<FBMessage> take(int waitMs) throws InterruptedException {
-    @Nullable MessageStack<FBMessage> value =
-        receivedMessageStacks.poll(waitMs, TimeUnit.MILLISECONDS);
+  public ThreadState<FBMessage> take(int waitMs) throws InterruptedException {
+    @Nullable ThreadState<FBMessage> value =
+        receivedThreadStates.poll(waitMs, TimeUnit.MILLISECONDS);
     if (value == null) {
       throw new RuntimeException("unable to remove item form queue in under " + waitMs + "ms");
     }
     return value;
   }
 
-  public MessageStack<FBMessage> take() throws InterruptedException {
-    return receivedMessageStacks.take();
+  public ThreadState<FBMessage> take() throws InterruptedException {
+    return receivedThreadStates.take();
   }
 
-  public @Nullable MessageStack<FBMessage> poll() {
-    return receivedMessageStacks.poll();
+  public @Nullable ThreadState<FBMessage> poll() {
+    return receivedThreadStates.poll();
   }
 
   public String dummyResponse() {
@@ -48,10 +48,10 @@ public class DummyFBMessageLLMHandler implements LLMPlugin<FBMessage> {
   }
 
   @Override
-  public FBMessage handle(MessageStack<FBMessage> messageStack) {
-    receivedMessageStacks.add(messageStack);
+  public FBMessage handle(ThreadState<FBMessage> threadState) {
+    receivedThreadStates.add(threadState);
     FBMessage inbound =
-        messageStack.messages().stream()
+        threadState.messages().stream()
             .filter(m -> m.role() == Message.Role.USER)
             .findAny()
             .orElseThrow();

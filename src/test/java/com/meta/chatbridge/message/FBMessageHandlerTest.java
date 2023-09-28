@@ -214,7 +214,7 @@ public class FBMessageHandlerTest {
           .isEqualTo(0); // make sure the message wasn't processed and stored
       assertThat(requests).hasSize(0);
     } else {
-      MessageStack<FBMessage> stack = llmHandler.take(500);
+      ThreadState<FBMessage> thread = llmHandler.take(500);
       JsonNode messageObject = PARSED_SAMPLE_MESSAGE.get("entry").get(0).get("messaging").get(0);
       String messageText = messageObject.get("message").get("text").textValue();
       String mid = messageObject.get("message").get("mid").textValue();
@@ -222,7 +222,7 @@ public class FBMessageHandlerTest {
           Identifier.from(messageObject.get("recipient").get("id").textValue());
       Identifier senderId = Identifier.from(messageObject.get("sender").get("id").textValue());
       Instant timestamp = Instant.ofEpochMilli(messageObject.get("timestamp").longValue());
-      assertThat(stack.messages())
+      assertThat(thread.messages())
           .hasSize(1)
           .allSatisfy(m -> assertThat(m.message()).isEqualTo(messageText))
           .allSatisfy(m -> assertThat(m.instanceId().toString()).isEqualTo(mid))
