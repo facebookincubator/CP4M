@@ -13,9 +13,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.google.common.base.Preconditions;
 import com.meta.chatbridge.message.Message;
-
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
@@ -23,7 +21,7 @@ import org.checkerframework.common.returnsreceiver.qual.This;
 @JsonDeserialize(builder = HuggingFaceConfig.Builder.class)
 public class HuggingFaceConfig implements LLMConfig {
 
-    private final String endpoint;
+  private final URI endpoint;
     private final String name;
     private final String apiKey;
     @Nullable private final Double temperature;
@@ -37,19 +35,19 @@ public class HuggingFaceConfig implements LLMConfig {
 
     private final long maxInputTokens;
 
-    private HuggingFaceConfig(
-            String endpoint,
-            String name,
-            String apiKey,
-            @Nullable Double temperature,
-            @Nullable Double topP,
-            Long tokenLimit,
-            @Nullable Long maxOutputTokens,
-            @Nullable Double presencePenalty,
-            @Nullable Double frequencyPenalty,
-            Map<Long, Double> logitBias,
-            @Nullable String systemMessage,
-            long maxInputTokens) {
+  private HuggingFaceConfig(
+      URI endpoint,
+      String name,
+      String apiKey,
+      @Nullable Double temperature,
+      @Nullable Double topP,
+      Long tokenLimit,
+      @Nullable Long maxOutputTokens,
+      @Nullable Double presencePenalty,
+      @Nullable Double frequencyPenalty,
+      Map<Long, Double> logitBias,
+      @Nullable String systemMessage,
+      long maxInputTokens) {
         this.endpoint = endpoint;
         this.name = name;
         this.apiKey = apiKey;
@@ -64,28 +62,12 @@ public class HuggingFaceConfig implements LLMConfig {
         this.maxInputTokens = maxInputTokens;
     }
 
-    private static void checkArgumentIsURI(String argument, String errorMessage) {
-        try {
-            new URI(argument);
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException(errorMessage, e);
-        }
-    }
-
-    public URI getURIEndpoint() {
-        try {
-            return new URI(endpoint);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public static Builder builder(String apiKey) {
         // readability of the name is not important unless it comes from the config
         return new Builder().name(UUID.randomUUID().toString()).apiKey(apiKey);
     }
 
-    public String endpoint() {
+  public URI endpoint() {
         return endpoint;
     }
     public String name() {
@@ -139,7 +121,7 @@ public class HuggingFaceConfig implements LLMConfig {
     @JsonPOJOBuilder(withPrefix = "")
     public static class Builder {
 
-        private @Nullable String endpoint;
+    private @Nullable URI endpoint;
         private @Nullable String name;
 
         @JsonProperty("api_key")
@@ -172,8 +154,7 @@ public class HuggingFaceConfig implements LLMConfig {
         private @Nullable Long maxInputTokens;
 
         public @This Builder endpoint(String endpoint) {
-            checkArgumentIsURI(endpoint, "endpoint must b a valid URI");
-            this.endpoint = endpoint;
+      this.endpoint = URI.create(endpoint);
             return this;
         }
         public @This Builder name(String name) {

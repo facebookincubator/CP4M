@@ -14,15 +14,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.chatbridge.message.Message;
 import com.meta.chatbridge.message.MessageStack;
+import java.io.IOException;
+import java.net.URI;
+import java.time.Instant;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.client5.http.fluent.Response;
 import org.apache.hc.core5.http.ContentType;
-import org.jetbrains.annotations.TestOnly;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.time.Instant;
 
 public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
@@ -32,13 +29,7 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
     public HuggingFaceLlamaPlugin(HuggingFaceConfig config) {
         this.config = config;
-        this.endpoint = this.config.getURIEndpoint();
-    }
-
-    @TestOnly
-    public HuggingFaceLlamaPlugin<T> endpoint(URI endpoint) {
-        this.endpoint = endpoint;
-        return this;
+    this.endpoint = this.config.endpoint();
     }
 
     @Override
