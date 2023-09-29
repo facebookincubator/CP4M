@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(value = FBMessengerConfig.class, name = "messenger"),
+  @JsonSubTypes.Type(value = WAMessengerConfig.class, name = "whatsapp"),
 })
 public interface HandlerConfig {
   String name();

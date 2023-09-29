@@ -18,6 +18,7 @@ import com.meta.chatbridge.ServiceConfiguration;
 import com.meta.chatbridge.llm.OpenAIConfig;
 import com.meta.chatbridge.llm.OpenAIModel;
 import com.meta.chatbridge.message.FBMessengerConfig;
+import com.meta.chatbridge.message.WAMessengerConfig;
 import com.meta.chatbridge.store.MemoryStoreConfig;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -56,6 +57,36 @@ webhook_path = "/messenger"
 plugin = "openai_test"
 store = "memory_test"
 handler = "messenger_test"
+""";
+
+  private static final String TOML_WA =
+      """
+port = 8081
+
+[[plugins]]
+name = "openai_test"
+type = "openai"
+model = "gpt-3.5-turbo"
+api_key = "abc123"
+
+[[stores]]
+name = "memory_test"
+type = "memory"
+storage_duration_hours = 1
+storage_capacity_mbs = 1
+
+[[handlers]]
+type = "whatsapp"
+name = "whatsapp_test"
+verify_token = "imgibberish"
+app_secret = "imnotasecret"
+access_token = "imnotasecreteither"
+
+[[services]]
+webhook_path = "/whatsapp"
+plugin = "openai_test"
+store = "memory_test"
+handler = "whatsapp_test"
 """;
 
   @Test
@@ -98,6 +129,36 @@ handler = "messenger_test"
     assertThat(serviceConfiguration.store()).isEqualTo("memory_test");
     assertThat(serviceConfiguration.plugin()).isEqualTo("openai_test");
     assertThat(serviceConfiguration.handler()).isEqualTo("messenger_test");
+
+    assertThat(config.port()).isEqualTo(8081);
+    config.toServicesRunner();
+  }
+
+  @Test
+  void validWA(@TempDir Path dir) throws IOException {
+    Path configFile = dir.resolve("config.toml");
+    Files.writeString(configFile, TOML_WA);
+    RootConfiguration config =
+        ConfigurationUtils.tomlMapper().readValue(configFile.toFile(), RootConfiguration.class);
+
+    assertThat(config.handlers())
+        .hasSize(1)
+        .allSatisfy(s -> assertThat(s).isInstanceOf(WAMessengerConfig.class));
+    WAMessengerConfig handler =
+        (WAMessengerConfig) config.handlers().stream().findAny().orElseThrow();
+    assertThat(handler.name()).isEqualTo("whatsapp_test");
+    assertThat(handler.verifyToken()).isEqualTo("imgibberish");
+    assertThat(handler.appSecret()).isEqualTo("imnotasecret");
+    assertThat(handler.accessToken()).isEqualTo("imnotasecreteither");
+
+    assertThat(config.services())
+        .hasSize(1)
+        .allSatisfy(s -> assertThat(s).isInstanceOf(ServiceConfiguration.class));
+    ServiceConfiguration serviceConfiguration = config.services().stream().findAny().orElseThrow();
+    assertThat(serviceConfiguration.webhookPath()).isEqualTo("/whatsapp");
+    assertThat(serviceConfiguration.store()).isEqualTo("memory_test");
+    assertThat(serviceConfiguration.plugin()).isEqualTo("openai_test");
+    assertThat(serviceConfiguration.handler()).isEqualTo("whatsapp_test");
 
     assertThat(config.port()).isEqualTo(8081);
     config.toServicesRunner();

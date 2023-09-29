@@ -15,23 +15,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.chatbridge.Identifier;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HandlerType;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Stream;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.client5.http.fluent.Response;
-import org.apache.hc.client5.http.utils.Hex;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.net.URIBuilder;
@@ -46,6 +38,8 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   private static final String API_VERSION = "v17.0";
   private static final JsonMapper MAPPER = new JsonMapper();
   private static final Logger LOGGER = LoggerFactory.getLogger(FBMessageHandler.class);
+  private static final TextChunker CHUNKER = TextChunker.standard(2000);
+
   private final String verifyToken;
   private final String appSecret;
 
@@ -80,13 +74,6 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     this.accessToken = config.pageAccessToken();
   }
 
-  private static Stream<String> textChunker(String text, String regexSeparator) {
-    if (text.length() > 2000) {
-      return Arrays.stream(text.split(regexSeparator)).map(String::strip);
-    }
-    return Stream.of(text);
-  }
-
   @Override
   public List<FBMessage> processRequest(Context ctx) {
     try {
@@ -97,7 +84,6 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         case POST -> {
           return postHandler(ctx);
         }
-        default -> throw new UnsupportedOperationException("Only accepting get and post methods");
       }
     } catch (JsonProcessingException | NullPointerException e) {
       LOGGER
@@ -115,46 +101,23 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
       LOGGER.error(e.getMessage(), e);
       throw new RuntimeException(e);
     }
+    throw new UnsupportedOperationException("Only accepting get and post methods");
   }
 
   private List<FBMessage> getHandler(Context ctx) {
-    ctx.queryParamAsClass("hub.mode", String.class)
-        .check(v -> v.equals("subscribe"), "hub.mode must be subscribe");
-    ctx.queryParamAsClass("hub.verify_token", String.class)
-        .check(v -> v.equals(verifyToken), "verify_token is incorrect");
-    int challenge = ctx.queryParamAsClass("hub.challenge", int.class).get();
-    ctx.result(String.valueOf(challenge));
+    MetaHandlerUtils.subscriptionVerification(ctx, verifyToken);
+    LOGGER.debug("Meta verified callback url successfully");
     return Collections.emptyList();
   }
 
+  @TestOnly
   String hmac(String body) {
-    Mac sha256HMAC;
-    SecretKeySpec secretKey;
-    try {
-      sha256HMAC = Mac.getInstance("HmacSHA256");
-      secretKey = new SecretKeySpec(appSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-      sha256HMAC.init(secretKey);
-    } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-      throw new RuntimeException(e); // Algorithms guaranteed to exist
-    }
-    return Hex.encodeHexString(sha256HMAC.doFinal(body.getBytes(StandardCharsets.UTF_8)));
+    // TODO: refactor test so we don't need this
+    return MetaHandlerUtils.hmac(body, appSecret);
   }
 
   private List<FBMessage> postHandler(Context ctx) throws JsonProcessingException {
-    // https://developers.facebook.com/docs/messenger-platform/reference/webhook-events
-
-    ctx.headerAsClass("X-Hub-Signature-256", String.class)
-        .check(
-            h -> {
-              String[] hashParts = h.strip().split("=");
-              if (hashParts.length != 2) {
-                return false;
-              }
-              String calculatedHmac = hmac(ctx.body());
-              return hashParts[1].equals(calculatedHmac);
-            },
-            "X-Hub-Signature-256 could not be validated")
-        .getOrThrow(ignored -> new ForbiddenResponse("X-Hub-Signature-256 could not be validated"));
+    MetaHandlerUtils.postHeaderValidator(ctx, appSecret);
 
     String bodyString = ctx.body();
     JsonNode body = MAPPER.readTree(bodyString);
@@ -228,14 +191,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
 
   @Override
   public void respond(FBMessage message) throws IOException {
-    List<String> chunkedText =
-        Stream.of(message.message().strip())
-            .flatMap(m -> textChunker(m, "\n\n\n+"))
-            .flatMap(m -> textChunker(m, "\n\n"))
-            .flatMap(m -> textChunker(m, "\n"))
-            .flatMap(m -> textChunker(m, "\\. +"))
-            .flatMap(m -> textChunker(m, " +"))
-            .toList();
+    List<String> chunkedText = CHUNKER.chunks(message.message()).toList();
     for (String text : chunkedText) {
       send(text, message.recipientId(), message.senderId());
     }

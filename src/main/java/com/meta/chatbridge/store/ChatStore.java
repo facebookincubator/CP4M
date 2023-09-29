@@ -10,6 +10,7 @@ package com.meta.chatbridge.store;
 
 import com.meta.chatbridge.message.Message;
 import com.meta.chatbridge.message.ThreadState;
+import java.util.List;
 
 /**
  * This class is in charge of both maintaining a chat history and managing a queue of conversations
@@ -23,4 +24,8 @@ import com.meta.chatbridge.message.ThreadState;
 public interface ChatStore<T extends Message> {
 
   ThreadState<T> add(T message);
+
+  long size();
+
+  List<ThreadState<T>> list();
 }

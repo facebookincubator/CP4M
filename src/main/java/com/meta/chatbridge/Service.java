@@ -76,6 +76,7 @@ public class Service<T extends Message> {
       // we log in the handler where we have the body context
       // TODO: create transactional store add
       // TODO: implement retry with exponential backoff
+      LOGGER.error("an error occurred while attempting to respond", e);
     }
   }
 }
