@@ -76,7 +76,4 @@ public class UnknownWebhookMessage implements ReferableWebhookMessage {
   public WebhookMessageType type() {
     return WebhookMessageType.UNKNOWN;
   }
-
-  public record Sticker(
-      @JsonProperty("mime_type") String mimeType, String sha256, String id, boolean animated) {}
 }
