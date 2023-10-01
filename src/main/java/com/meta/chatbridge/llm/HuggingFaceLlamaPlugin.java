@@ -21,7 +21,6 @@ import org.jetbrains.annotations.TestOnly;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.Instant;
 
 public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
