@@ -29,66 +29,67 @@ import org.junit.jupiter.params.provider.MethodSource;
 class HuggingFaceConfigTest {
 
     private static final ObjectMapper MAPPER = ConfigurationUtils.jsonMapper();
-    static final Collection<ConfigItem> CONFIG_ITEMS =
-            ImmutableList.of(
-                    new ConfigItem("endpoint", true, TextNode.valueOf("www.facebook.com"), List.of(TextNode.valueOf(" "))),
-                    new ConfigItem("name", true, TextNode.valueOf("a name"), List.of(TextNode.valueOf(" "))),
-                    new ConfigItem(
-                            "type", true, TextNode.valueOf("HuggingFaceConfig"), List.of(TextNode.valueOf("anything else"))),
-                    new ConfigItem(
-                            "api_key",
-                            true,
-                            TextNode.valueOf("notempty"),
-                            List.of(TextNode.valueOf(""), TextNode.valueOf("   "))),
-                    new ConfigItem(
-                            "temperature",
-                            false,
-                            DoubleNode.valueOf(1),
-                            List.of(DoubleNode.valueOf(-0.1), DoubleNode.valueOf(2.1))),
-                    new ConfigItem(
-                            "top_p",
-                            false,
-                            DoubleNode.valueOf(0.5),
-                            List.of(DoubleNode.valueOf(0), DoubleNode.valueOf(1.1))),
-                    new ConfigItem(
-                            "token_limit",
-                            true,
-                            LongNode.valueOf(4000),
-                            List.of(LongNode.valueOf(0))),
-                    new ConfigItem(
-                            "max_output_tokens",
-                            false,
-                            LongNode.valueOf(100),
-                            List.of(
-                                    LongNode.valueOf(0),
-                                    LongNode.valueOf(4097))),
-                    new ConfigItem(
-                            "presence_penalty",
-                            false,
-                            DoubleNode.valueOf(0),
-                            List.of(DoubleNode.valueOf(-2.1), DoubleNode.valueOf(2.1))),
-                    new ConfigItem(
-                            "frequency_penalty",
-                            false,
-                            DoubleNode.valueOf(0),
-                            List.of(DoubleNode.valueOf(-2.1), DoubleNode.valueOf(2.1))),
-                    new ConfigItem(
-                            "logit_bias",
-                            false,
-                            MAPPER.createObjectNode().put("1", 0.5),
-                            List.of(
-                                    MAPPER.createObjectNode().put("1", -101),
-                                    MAPPER.createObjectNode().put("1", 101))),
-                    new ConfigItem(
-                            "system_message",
-                            false,
-                            TextNode.valueOf("you're a helpful assistant"),
-                            List.of(TextNode.valueOf(""), TextNode.valueOf("  "))),
-                    new ConfigItem(
-                            "max_input_tokens",
-                            false,
-                            LongNode.valueOf(2000),
-                            List.of(LongNode.valueOf(-1), LongNode.valueOf(100_000))));
+  static final Collection<ConfigItem> CONFIG_ITEMS =
+      ImmutableList.of(
+          new ConfigItem(
+              "endpoint",
+              true,
+              TextNode.valueOf("www.facebook.com"),
+              List.of(TextNode.valueOf(" "))),
+          new ConfigItem("name", true, TextNode.valueOf("a name"), List.of(TextNode.valueOf(" "))),
+          new ConfigItem(
+              "type",
+              true,
+              TextNode.valueOf("hugging_face"),
+              List.of(TextNode.valueOf("anything else"))),
+          new ConfigItem(
+              "api_key",
+              true,
+              TextNode.valueOf("notempty"),
+              List.of(TextNode.valueOf(""), TextNode.valueOf("   "))),
+          new ConfigItem(
+              "temperature",
+              false,
+              DoubleNode.valueOf(1),
+              List.of(DoubleNode.valueOf(-0.1), DoubleNode.valueOf(2.1))),
+          new ConfigItem(
+              "top_p",
+              false,
+              DoubleNode.valueOf(0.5),
+              List.of(DoubleNode.valueOf(0), DoubleNode.valueOf(1.1))),
+          new ConfigItem("token_limit", true, LongNode.valueOf(4000), List.of(LongNode.valueOf(0))),
+          new ConfigItem(
+              "max_output_tokens",
+              false,
+              LongNode.valueOf(100),
+              List.of(LongNode.valueOf(0), LongNode.valueOf(4097))),
+          new ConfigItem(
+              "presence_penalty",
+              false,
+              DoubleNode.valueOf(0),
+              List.of(DoubleNode.valueOf(-2.1), DoubleNode.valueOf(2.1))),
+          new ConfigItem(
+              "frequency_penalty",
+              false,
+              DoubleNode.valueOf(0),
+              List.of(DoubleNode.valueOf(-2.1), DoubleNode.valueOf(2.1))),
+          new ConfigItem(
+              "logit_bias",
+              false,
+              MAPPER.createObjectNode().put("1", 0.5),
+              List.of(
+                  MAPPER.createObjectNode().put("1", -101),
+                  MAPPER.createObjectNode().put("1", 101))),
+          new ConfigItem(
+              "system_message",
+              false,
+              TextNode.valueOf("you're a helpful assistant"),
+              List.of(TextNode.valueOf(""), TextNode.valueOf("  "))),
+          new ConfigItem(
+              "max_input_tokens",
+              false,
+              LongNode.valueOf(2000),
+              List.of(LongNode.valueOf(-1), LongNode.valueOf(100_000))));
     private ObjectNode minimalConfig;
 
     static Stream<ConfigItem> configItems() {
