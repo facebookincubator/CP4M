@@ -15,12 +15,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.toml.TomlMapper;
 import com.meta.cp4m.ServiceConfiguration;
+import com.meta.cp4m.llm.HuggingFaceConfig;
 import com.meta.cp4m.llm.OpenAIConfig;
 import com.meta.cp4m.llm.OpenAIModel;
 import com.meta.cp4m.message.FBMessengerConfig;
 import com.meta.cp4m.message.WAMessengerConfig;
 import com.meta.cp4m.store.MemoryStoreConfig;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
@@ -89,6 +91,37 @@ store = "memory_test"
 handler = "whatsapp_test"
 """;
 
+  private static final String TOML_M_HF =
+      """
+port = 8081
+
+[[plugins]]
+name = "hf_test"
+type = "hugging_face"
+endpoint = "https://example.com"
+token_limit = 1000
+api_key = "<your api_token here>"
+
+[[stores]]
+name = "memory_test"
+type = "memory"
+storage_duration_hours = 1
+storage_capacity_mbs = 1
+
+[[handlers]]
+type = "messenger"
+name = "messenger_test"
+verify_token = "imgibberish"
+app_secret = "imnotasecret"
+page_access_token = "imnotasecreteither"
+
+[[services]]
+webhook_path = "/messenger"
+plugin = "hf_test"
+store = "memory_test"
+handler = "messenger_test"
+""";
+
   @Test
   void valid(@TempDir Path dir) throws IOException {
     Path configFile = dir.resolve("config.toml");
@@ -128,6 +161,38 @@ handler = "whatsapp_test"
     assertThat(serviceConfiguration.webhookPath()).isEqualTo("/messenger");
     assertThat(serviceConfiguration.store()).isEqualTo("memory_test");
     assertThat(serviceConfiguration.plugin()).isEqualTo("openai_test");
+    assertThat(serviceConfiguration.handler()).isEqualTo("messenger_test");
+
+    assertThat(config.port()).isEqualTo(8081);
+    config.toServicesRunner();
+  }
+
+  @Test
+  void validHF(@TempDir Path dir) throws IOException {
+    Path configFile = dir.resolve("config.toml");
+    Files.writeString(configFile, TOML_M_HF);
+    RootConfiguration config =
+        ConfigurationUtils.tomlMapper().readValue(configFile.toFile(), RootConfiguration.class);
+
+    assertThat(config.plugins())
+        .hasSize(1)
+        .allSatisfy(s -> assertThat(s).isInstanceOf(HuggingFaceConfig.class));
+
+    HuggingFaceConfig pluginConfig =
+        (HuggingFaceConfig) config.plugins().stream().findAny().orElseThrow();
+
+    assertThat(pluginConfig.name()).isEqualTo("hf_test");
+    assertThat(pluginConfig.tokenLimit()).isEqualTo(1000);
+    assertThat(pluginConfig.apiKey()).isEqualTo("<your api_token here>");
+    assertThat(pluginConfig.endpoint()).isEqualTo(URI.create("https://example.com"));
+
+    assertThat(config.services())
+        .hasSize(1)
+        .allSatisfy(s -> assertThat(s).isInstanceOf(ServiceConfiguration.class));
+    ServiceConfiguration serviceConfiguration = config.services().stream().findAny().orElseThrow();
+    assertThat(serviceConfiguration.webhookPath()).isEqualTo("/messenger");
+    assertThat(serviceConfiguration.store()).isEqualTo("memory_test");
+    assertThat(serviceConfiguration.plugin()).isEqualTo("hf_test");
     assertThat(serviceConfiguration.handler()).isEqualTo("messenger_test");
 
     assertThat(config.port()).isEqualTo(8081);

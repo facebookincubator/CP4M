@@ -15,6 +15,7 @@ import com.meta.cp4m.message.Message;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(value = OpenAIConfig.class, name = "openai"),
+  @JsonSubTypes.Type(value = HuggingFaceConfig.class, name = "hugging_face"),
 })
 public interface LLMConfig {
 

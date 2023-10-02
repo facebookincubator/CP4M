@@ -70,7 +70,7 @@ public class HuggingFaceLlamaPluginTest {
                   Role.USER));
 
   static {
-    ((ArrayNode) SAMPLE_RESPONSE).addObject().put("generated_text", TEST_MESSAGE);
+    SAMPLE_RESPONSE.addObject().put("generated_text", TEST_MESSAGE);
   }
 
   private BlockingQueue<OutboundRequest> HuggingFaceLlamaRequests;
