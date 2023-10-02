@@ -36,4 +36,7 @@ build/
 
 ### Mac OS ###
 .DS_Store
-src/main/java/com/meta/chatbridge/mccloskeytest.java
+
+### custom ###
+src/main/java/com/meta/cp4m/mccloskeytest.java
+/dependency-reduced-pom.xml
