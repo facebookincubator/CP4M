@@ -16,6 +16,7 @@ import com.knuddels.jtokkit.api.Encoding;
 import com.meta.chatbridge.message.Message;
 import com.meta.chatbridge.message.MessageStack;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
 
 import java.util.Optional;
 
@@ -75,56 +76,59 @@ public class HuggingFaceLlamaPromptBuilder<T extends Message> {
     }
 
     private int tokenCount(JsonNode message) {
-        int tokenCount = tokensPerMessage;
-        tokenCount += tokenEncoding.countTokens(message.get("content").textValue());
-        tokenCount += tokenEncoding.countTokens(message.get("role").textValue());
-        @Nullable JsonNode name = message.get("name");
-        if (name != null) {
-            tokenCount += tokenEncoding.countTokens(name.textValue());
-            tokenCount += tokensPerName;
-        }
-        return tokenCount;
+//        int tokenCount = tokensPerMessage;
+//        tokenCount += tokenEncoding.countTokens(message.get("content").textValue());
+//        tokenCount += tokenEncoding.countTokens(message.get("role").textValue());
+//        @Nullable JsonNode name = message.get("name");
+//        if (name != null) {
+//            tokenCount += tokenEncoding.countTokens(name.textValue());
+//            tokenCount += tokensPerName;
+//        }
+//        return tokenCount;
+        return 100;
     }
 
-    private Optional<ArrayNode> pruneMessages(ArrayNode messages, @Nullable JsonNode functions)
-            throws JsonProcessingException {
-
-        int functionTokens = 0;
-        if (functions != null) {
-            // This is honestly a guess, it's undocumented
-            functionTokens = tokenEncoding.countTokens(MAPPER.writeValueAsString(functions));
-        }
-
-        ArrayNode output = MAPPER.createArrayNode();
-        int totalTokens = functionTokens;
-        totalTokens += 3; // every reply is primed with <|start|>assistant<|message|>
-
-        JsonNode systemMessage = messages.get(0);
-        boolean hasSystemMessage = systemMessage.get("role").textValue().equals("system");
-        if (hasSystemMessage) {
-            // if the system message is present it's required
-            totalTokens += tokenCount(messages.get(0));
-        }
-        for (int i = messages.size() - 1; i >= 0; i--) {
-            JsonNode m = messages.get(i);
-            String role = m.get("role").textValue();
-            if (role.equals("system")) {
-                continue; // system has already been counted
-            }
-            totalTokens += tokenCount(m);
-            if (totalTokens > MAX_TOTAL_TOKENS) {
-                break;
-            }
-            output.insert(0, m);
-        }
-        if (hasSystemMessage) {
-            output.insert(0, systemMessage);
-        }
-
-        if ((hasSystemMessage && output.size() <= 1) || output.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return Optional.of(output);
-    }
+//    private Optional<ArrayNode> pruneMessages(ArrayNode messages, @Nullable JsonNode functions)
+//            throws JsonProcessingException {
+//
+//        HuggingFaceTokenizer tokenizer = HuggingFaceTokenizer.newInstance("meta-llama/Llama-2-7b-chat-hf");
+//
+//        int functionTokens = 0;
+//        if (functions != null) {
+//            // This is honestly a guess, it's undocumented
+//            functionTokens = tokenEncoding.countTokens(MAPPER.writeValueAsString(functions));
+//        }
+//
+//        ArrayNode output = MAPPER.createArrayNode();
+//        int totalTokens = functionTokens;
+//        totalTokens += 3; // every reply is primed with <|start|>assistant<|message|>
+//
+//        JsonNode systemMessage = messages.get(0);
+//        boolean hasSystemMessage = systemMessage.get("role").textValue().equals("system");
+//        if (hasSystemMessage) {
+//            // if the system message is present it's required
+//            totalTokens += tokenCount(messages.get(0));
+//        }
+//        for (int i = messages.size() - 1; i >= 0; i--) {
+//            JsonNode m = messages.get(i);
+//            String role = m.get("role").textValue();
+//            if (role.equals("system")) {
+//                continue; // system has already been counted
+//            }
+//            totalTokens += tokenCount(m);
+//            if (totalTokens > MAX_TOTAL_TOKENS) {
+//                break;
+//            }
+//            output.insert(0, m);
+//        }
+//        if (hasSystemMessage) {
+//            output.insert(0, systemMessage);
+//        }
+//
+//        if ((hasSystemMessage && output.size() <= 1) || output.isEmpty()) {
+//            return Optional.empty();
+//        }
+//
+//        return Optional.of(output);
+//    }
 }
