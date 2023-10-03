@@ -6,65 +6,109 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.chatbridge.llm;
+package com.meta.cp4m.llm;
 
+import ai.djl.huggingface.tokenizers.Encoding;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.knuddels.jtokkit.Encodings;
-import com.knuddels.jtokkit.api.Encoding;
-import com.meta.chatbridge.message.Message;
-import com.meta.chatbridge.message.MessageStack;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import com.meta.cp4m.message.Message;
+import com.meta.cp4m.message.ThreadState;
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.*;
+import java.net.URI;
+import java.net.URISyntaxException;
+
 
 public class HuggingFaceLlamaPromptBuilder<T extends Message> {
 
-    private static final int MAX_TOTAL_TOKENS = 4096;
-    private static final int MAX_INPUT_TOKENS = 4096;
-//    private final Encoding tokenEncoding =
-//            Encodings.newDefaultEncodingRegistry()
-//            .getEncodingForModel(config.model().properties().jtokkinModel());
-    public HuggingFaceLlamaPromptBuilder() {
+    private static final Logger LOGGER = LoggerFactory.getLogger(HuggingFaceLlamaPromptBuilder.class);
 
+    public String createPrompt(ThreadState<T> threadState, HuggingFaceConfig config) {
+
+        URI resource = null;
+        try {
+            resource = Objects.requireNonNull(HuggingFaceLlamaPromptBuilder.class.getClassLoader().getResource("llamaTokenizer.json")).toURI();
+        } catch (URISyntaxException e) {
+            LOGGER.error("Failed to find local llama tokenizer.json file", e);
+        }
+
+        try {
+            assert resource != null;
+            HuggingFaceTokenizer tokenizer = HuggingFaceTokenizer.newInstance(Paths.get(resource));
+            return pruneMessages(threadState, config, tokenizer);
+        } catch (IOException e) {
+            LOGGER.error("Failed to initialize Llama2 tokenizer from local file", e);
+        }
+
+        if(config.systemMessage().isPresent()){
+            return "<s>[INST] <<SYS>>\n" + (config.systemMessage().get()) + "\n<</SYS>>\n\n" + threadState.messages().get(threadState.messages().size() - 1) + " [/INST] ";
+        }
+        else{
+            return "<s>[INST] " + threadState.messages().get(threadState.messages().size() - 1) + " [/INST] ";
+        }
     }
-    public String createPrompt(MessageStack<T> messageStack, HuggingFaceConfig config){
+
+    private int tokenCount(String message, HuggingFaceTokenizer tokenizer) {
+        Encoding encoding = tokenizer.encode(message);
+        return encoding.getTokens().length - 1;
+    }
+
+    private String pruneMessages(ThreadState<T> threadState, HuggingFaceConfig config, HuggingFaceTokenizer tokenizer)
+            throws JsonProcessingException {
+
+        int totalTokens = 5; // Account for closing tokens at end of message
         StringBuilder promptBuilder = new StringBuilder();
         if(config.systemMessage().isPresent()){
+            String systemPrompt = "<s>[INST] <<SYS>>\n" + config.systemMessage().get() + "\n<</SYS>>\n\n";
+            totalTokens += tokenCount(systemPrompt, tokenizer);
             promptBuilder.append("<s>[INST] <<SYS>>\n").append(config.systemMessage().get()).append("\n<</SYS>>\n\n");
-        } else if(messageStack.messages().get(0).role() == Message.Role.SYSTEM){
-            promptBuilder.append("<s>[INST] <<SYS>>\n").append(messageStack.messages().get(0).message()).append("\n<</SYS>>\n\n");
+        } else if(threadState.messages().get(0).role() == Message.Role.SYSTEM){
+            String systemPrompt = "<s>[INST] <<SYS>>\n" + threadState.messages().get(0).message() + "\n<</SYS>>\n\n";
+            totalTokens += tokenCount(systemPrompt, tokenizer);
+            promptBuilder.append("<s>[INST] <<SYS>>\n").append(threadState.messages().get(0).message()).append("\n<</SYS>>\n\n");
         }
         else {
+            totalTokens += 6;
             promptBuilder.append("<s>[INST] ");
         }
 
         // The first user input is _not_ stripped
-        boolean doStrip = false;
+        boolean hasUserMessage = false;
         Message.Role lastMessageSender = Message.Role.SYSTEM;
 
-        for (T message : messageStack.messages()) {
-            String text = doStrip ?  message.message().strip() : message.message();
+        for (T message : threadState.messages()) {
+            StringBuilder messageText = new StringBuilder();
+            String text = hasUserMessage ?  message.message().strip() : message.message();
             Message.Role user = message.role();
             if (user == Message.Role.SYSTEM){
                 continue;
             }
             boolean isUser = user == Message.Role.USER;
-            if(isUser){
-                doStrip = true;
-            }
 
             if(isUser && lastMessageSender == Message.Role.ASSISTANT){
-                promptBuilder.append(" </s><s>[INST] ");
+                messageText.append(" </s><s>[INST] ");
             }
             if(user == Message.Role.ASSISTANT && lastMessageSender == Message.Role.USER){
-                promptBuilder.append(" [/INST] ");
+                messageText.append(" [/INST] ");
             }
-            promptBuilder.append(text);
+            messageText.append(text);
+            totalTokens += tokenCount(messageText.toString(), tokenizer);
+            if(totalTokens > config.maxInputTokens()){
+                if(!hasUserMessage){
+                    return "I'm sorry but that request was too long for me.";
+                }
+                break;
+            }
+            promptBuilder.append(messageText);
 
             lastMessageSender = user;
+            if(isUser){
+                hasUserMessage = true;
+            }
         }
         if(lastMessageSender == Message.Role.ASSISTANT){
             promptBuilder.append(" </s>");
@@ -74,61 +118,4 @@ public class HuggingFaceLlamaPromptBuilder<T extends Message> {
 
         return promptBuilder.toString();
     }
-
-    private int tokenCount(JsonNode message) {
-//        int tokenCount = tokensPerMessage;
-//        tokenCount += tokenEncoding.countTokens(message.get("content").textValue());
-//        tokenCount += tokenEncoding.countTokens(message.get("role").textValue());
-//        @Nullable JsonNode name = message.get("name");
-//        if (name != null) {
-//            tokenCount += tokenEncoding.countTokens(name.textValue());
-//            tokenCount += tokensPerName;
-//        }
-//        return tokenCount;
-        return 100;
-    }
-
-//    private Optional<ArrayNode> pruneMessages(ArrayNode messages, @Nullable JsonNode functions)
-//            throws JsonProcessingException {
-//
-//        HuggingFaceTokenizer tokenizer = HuggingFaceTokenizer.newInstance("meta-llama/Llama-2-7b-chat-hf");
-//
-//        int functionTokens = 0;
-//        if (functions != null) {
-//            // This is honestly a guess, it's undocumented
-//            functionTokens = tokenEncoding.countTokens(MAPPER.writeValueAsString(functions));
-//        }
-//
-//        ArrayNode output = MAPPER.createArrayNode();
-//        int totalTokens = functionTokens;
-//        totalTokens += 3; // every reply is primed with <|start|>assistant<|message|>
-//
-//        JsonNode systemMessage = messages.get(0);
-//        boolean hasSystemMessage = systemMessage.get("role").textValue().equals("system");
-//        if (hasSystemMessage) {
-//            // if the system message is present it's required
-//            totalTokens += tokenCount(messages.get(0));
-//        }
-//        for (int i = messages.size() - 1; i >= 0; i--) {
-//            JsonNode m = messages.get(i);
-//            String role = m.get("role").textValue();
-//            if (role.equals("system")) {
-//                continue; // system has already been counted
-//            }
-//            totalTokens += tokenCount(m);
-//            if (totalTokens > MAX_TOTAL_TOKENS) {
-//                break;
-//            }
-//            output.insert(0, m);
-//        }
-//        if (hasSystemMessage) {
-//            output.insert(0, systemMessage);
-//        }
-//
-//        if ((hasSystemMessage && output.size() <= 1) || output.isEmpty()) {
-//            return Optional.empty();
-//        }
-//
-//        return Optional.of(output);
-//    }
 }

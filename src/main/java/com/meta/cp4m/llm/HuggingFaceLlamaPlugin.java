@@ -33,8 +33,8 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
     }
 
   @Override
-  public T handle(ThreadState<T> messageStack) throws IOException {
-        T fromUser = messageStack.tail();
+  public T handle(ThreadState<T> threadState) throws IOException {
+        T fromUser = threadState.tail();
 
         ObjectNode body = MAPPER.createObjectNode();
         ObjectNode params = MAPPER.createObjectNode();
@@ -45,7 +45,13 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
         body.set("parameters", params);
 
-        String prompt = createPrompt(messageStack);
+        HuggingFaceLlamaPromptBuilder<T> promptBuilder = new HuggingFaceLlamaPromptBuilder<>();
+
+        String prompt = promptBuilder.createPrompt(threadState, config);
+        if (prompt.equals("I'm sorry but that request was too long for me.")){
+            return threadState.newMessageFromBot(
+                    Instant.now(), prompt);
+        }
 
         body.put("inputs", prompt);
 
@@ -53,7 +59,7 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
         try {
             bodyString = MAPPER.writeValueAsString(body);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e); // this should be impossible
+            throw new RuntimeException(e);
         }
         Response response =
                 Request.post(endpoint)
@@ -66,51 +72,6 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
         String llmResponse = allGeneratedText.strip().replace(prompt.strip(), "");
         Instant timestamp = Instant.now();
 
-        return messageStack.newMessageFromBot(timestamp, llmResponse);
-    }
-
-  public String createPrompt(ThreadState<T> MessageStack) {
-        StringBuilder promptBuilder = new StringBuilder();
-        if(config.systemMessage().isPresent()){
-            promptBuilder.append("<s>[INST] <<SYS>>\n").append(config.systemMessage().get()).append("\n<</SYS>>\n\n");
-        } else if(MessageStack.messages().get(0).role() == Message.Role.SYSTEM){
-            promptBuilder.append("<s>[INST] <<SYS>>\n").append(MessageStack.messages().get(0).message()).append("\n<</SYS>>\n\n");
-        }
-        else {
-            promptBuilder.append("<s>[INST] ");
-        }
-
-        // The first user input is _not_ stripped
-        boolean doStrip = false;
-        Message.Role lastMessageSender = Message.Role.SYSTEM;
-
-        for (T message : MessageStack.messages()) {
-            String text = doStrip ?  message.message().strip() : message.message();
-            Message.Role user = message.role();
-            if (user == Message.Role.SYSTEM){
-                continue;
-            }
-            boolean isUser = user == Message.Role.USER;
-            if(isUser){
-                doStrip = true;
-            }
-
-            if(isUser && lastMessageSender == Message.Role.ASSISTANT){
-                promptBuilder.append(" </s><s>[INST] ");
-            }
-            if(user == Message.Role.ASSISTANT && lastMessageSender == Message.Role.USER){
-                promptBuilder.append(" [/INST] ");
-            }
-            promptBuilder.append(text);
-
-            lastMessageSender = user;
-        }
-        if(lastMessageSender == Message.Role.ASSISTANT){
-            promptBuilder.append(" </s>");
-        } else if (lastMessageSender == Message.Role.USER){
-            promptBuilder.append(" [/INST]");
-        }
-
-        return promptBuilder.toString();
+        return threadState.newMessageFromBot(timestamp, llmResponse);
     }
 }
