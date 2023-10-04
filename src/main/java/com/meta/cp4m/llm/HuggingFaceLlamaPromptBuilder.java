@@ -50,10 +50,9 @@ public class HuggingFaceLlamaPromptBuilder<T extends Message> {
             LOGGER.error("Failed to initialize Llama2 tokenizer from local file", e);
         }
 
-        if(config.systemMessage().isPresent()){
+        if (config.systemMessage().isPresent()) {
             return "<s>[INST] <<SYS>>\n" + (config.systemMessage().get()) + "\n<</SYS>>\n\n" + threadState.messages().get(threadState.messages().size() - 1) + " [/INST] ";
-        }
-        else{
+        } else {
             return "<s>[INST] " + threadState.messages().get(threadState.messages().size() - 1) + " [/INST] ";
         }
     }
@@ -68,52 +67,35 @@ public class HuggingFaceLlamaPromptBuilder<T extends Message> {
 
         int totalTokens = 5; // Account for closing tokens at end of message
         StringBuilder promptStringBuilder = new StringBuilder();
-        if(config.systemMessage().isPresent()){
+        if (config.systemMessage().isPresent()) {
             String systemPrompt = "<s>[INST] <<SYS>>\n" + config.systemMessage().get() + "\n<</SYS>>\n\n";
             totalTokens += tokenCount(systemPrompt, tokenizer);
             promptStringBuilder.append("<s>[INST] <<SYS>>\n").append(config.systemMessage().get()).append("\n<</SYS>>\n\n");
-        }
-        else {
+        } else {
             totalTokens += 6;
             promptStringBuilder.append("<s>[INST] ");
         }
 
-//        for (int i = list.size() - 1; i >= 0; i--)
-//        {
-//            // access elements by their index (position)
-//            System.out.println(list.get(i));
-//        }
-
-//        Okay so we have a system prompt stringbuilder and then a context stringbuilder and we add those together and
-//        only if context stringbuilde ris empty do we return the "too long" message
-
-
-
-        // The first user input is _not_ stripped
-//        boolean hasUserMessage = false;
         Message.Role nextMessageSender = Message.Role.ASSISTANT;
         StringBuilder contextStringBuilder = new StringBuilder();
 
         List<T> messages = threadState.messages();
 
-        for (int i = messages.size() - 1; i >= 0; i--)
-        {
+        for (int i = messages.size() - 1; i >= 0; i--) {
             Message message = messages.get(i);
             StringBuilder messageText = new StringBuilder();
             String text = message.message().strip();
             Message.Role user = message.role();
             boolean isUser = user == Message.Role.USER;
-            // access elements by their index (position)
             messageText.append(text);
-            if (isUser && nextMessageSender == Message.Role.ASSISTANT){
+            if (isUser && nextMessageSender == Message.Role.ASSISTANT) {
                 messageText.append(" [/INST] ");
-            }
-            else if (user == Message.Role.ASSISTANT && nextMessageSender == Message.Role.USER){
+            } else if (user == Message.Role.ASSISTANT && nextMessageSender == Message.Role.USER) {
                 messageText.append(" </s><s>[INST] ");
             }
             totalTokens += tokenCount(messageText.toString(), tokenizer);
-            if(totalTokens > config.maxInputTokens()){
-                if(contextStringBuilder.isEmpty()){
+            if (totalTokens > config.maxInputTokens()) {
+                if (contextStringBuilder.isEmpty()) {
                     return "I'm sorry but that request was too long for me.";
                 }
                 break;
@@ -122,7 +104,7 @@ public class HuggingFaceLlamaPromptBuilder<T extends Message> {
 
             nextMessageSender = user;
         }
-        if(nextMessageSender == Message.Role.ASSISTANT){
+        if (nextMessageSender == Message.Role.ASSISTANT) {
             contextStringBuilder.append(" ]TSNI/[ "); // Reversed [/INST] to close instructions for when first message after system prompt is not from user
         }
 

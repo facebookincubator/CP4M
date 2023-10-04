@@ -14,9 +14,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.ThreadState;
+
 import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
+
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.client5.http.fluent.Response;
 import org.apache.hc.core5.http.ContentType;
@@ -29,11 +31,11 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
     public HuggingFaceLlamaPlugin(HuggingFaceConfig config) {
         this.config = config;
-    this.endpoint = this.config.endpoint();
+        this.endpoint = this.config.endpoint();
     }
 
-  @Override
-  public T handle(ThreadState<T> threadState) throws IOException {
+    @Override
+    public T handle(ThreadState<T> threadState) throws IOException {
         T fromUser = threadState.tail();
 
         ObjectNode body = MAPPER.createObjectNode();
@@ -48,7 +50,7 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
         HuggingFaceLlamaPromptBuilder<T> promptBuilder = new HuggingFaceLlamaPromptBuilder<>();
 
         String prompt = promptBuilder.createPrompt(threadState, config);
-        if (prompt.equals("I'm sorry but that request was too long for me.")){
+        if (prompt.equals("I'm sorry but that request was too long for me.")) {
             return threadState.newMessageFromBot(
                     Instant.now(), prompt);
         }
