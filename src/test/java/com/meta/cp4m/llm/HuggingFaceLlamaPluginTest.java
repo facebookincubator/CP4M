@@ -130,19 +130,18 @@ public class HuggingFaceLlamaPluginTest {
   void createPayloadWithSystemMessage() {
     String apiKey = UUID.randomUUID().toString();
     HuggingFaceConfig config =
-        HuggingFaceConfig.builder(apiKey).endpoint(endpoint.toString()).tokenLimit(100).build();
+        HuggingFaceConfig.builder(apiKey).endpoint(endpoint.toString()).tokenLimit(100).systemMessage(TEST_SYSTEM_MESSAGE).build();
     HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
     ThreadState<FBMessage> stack =
         ThreadState.of(
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
-                    TEST_SYSTEM_MESSAGE,
+                        TEST_MESSAGE,
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
-                    Role.SYSTEM));
-    stack = stack.with(stack.newMessageFromUser(Instant.now(), TEST_MESSAGE, Identifier.from(1)));
+                    Role.USER));
     HuggingFaceLlamaPromptBuilder<FBMessage> promptBuilder = new HuggingFaceLlamaPromptBuilder<>();
     String createdPayload = promptBuilder.createPrompt(stack, config);
     assertThat(createdPayload).isEqualTo(TEST_PAYLOAD_WITH_SYSTEM);
@@ -213,12 +212,12 @@ public class HuggingFaceLlamaPluginTest {
                     MessageFactory.instance(FBMessage.class)
                             .newMessage(
                                     Instant.now(),
-                                    "test message",
+                                     Stream.generate(() -> "0123456789").limit(100).collect(Collectors.joining()),
                                     Identifier.random(),
                                     Identifier.random(),
                                     Identifier.random(),
                                     Role.USER));
-    thread = thread.with(thread.newMessageFromUser(Instant.now(), Stream.generate(() -> "0123456789").limit(100).collect(Collectors.joining()), Identifier.from(2)));
+    thread = thread.with(thread.newMessageFromUser(Instant.now(), "test message", Identifier.from(2)));
     HuggingFaceLlamaPromptBuilder<FBMessage> promptBuilder = new HuggingFaceLlamaPromptBuilder<>();
     String createdPayload = promptBuilder.createPrompt(thread, config);
     assertThat(createdPayload).isEqualTo(TEST_PAYLOAD);
