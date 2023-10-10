@@ -207,7 +207,8 @@ public class OpenAIPluginTest {
     assertThat(or).isNotNull();
     JsonNode body = MAPPER.readTree(or.body());
 
-    for (int i = 0; i < thread.messages().size(); i++) {
+    // first is the system message
+    for (int i = 1; i < thread.messages().size(); i++) {
       FBMessage threadMessage = thread.messages().get(i);
       JsonNode sentMessage = body.get("messages").get(i);
       assertSoftly(
