@@ -10,9 +10,7 @@ package com.meta.cp4m.llm;
 
 import ai.djl.huggingface.tokenizers.Encoding;
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.message.FBMessage;
 import com.meta.cp4m.message.Message;
@@ -27,14 +25,11 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
 
-import org.checkerframework.common.returnsreceiver.qual.This;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HuggingFaceLlamaPrompt<T extends Message> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(HuggingFaceLlamaPrompt.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
     private final String systemMessage;
     private final long maxInputTokens;
     private final HuggingFaceTokenizer tokenizer;
@@ -108,58 +103,7 @@ public class HuggingFaceLlamaPrompt<T extends Message> {
         return encoding.getTokens().length - 1;
     }
 
-    // TODO: move logic into promptbuilder
-    private String pruneMessages(ThreadState<T> threadState) {
-
-        int totalTokens = 5; // Account for closing tokens at end of message
-        StringBuilder promptStringBuilder = new StringBuilder();
-        String systemPrompt = "<s>[INST] <<SYS>>\n" + systemMessage + "\n<</SYS>>\n\n";
-        totalTokens += tokenCount(systemPrompt);
-        promptStringBuilder
-                .append("<s>[INST] <<SYS>>\n")
-                .append(systemMessage)
-                .append("\n<</SYS>>\n\n");
-
-        Message.Role nextMessageSender = Message.Role.ASSISTANT;
-        StringBuilder contextStringBuilder = new StringBuilder();
-
-        List<T> messages = threadState.messages();
-
-        for (int i = messages.size() - 1; i >= 0; i--) {
-            Message message = messages.get(i);
-            StringBuilder messageText = new StringBuilder();
-            String text = message.message().strip();
-            Message.Role user = message.role();
-            boolean isUser = user == Message.Role.USER;
-            messageText.append(text);
-            if (isUser && nextMessageSender == Message.Role.ASSISTANT) {
-                messageText.append(" [/INST] ");
-            } else if (user == Message.Role.ASSISTANT && nextMessageSender == Message.Role.USER) {
-                messageText.append(" </s><s>[INST] ");
-            }
-            totalTokens += tokenCount(messageText.toString());
-            if (totalTokens > maxInputTokens) {
-                if (contextStringBuilder.isEmpty()) {
-                    return "I'm sorry but that request was too long for me.";
-                }
-                break;
-            }
-            contextStringBuilder.append(messageText.reverse());
-
-            nextMessageSender = user;
-        }
-        if (nextMessageSender == Message.Role.ASSISTANT) {
-            contextStringBuilder.append(
-                    " ]TSNI/[ "); // Reversed [/INST] to close instructions for when first message after
-            // system prompt is not from user
-        }
-
-        promptStringBuilder.append(contextStringBuilder.reverse());
-        return promptStringBuilder.toString().strip();
-    }
-
-    // TODO: convert this to a class and implement the methods to replace pruneMethod
-    private class PromptBuilder {
+    private static class PromptBuilder {
 
         int totalTokens = 5;
         StringBuilder promptStringBuilder = new StringBuilder();
