@@ -10,7 +10,6 @@ package com.meta.cp4m.llm;
 
 import ai.djl.huggingface.tokenizers.Encoding;
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.message.FBMessage;
 import com.meta.cp4m.message.Message;
@@ -24,9 +23,6 @@ import java.net.URL;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HuggingFaceLlamaPrompt<T extends Message> {
 
@@ -55,9 +51,6 @@ public class HuggingFaceLlamaPrompt<T extends Message> {
     public String createPrompt(ThreadState<T> threadState) {
 
         PromptBuilder builder = new PromptBuilder();
-
-//        First we prune messages and count, then we do this promptbuilder with the remaining messages
-
 
         int totalTokens = 5; // Account for closing tokens
         Message systemMessage = threadState.messages().get(0).role().equals(Message.Role.SYSTEM) ? threadState.messages().get(0) : MessageFactory.instance(FBMessage.class)
