@@ -57,7 +57,7 @@ public class HuggingFaceLlamaPluginTest {
     private static final String PATH = "/";
     private static final String TEST_MESSAGE = "this is a test message";
     private static final String TEST_SYSTEM_MESSAGE = "this is a system message";
-    private static final String TEST_PAYLOAD = "<s>[INST] test message [/INST]";
+    private static final String TEST_PAYLOAD = "<s>[INST] <<SYS>>\nYou're a helpful assistant.\n<</SYS>>\n\ntest message [/INST]";
     private static final String TEST_PAYLOAD_WITH_SYSTEM =
             "<s>[INST] <<SYS>>\nthis is a system message\n<</SYS>>\n\nthis is a test message [/INST]";
 
@@ -123,8 +123,8 @@ public class HuggingFaceLlamaPluginTest {
         HuggingFaceConfig config =
                 HuggingFaceConfig.builder(apiKey).endpoint(endpoint.toString()).tokenLimit(100).build();
         HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
-        HuggingFaceLlamaPromptBuilder<FBMessage> promptBuilder = new HuggingFaceLlamaPromptBuilder<>();
-        String createdPayload = promptBuilder.createPrompt(STACK, config);
+        HuggingFaceLlamaPrompt<FBMessage> promptBuilder = new HuggingFaceLlamaPrompt<>(config);
+        String createdPayload = promptBuilder.createPrompt(STACK);
         assertThat(createdPayload).isEqualTo(TEST_PAYLOAD);
     }
 
@@ -144,8 +144,8 @@ public class HuggingFaceLlamaPluginTest {
                                         Identifier.random(),
                                         Identifier.random(),
                                         Role.USER));
-        HuggingFaceLlamaPromptBuilder<FBMessage> promptBuilder = new HuggingFaceLlamaPromptBuilder<>();
-        String createdPayload = promptBuilder.createPrompt(stack, config);
+        HuggingFaceLlamaPrompt<FBMessage> promptBuilder = new HuggingFaceLlamaPrompt<>(config);
+        String createdPayload = promptBuilder.createPrompt(stack);
         assertThat(createdPayload).isEqualTo(TEST_PAYLOAD_WITH_SYSTEM);
     }
 
@@ -195,8 +195,8 @@ public class HuggingFaceLlamaPluginTest {
                                         Identifier.random(),
                                         Role.USER));
         thread = thread.with(thread.newMessageFromUser(Instant.now(), "test message", Identifier.from(2)));
-        HuggingFaceLlamaPromptBuilder<FBMessage> promptBuilder = new HuggingFaceLlamaPromptBuilder<>();
-        String createdPayload = promptBuilder.createPrompt(thread, config);
+        HuggingFaceLlamaPrompt<FBMessage> promptBuilder = new HuggingFaceLlamaPrompt<>(config);
+        String createdPayload = promptBuilder.createPrompt(thread);
         assertThat(createdPayload).isEqualTo(TEST_PAYLOAD);
     }
 

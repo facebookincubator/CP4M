@@ -107,8 +107,11 @@ public class HuggingFaceConfig implements LLMConfig {
     return logitBias;
   }
 
-  public Optional<String> systemMessage() {
-    return Optional.ofNullable(systemMessage);
+  public String systemMessage() {
+    if (systemMessage == null) {
+      return "You're a helpful assistant.";
+    }
+    return systemMessage;
   }
 
   public long maxInputTokens() {

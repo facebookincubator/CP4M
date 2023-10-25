@@ -27,17 +27,18 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final HuggingFaceConfig config;
+    private final HuggingFaceLlamaPrompt<T> promptCreator;
+
     private URI endpoint;
 
     public HuggingFaceLlamaPlugin(HuggingFaceConfig config) {
         this.config = config;
         this.endpoint = this.config.endpoint();
+        promptCreator = new HuggingFaceLlamaPrompt<>(config);
     }
 
     @Override
     public T handle(ThreadState<T> threadState) throws IOException {
-        T fromUser = threadState.tail();
-
         ObjectNode body = MAPPER.createObjectNode();
         ObjectNode params = MAPPER.createObjectNode();
 
@@ -47,12 +48,9 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
         body.set("parameters", params);
 
-        HuggingFaceLlamaPromptBuilder<T> promptBuilder = new HuggingFaceLlamaPromptBuilder<>();
-
-        String prompt = promptBuilder.createPrompt(threadState, config);
+        String prompt = promptCreator.createPrompt(threadState);
         if (prompt.equals("I'm sorry but that request was too long for me.")) {
-            return threadState.newMessageFromBot(
-                    Instant.now(), prompt);
+            return threadState.newMessageFromBot(Instant.now(), prompt);
         }
 
         body.put("inputs", prompt);

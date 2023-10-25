@@ -30,10 +30,6 @@ public class HuggingFaceLlamaPromptBuilder<T extends Message> {
 
     public String createPrompt(ThreadState<T> threadState, HuggingFaceConfig config) {
 
-//        NEW PLAN
-//                WE do the node thing
-//            and then we use the other token coutning thing where we add buffer tokens for each
-//                And then we pass the remaining messages to the promptbuilder
 
         URI resource = null;
         try {
@@ -50,11 +46,8 @@ public class HuggingFaceLlamaPromptBuilder<T extends Message> {
             LOGGER.error("Failed to initialize Llama2 tokenizer from local file", e);
         }
 
-        if (config.systemMessage().isPresent()) {
-            return "<s>[INST] <<SYS>>\n" + (config.systemMessage().get()) + "\n<</SYS>>\n\n" + threadState.messages().get(threadState.messages().size() - 1) + " [/INST] ";
-        } else {
-            return "<s>[INST] " + threadState.messages().get(threadState.messages().size() - 1) + " [/INST] ";
-        }
+        return "<s>[INST] <<SYS>>\n" + (config.systemMessage()) + "\n<</SYS>>\n\n" + threadState.messages().get(threadState.messages().size() - 1) + " [/INST] ";
+
     }
 
     private int tokenCount(String message, HuggingFaceTokenizer tokenizer) {
@@ -67,14 +60,11 @@ public class HuggingFaceLlamaPromptBuilder<T extends Message> {
 
         int totalTokens = 5; // Account for closing tokens at end of message
         StringBuilder promptStringBuilder = new StringBuilder();
-        if (config.systemMessage().isPresent()) {
-            String systemPrompt = "<s>[INST] <<SYS>>\n" + config.systemMessage().get() + "\n<</SYS>>\n\n";
-            totalTokens += tokenCount(systemPrompt, tokenizer);
-            promptStringBuilder.append("<s>[INST] <<SYS>>\n").append(config.systemMessage().get()).append("\n<</SYS>>\n\n");
-        } else {
-            totalTokens += 6;
-            promptStringBuilder.append("<s>[INST] ");
-        }
+
+        String systemPrompt = "<s>[INST] <<SYS>>\n" + config.systemMessage() + "\n<</SYS>>\n\n";
+        totalTokens += tokenCount(systemPrompt, tokenizer);
+        promptStringBuilder.append("<s>[INST] <<SYS>>\n").append(config.systemMessage()).append("\n<</SYS>>\n\n");
+
 
         Message.Role nextMessageSender = Message.Role.ASSISTANT;
         StringBuilder contextStringBuilder = new StringBuilder();
