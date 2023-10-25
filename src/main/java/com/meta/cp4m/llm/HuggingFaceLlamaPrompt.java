@@ -97,8 +97,7 @@ public class HuggingFaceLlamaPrompt<T extends Message> {
     }
 
     private static class PromptBuilder {
-
-        int totalTokens = 5;
+        
         StringBuilder promptStringBuilder = new StringBuilder();
 
         void addSystem(Message message) {
