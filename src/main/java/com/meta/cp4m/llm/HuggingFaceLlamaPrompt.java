@@ -48,75 +48,86 @@ public class HuggingFaceLlamaPrompt<T extends Message> {
         }
     }
 
-    public String createPrompt(ThreadState<T> threadState) {
+    public Optional<String> createPrompt(ThreadState<T> threadState) {
 
         PromptBuilder builder = new PromptBuilder();
 
-        int totalTokens = 5; // Account for closing tokens
-        Message systemMessage = threadState.messages().get(0).role().equals(Message.Role.SYSTEM) ? threadState.messages().get(0) : MessageFactory.instance(FBMessage.class)
-                .newMessage(
-                        Instant.now(),
-                        this.systemMessage,
-                        Identifier.random(),
-                        Identifier.random(),
-                        Identifier.random(),
-                        Message.Role.SYSTEM);
-        ArrayList<Message> output = new ArrayList<>();
-        totalTokens += tokenCount(systemMessage.message());
+//        int totalTokens = 5; // Account for closing tokens
+//        Message systemMessage = threadState.messages().get(0).role().equals(Message.Role.SYSTEM) ? threadState.messages().get(0) : MessageFactory.instance(FBMessage.class)
+//                .newMessage(
+//                        Instant.now(),
+//                        this.systemMessage,
+//                        Identifier.random(),
+//                        Identifier.random(),
+//                        Identifier.random(),
+//                        Message.Role.SYSTEM);
+//        ArrayList<Message> output = new ArrayList<>();
+//        totalTokens += tokenCount(systemMessage.message());
+//        for (int i = threadState.messages().size() - 1; i >= 0; i--) {
+//            Message m = threadState.messages().get(i);
+//
+//            if (m.role().equals(Message.Role.SYSTEM)) {
+//                continue; // system has already been counted
+//            }
+//            totalTokens += tokenCount(m.message());
+//            if (totalTokens > maxInputTokens) {
+//                break;
+//            }
+//            output.add(0, m);
+//        }
+//        if (output.isEmpty()) {
+//            return Optional.empty();
+//        }
+//        output.add(0, systemMessage);
+
+
+        int totalTokens = tokenCount(this.systemMessage) + 5; // Account for closing tokens
+        builder.addSystem(this.systemMessage);
+
         for (int i = threadState.messages().size() - 1; i >= 0; i--) {
             Message m = threadState.messages().get(i);
-
-            if (m.role().equals(Message.Role.SYSTEM)) {
-                continue; // system has already been counted
-            }
             totalTokens += tokenCount(m.message());
             if (totalTokens > maxInputTokens) {
+                if (i == threadState.messages().size() - 1){
+                    return Optional.empty();
+                }
                 break;
             }
-            output.add(0, m);
-        }
-        if (output.isEmpty()) {
-            return "I'm sorry but that request was too long for me.";
-        }
-        output.add(0, systemMessage);
-
-        for (Message message : output) {
-            switch (message.role()) {
-                case SYSTEM -> builder.addSystem(message);
-                case USER -> builder.addUser(message);
-                case ASSISTANT -> builder.addAssistant(message);
+            switch (m.role()) {
+                case USER -> builder.addUser(m.message());
+                case ASSISTANT -> builder.addAssistant(m.message());
             }
         }
 
-        return builder.build();
+        return Optional.of(builder.build());
     }
 
     private int tokenCount(String message) {
         Encoding encoding = tokenizer.encode(message);
-        return encoding.getTokens().length - 1;
+        return encoding.getTokens().length;
     }
 
     private static class PromptBuilder {
         
         StringBuilder promptStringBuilder = new StringBuilder();
 
-        void addSystem(Message message) {
+        void addSystem(String message) {
             promptStringBuilder
                     .append("<s>[INST] <<SYS>>\n")
-                    .append(message.message())
+                    .append(message)
                     .append("\n<</SYS>>\n\n");
         }
 
-        void addAssistant(Message message) {
+        void addAssistant(String message) {
             promptStringBuilder
-                    .append(message.message())
+                    .append(message)
                     .append(" </s><s>[INST] ");
 
         }
 
-        void addUser(Message message) {
+        void addUser(String message) {
             promptStringBuilder
-                    .append(message.message())
+                    .append(message)
                     .append(" [/INST] ");
 
         }

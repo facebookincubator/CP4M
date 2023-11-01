@@ -31,10 +31,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
@@ -124,8 +121,9 @@ public class HuggingFaceLlamaPluginTest {
                 HuggingFaceConfig.builder(apiKey).endpoint(endpoint.toString()).tokenLimit(100).build();
         HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
         HuggingFaceLlamaPrompt<FBMessage> promptBuilder = new HuggingFaceLlamaPrompt<>(config);
-        String createdPayload = promptBuilder.createPrompt(STACK);
-        assertThat(createdPayload).isEqualTo(TEST_PAYLOAD);
+        Optional<String> createdPayload = promptBuilder.createPrompt(STACK);
+        assertThat(createdPayload).isPresent();
+        assertThat(createdPayload.get()).isEqualTo(TEST_PAYLOAD);
     }
 
     @Test
@@ -145,8 +143,9 @@ public class HuggingFaceLlamaPluginTest {
                                         Identifier.random(),
                                         Role.USER));
         HuggingFaceLlamaPrompt<FBMessage> promptBuilder = new HuggingFaceLlamaPrompt<>(config);
-        String createdPayload = promptBuilder.createPrompt(stack);
-        assertThat(createdPayload).isEqualTo(TEST_PAYLOAD_WITH_SYSTEM);
+        Optional<String> createdPayload = promptBuilder.createPrompt(stack);
+        assertThat(createdPayload).isPresent();
+        assertThat(createdPayload.get()).isEqualTo(TEST_PAYLOAD_WITH_SYSTEM);
     }
 
     @Test
@@ -196,8 +195,9 @@ public class HuggingFaceLlamaPluginTest {
                                         Role.USER));
         thread = thread.with(thread.newMessageFromUser(Instant.now(), "test message", Identifier.from(2)));
         HuggingFaceLlamaPrompt<FBMessage> promptBuilder = new HuggingFaceLlamaPrompt<>(config);
-        String createdPayload = promptBuilder.createPrompt(thread);
-        assertThat(createdPayload).isEqualTo(TEST_PAYLOAD);
+        Optional<String> createdPayload = promptBuilder.createPrompt(thread);
+        assertThat(createdPayload).isPresent();
+        assertThat(createdPayload.get()).isEqualTo(TEST_PAYLOAD);
     }
 
     @BeforeEach

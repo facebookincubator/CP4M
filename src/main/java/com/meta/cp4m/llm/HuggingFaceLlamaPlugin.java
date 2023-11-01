@@ -18,6 +18,7 @@ import com.meta.cp4m.message.ThreadState;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
+import java.util.Optional;
 
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.client5.http.fluent.Response;
@@ -48,18 +49,18 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
         body.set("parameters", params);
 
-        String prompt = promptCreator.createPrompt(threadState);
-        if (prompt.equals("I'm sorry but that request was too long for me.")) {
-            return threadState.newMessageFromBot(Instant.now(), prompt);
+        Optional<String> prompt = promptCreator.createPrompt(threadState);
+        if (prompt.isEmpty()) {
+            return threadState.newMessageFromBot(Instant.now(), "I'm sorry but that request was too long for me.");
         }
 
-        body.put("inputs", prompt);
+        body.put("inputs", prompt.get());
 
         String bodyString;
         try {
             bodyString = MAPPER.writeValueAsString(body);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e); // this should be impossible
         }
         Response response =
                 Request.post(endpoint)
@@ -69,7 +70,7 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
         JsonNode responseBody = MAPPER.readTree(response.returnContent().asBytes());
         String allGeneratedText = responseBody.get(0).get("generated_text").textValue();
-        String llmResponse = allGeneratedText.strip().replace(prompt.strip(), "");
+        String llmResponse = allGeneratedText.strip().replace(prompt.get().strip(), "");
         Instant timestamp = Instant.now();
 
         return threadState.newMessageFromBot(timestamp, llmResponse);
