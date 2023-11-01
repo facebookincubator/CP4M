@@ -51,36 +51,7 @@ public class HuggingFaceLlamaPrompt<T extends Message> {
     public Optional<String> createPrompt(ThreadState<T> threadState) {
 
         PromptBuilder builder = new PromptBuilder();
-
-//        int totalTokens = 5; // Account for closing tokens
-//        Message systemMessage = threadState.messages().get(0).role().equals(Message.Role.SYSTEM) ? threadState.messages().get(0) : MessageFactory.instance(FBMessage.class)
-//                .newMessage(
-//                        Instant.now(),
-//                        this.systemMessage,
-//                        Identifier.random(),
-//                        Identifier.random(),
-//                        Identifier.random(),
-//                        Message.Role.SYSTEM);
-//        ArrayList<Message> output = new ArrayList<>();
-//        totalTokens += tokenCount(systemMessage.message());
-//        for (int i = threadState.messages().size() - 1; i >= 0; i--) {
-//            Message m = threadState.messages().get(i);
-//
-//            if (m.role().equals(Message.Role.SYSTEM)) {
-//                continue; // system has already been counted
-//            }
-//            totalTokens += tokenCount(m.message());
-//            if (totalTokens > maxInputTokens) {
-//                break;
-//            }
-//            output.add(0, m);
-//        }
-//        if (output.isEmpty()) {
-//            return Optional.empty();
-//        }
-//        output.add(0, systemMessage);
-
-
+        
         int totalTokens = tokenCount(this.systemMessage) + 5; // Account for closing tokens
         builder.addSystem(this.systemMessage);
 
