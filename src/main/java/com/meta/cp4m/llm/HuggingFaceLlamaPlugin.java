@@ -35,7 +35,7 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
     public HuggingFaceLlamaPlugin(HuggingFaceConfig config) {
         this.config = config;
         this.endpoint = this.config.endpoint();
-        promptCreator = new HuggingFaceLlamaPrompt<>(config);
+        promptCreator = new HuggingFaceLlamaPrompt<>(config.systemMessage(), config.maxInputTokens());
     }
 
     @Override

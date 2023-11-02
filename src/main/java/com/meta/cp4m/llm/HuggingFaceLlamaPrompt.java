@@ -10,10 +10,7 @@ package com.meta.cp4m.llm;
 
 import ai.djl.huggingface.tokenizers.Encoding;
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
-import com.meta.cp4m.Identifier;
-import com.meta.cp4m.message.FBMessage;
 import com.meta.cp4m.message.Message;
-import com.meta.cp4m.message.MessageFactory;
 import com.meta.cp4m.message.ThreadState;
 
 import java.io.IOException;
@@ -21,7 +18,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
-import java.time.Instant;
 import java.util.*;
 
 public class HuggingFaceLlamaPrompt<T extends Message> {
@@ -30,10 +26,10 @@ public class HuggingFaceLlamaPrompt<T extends Message> {
     private final long maxInputTokens;
     private final HuggingFaceTokenizer tokenizer;
 
-    public HuggingFaceLlamaPrompt(HuggingFaceConfig config) {
+    public HuggingFaceLlamaPrompt(String systemMessage, long maxInputTokens) {
 
-        this.systemMessage = config.systemMessage();
-        this.maxInputTokens = config.maxInputTokens();
+        this.systemMessage = systemMessage;
+        this.maxInputTokens = maxInputTokens;
         URL llamaTokenizerUrl =
                 Objects.requireNonNull(
                         HuggingFaceLlamaPrompt.class.getClassLoader().getResource("llamaTokenizer.json"));
@@ -51,7 +47,7 @@ public class HuggingFaceLlamaPrompt<T extends Message> {
     public Optional<String> createPrompt(ThreadState<T> threadState) {
 
         PromptBuilder builder = new PromptBuilder();
-        
+
         int totalTokens = tokenCount(this.systemMessage) + 5; // Account for closing tokens
         builder.addSystem(this.systemMessage);
 
@@ -81,6 +77,7 @@ public class HuggingFaceLlamaPrompt<T extends Message> {
     private static class PromptBuilder {
         
         StringBuilder promptStringBuilder = new StringBuilder();
+        StringBuilder messagesStringBuilder = new StringBuilder();
 
         void addSystem(String message) {
             promptStringBuilder
@@ -90,21 +87,23 @@ public class HuggingFaceLlamaPrompt<T extends Message> {
         }
 
         void addAssistant(String message) {
-            promptStringBuilder
+            StringBuilder tempBuilder = new StringBuilder();
+            tempBuilder
                     .append(message)
                     .append(" </s><s>[INST] ");
-
+            messagesStringBuilder.append(tempBuilder.reverse());
         }
 
         void addUser(String message) {
-            promptStringBuilder
+            StringBuilder tempBuilder = new StringBuilder();
+            tempBuilder
                     .append(message)
                     .append(" [/INST] ");
-
+            messagesStringBuilder.append(tempBuilder.reverse());
         }
 
         String build() {
-            return promptStringBuilder.toString().strip();
+            return promptStringBuilder.append(messagesStringBuilder.reverse()).toString().strip();
         }
     }
 }

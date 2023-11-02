@@ -120,7 +120,7 @@ public class HuggingFaceLlamaPluginTest {
         HuggingFaceConfig config =
                 HuggingFaceConfig.builder(apiKey).endpoint(endpoint.toString()).tokenLimit(100).build();
         HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
-        HuggingFaceLlamaPrompt<FBMessage> promptBuilder = new HuggingFaceLlamaPrompt<>(config);
+        HuggingFaceLlamaPrompt<FBMessage> promptBuilder = new HuggingFaceLlamaPrompt<>(config.systemMessage(), config.maxInputTokens());
         Optional<String> createdPayload = promptBuilder.createPrompt(STACK);
         assertThat(createdPayload).isPresent();
         assertThat(createdPayload.get()).isEqualTo(TEST_PAYLOAD);
@@ -142,7 +142,7 @@ public class HuggingFaceLlamaPluginTest {
                                         Identifier.random(),
                                         Identifier.random(),
                                         Role.USER));
-        HuggingFaceLlamaPrompt<FBMessage> promptBuilder = new HuggingFaceLlamaPrompt<>(config);
+        HuggingFaceLlamaPrompt<FBMessage> promptBuilder = new HuggingFaceLlamaPrompt<>(config.systemMessage(), config.maxInputTokens());
         Optional<String> createdPayload = promptBuilder.createPrompt(stack);
         assertThat(createdPayload).isPresent();
         assertThat(createdPayload.get()).isEqualTo(TEST_PAYLOAD_WITH_SYSTEM);
@@ -194,7 +194,7 @@ public class HuggingFaceLlamaPluginTest {
                                         Identifier.random(),
                                         Role.USER));
         thread = thread.with(thread.newMessageFromUser(Instant.now(), "test message", Identifier.from(2)));
-        HuggingFaceLlamaPrompt<FBMessage> promptBuilder = new HuggingFaceLlamaPrompt<>(config);
+        HuggingFaceLlamaPrompt<FBMessage> promptBuilder = new HuggingFaceLlamaPrompt<>(config.systemMessage(), config.maxInputTokens());
         Optional<String> createdPayload = promptBuilder.createPrompt(thread);
         assertThat(createdPayload).isPresent();
         assertThat(createdPayload.get()).isEqualTo(TEST_PAYLOAD);
@@ -226,7 +226,6 @@ public class HuggingFaceLlamaPluginTest {
         assertThatCode(() -> STACK.with(message)).doesNotThrowAnyException();
         @Nullable OutboundRequest or = HuggingFaceLlamaRequests.poll(500, TimeUnit.MILLISECONDS);
         assertThat(or).isNotNull();
-        System.out.println(or);
         assertThat(or.headerMap().get("Authorization"))
                 .isNotNull()
                 .isEqualTo("Bearer " + config.apiKey());
@@ -239,6 +238,7 @@ public class HuggingFaceLlamaPluginTest {
                         .maxInputTokens(100)
                         .tokenLimit(200)
                         .endpoint(endpoint.toString())
+                        .systemMessage("0")
                         .build();
         HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
         ThreadState<FBMessage> stack =
@@ -250,7 +250,7 @@ public class HuggingFaceLlamaPluginTest {
                                         Identifier.random(),
                                         Identifier.random(),
                                         Identifier.random(),
-                                        Role.SYSTEM));
+                                        Role.ASSISTANT));
         stack = stack.with(stack.newMessageFromUser(Instant.now(), "2", Identifier.from(2)));
         stack = stack.with(stack.newMessageFromUser(Instant.now(), "3", Identifier.from(3)));
         stack = stack.with(stack.newMessageFromUser(Instant.now(), "4", Identifier.from(4)));
