@@ -59,7 +59,7 @@ handler = "whatsapp_test"
 ##### Example: Messenger & Llama 2 (via Hugging Face)
 
 ```toml
-port = 8081
+port = 8080
 
 [[plugins]]
 name = "hf_test"
