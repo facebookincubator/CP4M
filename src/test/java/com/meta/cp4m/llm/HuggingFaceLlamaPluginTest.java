@@ -125,27 +125,6 @@ public class HuggingFaceLlamaPluginTest {
   }
 
   @Test
-  void createPayloadWithSystemMessage() {
-    String apiKey = UUID.randomUUID().toString();
-    HuggingFaceConfig config =
-        HuggingFaceConfig.builder(apiKey).endpoint(endpoint.toString()).tokenLimit(100).build();
-    HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
-    ThreadState<FBMessage> stack =
-        ThreadState.of(
-            MessageFactory.instance(FBMessage.class)
-                .newMessage(
-                    Instant.now(),
-                    TEST_SYSTEM_MESSAGE,
-                    Identifier.random(),
-                    Identifier.random(),
-                    Identifier.random(),
-                    Role.SYSTEM));
-    stack = stack.with(stack.newMessageFromUser(Instant.now(), TEST_MESSAGE, Identifier.from(1)));
-    String createdPayload = plugin.createPrompt(stack);
-    assertThat(createdPayload).isEqualTo(TEST_PAYLOAD_WITH_SYSTEM);
-  }
-
-  @Test
   void createPayloadWithConfigSystemMessage() {
     String apiKey = UUID.randomUUID().toString();
     HuggingFaceConfig config =
@@ -219,7 +198,7 @@ public class HuggingFaceLlamaPluginTest {
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
-                    Role.SYSTEM));
+                    Role.USER));
     stack = stack.with(stack.newMessageFromUser(Instant.now(), "2", Identifier.from(2)));
     stack = stack.with(stack.newMessageFromUser(Instant.now(), "3", Identifier.from(3)));
     stack = stack.with(stack.newMessageFromUser(Instant.now(), "4", Identifier.from(4)));
