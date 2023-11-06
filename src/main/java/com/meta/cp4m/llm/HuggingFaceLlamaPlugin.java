@@ -14,12 +14,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.ThreadState;
-
 import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
-
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.client5.http.fluent.Response;
 import org.apache.hc.core5.http.ContentType;

@@ -12,7 +12,6 @@ import ai.djl.huggingface.tokenizers.Encoding;
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.ThreadState;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
