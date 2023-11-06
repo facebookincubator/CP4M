@@ -207,9 +207,12 @@ public class OpenAIPluginTest {
     assertThat(or).isNotNull();
     JsonNode body = MAPPER.readTree(or.body());
 
+    String systemMessage = body.get("messages").get(0).get("content").textValue();
+    assertThat(systemMessage).isEqualTo(config.systemMessage());
+
     for (int i = 0; i < thread.messages().size(); i++) {
       FBMessage threadMessage = thread.messages().get(i);
-      JsonNode sentMessage = body.get("messages").get(i);
+      JsonNode sentMessage = body.get("messages").get(i + 1);  // system message is not in the stack
       assertSoftly(
           s ->
               s.assertThat(threadMessage.message())

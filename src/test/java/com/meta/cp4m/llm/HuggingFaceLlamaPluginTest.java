@@ -30,13 +30,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.HttpResponse;
@@ -54,7 +52,8 @@ public class HuggingFaceLlamaPluginTest {
   private static final String PATH = "/";
   private static final String TEST_MESSAGE = "this is a test message";
   private static final String TEST_SYSTEM_MESSAGE = "this is a system message";
-  private static final String TEST_PAYLOAD = "<s>[INST] test message [/INST]";
+  private static final String TEST_PAYLOAD =
+      "<s>[INST] <<SYS>>\nYou're a helpful assistant.\n<</SYS>>\n\ntest message [/INST]";
   private static final String TEST_PAYLOAD_WITH_SYSTEM =
       "<s>[INST] <<SYS>>\nthis is a system message\n<</SYS>>\n\nthis is a test message [/INST]";
 
@@ -120,12 +119,15 @@ public class HuggingFaceLlamaPluginTest {
     HuggingFaceConfig config =
         HuggingFaceConfig.builder(apiKey).endpoint(endpoint.toString()).tokenLimit(100).build();
     HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
-    String createdPayload = plugin.createPrompt(STACK);
-    assertThat(createdPayload).isEqualTo(TEST_PAYLOAD);
+    HuggingFaceLlamaPrompt<FBMessage> promptBuilder =
+        new HuggingFaceLlamaPrompt<>(config.systemMessage(), config.maxInputTokens());
+    Optional<String> createdPayload = promptBuilder.createPrompt(STACK);
+    assertThat(createdPayload).isPresent();
+    assertThat(createdPayload.get()).isEqualTo(TEST_PAYLOAD);
   }
 
   @Test
-  void createPayloadWithConfigSystemMessage() {
+  void createPayloadWithSystemMessage() {
     String apiKey = UUID.randomUUID().toString();
     HuggingFaceConfig config =
         HuggingFaceConfig.builder(apiKey)
@@ -144,8 +146,65 @@ public class HuggingFaceLlamaPluginTest {
                     Identifier.random(),
                     Identifier.random(),
                     Role.USER));
-    String createdPayload = plugin.createPrompt(stack);
-    assertThat(createdPayload).isEqualTo(TEST_PAYLOAD_WITH_SYSTEM);
+    HuggingFaceLlamaPrompt<FBMessage> promptBuilder =
+        new HuggingFaceLlamaPrompt<>(config.systemMessage(), config.maxInputTokens());
+    Optional<String> createdPayload = promptBuilder.createPrompt(stack);
+    assertThat(createdPayload).isPresent();
+    assertThat(createdPayload.get()).isEqualTo(TEST_PAYLOAD_WITH_SYSTEM);
+  }
+
+  @Test
+  void contextTooBig() throws IOException {
+    String apiKey = UUID.randomUUID().toString();
+    HuggingFaceConfig config =
+        HuggingFaceConfig.builder(apiKey)
+            .endpoint(endpoint.toString())
+            .tokenLimit(200)
+            .maxInputTokens(100)
+            .systemMessage(TEST_SYSTEM_MESSAGE)
+            .build();
+    HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
+    ThreadState<FBMessage> thread =
+        ThreadState.of(
+            MessageFactory.instance(FBMessage.class)
+                .newMessage(
+                    Instant.now(),
+                    Stream.generate(() -> "0123456789").limit(100).collect(Collectors.joining()),
+                    Identifier.random(),
+                    Identifier.random(),
+                    Identifier.random(),
+                    Role.USER));
+    FBMessage response = plugin.handle(thread);
+    assertThat(response.message()).isEqualTo("I'm sorry but that request was too long for me.");
+  }
+
+  @Test
+  void truncatesContext() throws IOException {
+    String apiKey = UUID.randomUUID().toString();
+    HuggingFaceConfig config =
+        HuggingFaceConfig.builder(apiKey)
+            .endpoint(endpoint.toString())
+            .tokenLimit(200)
+            .maxInputTokens(100)
+            .build();
+    HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
+    ThreadState<FBMessage> thread =
+        ThreadState.of(
+            MessageFactory.instance(FBMessage.class)
+                .newMessage(
+                    Instant.now(),
+                    Stream.generate(() -> "0123456789").limit(100).collect(Collectors.joining()),
+                    Identifier.random(),
+                    Identifier.random(),
+                    Identifier.random(),
+                    Role.USER));
+    thread =
+        thread.with(thread.newMessageFromUser(Instant.now(), "test message", Identifier.from(2)));
+    HuggingFaceLlamaPrompt<FBMessage> promptBuilder =
+        new HuggingFaceLlamaPrompt<>(config.systemMessage(), config.maxInputTokens());
+    Optional<String> createdPayload = promptBuilder.createPrompt(thread);
+    assertThat(createdPayload).isPresent();
+    assertThat(createdPayload.get()).isEqualTo(TEST_PAYLOAD);
   }
 
   @BeforeEach
@@ -174,7 +233,6 @@ public class HuggingFaceLlamaPluginTest {
     assertThatCode(() -> STACK.with(message)).doesNotThrowAnyException();
     @Nullable OutboundRequest or = HuggingFaceLlamaRequests.poll(500, TimeUnit.MILLISECONDS);
     assertThat(or).isNotNull();
-    System.out.println(or);
     assertThat(or.headerMap().get("Authorization"))
         .isNotNull()
         .isEqualTo("Bearer " + config.apiKey());

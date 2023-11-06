@@ -14,9 +14,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.ThreadState;
+
 import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
+import java.util.Optional;
+
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.client5.http.fluent.Response;
 import org.apache.hc.core5.http.ContentType;
@@ -25,17 +28,18 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final HuggingFaceConfig config;
+    private final HuggingFaceLlamaPrompt<T> promptCreator;
+
     private URI endpoint;
 
     public HuggingFaceLlamaPlugin(HuggingFaceConfig config) {
         this.config = config;
-    this.endpoint = this.config.endpoint();
+        this.endpoint = this.config.endpoint();
+        promptCreator = new HuggingFaceLlamaPrompt<>(config.systemMessage(), config.maxInputTokens());
     }
 
-  @Override
-  public T handle(ThreadState<T> messageStack) throws IOException {
-        T fromUser = messageStack.tail();
-
+    @Override
+    public T handle(ThreadState<T> threadState) throws IOException {
         ObjectNode body = MAPPER.createObjectNode();
         ObjectNode params = MAPPER.createObjectNode();
 
@@ -45,9 +49,12 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
         body.set("parameters", params);
 
-        String prompt = createPrompt(messageStack);
+        Optional<String> prompt = promptCreator.createPrompt(threadState);
+        if (prompt.isEmpty()) {
+            return threadState.newMessageFromBot(Instant.now(), "I'm sorry but that request was too long for me.");
+        }
 
-        body.put("inputs", prompt);
+        body.put("inputs", prompt.get());
 
         String bodyString;
         try {
@@ -63,54 +70,9 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
         JsonNode responseBody = MAPPER.readTree(response.returnContent().asBytes());
         String allGeneratedText = responseBody.get(0).get("generated_text").textValue();
-        String llmResponse = allGeneratedText.strip().replace(prompt.strip(), "");
+        String llmResponse = allGeneratedText.strip().replace(prompt.get().strip(), "");
         Instant timestamp = Instant.now();
 
-        return messageStack.newMessageFromBot(timestamp, llmResponse);
-    }
-
-  public String createPrompt(ThreadState<T> MessageStack) {
-        StringBuilder promptBuilder = new StringBuilder();
-        if(config.systemMessage().isPresent()){
-            promptBuilder.append("<s>[INST] <<SYS>>\n").append(config.systemMessage().get()).append("\n<</SYS>>\n\n");
-        } else if(MessageStack.messages().get(0).role() == Message.Role.SYSTEM){
-            promptBuilder.append("<s>[INST] <<SYS>>\n").append(MessageStack.messages().get(0).message()).append("\n<</SYS>>\n\n");
-        }
-        else {
-            promptBuilder.append("<s>[INST] ");
-        }
-
-        // The first user input is _not_ stripped
-        boolean doStrip = false;
-        Message.Role lastMessageSender = Message.Role.SYSTEM;
-
-        for (T message : MessageStack.messages()) {
-            String text = doStrip ?  message.message().strip() : message.message();
-            Message.Role user = message.role();
-            if (user == Message.Role.SYSTEM){
-                continue;
-            }
-            boolean isUser = user == Message.Role.USER;
-            if(isUser){
-                doStrip = true;
-            }
-
-            if(isUser && lastMessageSender == Message.Role.ASSISTANT){
-                promptBuilder.append(" </s><s>[INST] ");
-            }
-            if(user == Message.Role.ASSISTANT && lastMessageSender == Message.Role.USER){
-                promptBuilder.append(" [/INST] ");
-            }
-            promptBuilder.append(text);
-
-            lastMessageSender = user;
-        }
-        if(lastMessageSender == Message.Role.ASSISTANT){
-            promptBuilder.append(" </s>");
-        } else if (lastMessageSender == Message.Role.USER){
-            promptBuilder.append(" [/INST]");
-        }
-
-        return promptBuilder.toString();
+        return threadState.newMessageFromBot(timestamp, llmResponse);
     }
 }
