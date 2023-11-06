@@ -194,7 +194,7 @@ public class OpenAIPluginTest {
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
-                    "1",
+                    "You're a helpful assistant.",
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
