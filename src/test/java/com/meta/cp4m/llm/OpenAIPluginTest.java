@@ -194,11 +194,11 @@ public class OpenAIPluginTest {
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
-                    "You're a helpful assistant.",
+                    "1",
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
-                    Role.SYSTEM));
+                    Role.USER));
     thread = thread.with(thread.newMessageFromUser(Instant.now(), "2", Identifier.from(2)));
     thread = thread.with(thread.newMessageFromUser(Instant.now(), "3", Identifier.from(3)));
     thread = thread.with(thread.newMessageFromUser(Instant.now(), "4", Identifier.from(4)));
@@ -207,9 +207,12 @@ public class OpenAIPluginTest {
     assertThat(or).isNotNull();
     JsonNode body = MAPPER.readTree(or.body());
 
+    String systemMessage = body.get("messages").get(0).get("content").textValue();
+    assertThat(systemMessage).isEqualTo(config.systemMessage());
+
     for (int i = 0; i < thread.messages().size(); i++) {
       FBMessage threadMessage = thread.messages().get(i);
-      JsonNode sentMessage = body.get("messages").get(i);
+      JsonNode sentMessage = body.get("messages").get(i + 1);  // system message is not in the stack
       assertSoftly(
           s ->
               s.assertThat(threadMessage.message())
