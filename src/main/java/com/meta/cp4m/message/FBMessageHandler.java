@@ -88,7 +88,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     } catch (JsonProcessingException | NullPointerException e) {
       LOGGER
           .atWarn()
-          .setMessage("Unable to parse message form Meta webhook")
+          .setMessage("Unable to parse message from Meta webhook")
           .setCause(e)
           .addKeyValue("body", ctx.body())
           .addKeyValue("headers", ctx.headerMap())
