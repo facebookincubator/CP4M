@@ -336,8 +336,8 @@ public class IGMessageHandlerTest {
                     .isEqualTo(0); // make sure the message wasn't processed and stored
             assertThat(requests).hasSize(0);
         } else {
-            System.out.println(llmHandler);
-            ThreadState<FBMessage> thread = llmHandler.take(500);
+            System.out.println(llmHandler.dummyResponse());
+            ThreadState<FBMessage> thread = llmHandler.take(2000);
             JsonNode messageObject = PARSED_SAMPLE_MESSAGE.get("entry").get(0).get("messaging").get(0);
             String messageText = messageObject.get("message").get("text").textValue();
             String mid = messageObject.get("message").get("mid").textValue();

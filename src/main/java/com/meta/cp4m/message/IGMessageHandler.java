@@ -57,7 +57,7 @@ public class IGMessageHandler extends FBMessageHandler{
         if (!object.equals("instagram")) {
             LOGGER
                     .atWarn()
-                    .setMessage("received body that has a different value for 'object' than 'page'")
+                    .setMessage("received body that has a different value for 'object' than 'instagram'")
                     .addKeyValue("body", bodyString)
                     .log();
             return Collections.emptyList();
@@ -73,14 +73,14 @@ public class IGMessageHandler extends FBMessageHandler{
             for (JsonNode message : messaging) {
                 @Nullable JsonNode messageObject = message.get("message");
 
+                Identifier senderId = Identifier.from(message.get("sender").get("id").asLong());
+                Identifier recipientId = Identifier.from(message.get("recipient").get("id").asLong());
+                Instant timestamp = Instant.ofEpochMilli(message.get("timestamp").asLong());
+
                 if (messageObject != null) {
                     if(messageObject.get("is_echo").asText().equals("true")){
                         return Collections.emptyList();
                     }
-
-                    Identifier senderId = Identifier.from(message.get("sender").get("id").asLong());
-                    Identifier recipientId = Identifier.from(message.get("recipient").get("id").asLong());
-                    Instant timestamp = Instant.ofEpochMilli(message.get("timestamp").asLong());
 
                     // https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/messages
                     Identifier messageId = Identifier.from(messageObject.get("mid").textValue());
