@@ -122,10 +122,10 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     String bodyString = ctx.body();
     JsonNode body = MAPPER.readTree(bodyString);
     String object = body.get("object").textValue();
-    if (!object.equals("page")) {
+    if (!object.equals("page") && !object.equals("instagram")) {
       LOGGER
           .atWarn()
-          .setMessage("received body that has a different value for 'object' than 'page'")
+          .setMessage("received body with value of " + object + " for 'object', expected 'page' or 'instagram'")
           .addKeyValue("body", bodyString)
           .log();
       return Collections.emptyList();
@@ -145,6 +145,10 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         Instant timestamp = Instant.ofEpochMilli(message.get("timestamp").asLong());
         @Nullable JsonNode messageObject = message.get("message");
         if (messageObject != null) {
+          if(messageObject.get("is_echo").asText().equals("true")){
+            return Collections.emptyList();
+          }
+
           // https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/messages
           Identifier messageId = Identifier.from(messageObject.get("mid").textValue());
           if (messageDeduplicator.addAndGetIsDuplicate(messageId)) {
