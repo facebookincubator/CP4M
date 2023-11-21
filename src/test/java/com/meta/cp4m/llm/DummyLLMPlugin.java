@@ -26,7 +26,7 @@ public class DummyLLMPlugin<T extends Message> implements LLMPlugin<T> {
   public ThreadState<T> take(int waitMs) throws InterruptedException {
     @Nullable ThreadState<T> value = receivedThreadStates.poll(waitMs, TimeUnit.MILLISECONDS);
     if (value == null) {
-      throw new RuntimeException("unable to remove item form queue in under " + waitMs + "ms");
+      throw new RuntimeException("unable to remove item from queue in under " + waitMs + "ms");
     }
     return value;
   }
