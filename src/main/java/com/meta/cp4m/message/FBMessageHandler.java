@@ -145,7 +145,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         Instant timestamp = Instant.ofEpochMilli(message.get("timestamp").asLong());
         @Nullable JsonNode messageObject = message.get("message");
         if (messageObject != null) {
-          if(messageObject.get("is_echo").asText().equals("true")){
+          if(messageObject.has("is_echo") && messageObject.get("is_echo").asText().equals("true")){
             return Collections.emptyList();
           }
 
