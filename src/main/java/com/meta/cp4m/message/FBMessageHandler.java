@@ -44,7 +44,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   private final String appSecret;
 
   private final String accessToken;
-  private final Boolean isInstagram;
+  private final boolean isInstagram;
 
   private final Deduplicator<Identifier> messageDeduplicator = new Deduplicator<>(10_000);
   private Function<Identifier, URI> baseURLFactory =
@@ -63,7 +63,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         }
       };
 
-  public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret, Boolean isInstagram) {
+  public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret, boolean isInstagram) {
     this.verifyToken = verifyToken;
     this.appSecret = appSecret;
     this.accessToken = pageAccessToken;
