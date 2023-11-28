@@ -36,14 +36,12 @@ public class FBMessengerConfig implements HandlerConfig {
                 appSecret != null && !appSecret.isBlank(), "app_secret cannot be blank");
         Preconditions.checkArgument(
                 pageAccessToken != null && !pageAccessToken.isBlank(), "page_access_token cannot be blank");
-        Preconditions.checkArgument(
-                owningPageID != null && !owningPageID.isBlank(), "owning_page_id cannot be blank");
 
         this.name = name;
         this.verifyToken = verifyToken;
         this.appSecret = appSecret;
         this.pageAccessToken = pageAccessToken;
-        this.owningPageID = owningPageID;
+        this.owningPageID = owningPageID == null || owningPageID.isBlank() ? "-1" : owningPageID;
     }
 
     public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken, String owningPageID) {
