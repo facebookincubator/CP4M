@@ -293,7 +293,7 @@ public class HuggingFaceLlamaPluginTest {
             metaRequests.put(
                 new OutboundRequest(ctx.body(), ctx.headerMap(), ctx.queryParamMap())));
     FBMessageHandler handler =
-        new FBMessageHandler(verifyToken, accessToken, appSecret, false)
+        new FBMessageHandler(verifyToken, accessToken, appSecret)
             .baseURLFactory(ignored -> messageReceiver);
 
     String apiKey = "api key";

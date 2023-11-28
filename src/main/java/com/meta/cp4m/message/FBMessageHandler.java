@@ -44,7 +44,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   private final String appSecret;
 
   private final String accessToken;
-  private final boolean isInstagram;
+  private final String owningPageID;
 
   private final Deduplicator<Identifier> messageDeduplicator = new Deduplicator<>(10_000);
   private Function<Identifier, URI> baseURLFactory =
@@ -63,18 +63,25 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         }
       };
 
-  public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret, boolean isInstagram) {
+  public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret, String owningPageID) {
     this.verifyToken = verifyToken;
     this.appSecret = appSecret;
     this.accessToken = pageAccessToken;
-    this.isInstagram = isInstagram;
+    this.owningPageID = owningPageID;
+  }
+
+  public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret) {
+    this.verifyToken = verifyToken;
+    this.appSecret = appSecret;
+    this.accessToken = pageAccessToken;
+    this.owningPageID = "-1";
   }
 
   FBMessageHandler(FBMessengerConfig config) {
     this.verifyToken = config.verifyToken();
     this.appSecret = config.appSecret();
     this.accessToken = config.pageAccessToken();
-    this.isInstagram = config.isInstagram();
+    this.owningPageID = config.owningPageID();
   }
 
   @Override
@@ -213,7 +220,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     try {
       bodyString = MAPPER.writeValueAsString(body);
       url =
-          new URIBuilder(baseURLFactory.apply(isInstagram ? Identifier.from("me") : sender))
+          new URIBuilder(baseURLFactory.apply(owningPageID.equals("-1") ? sender : Identifier.from(owningPageID)))
               .addParameter("access_token", accessToken)
               .build();
     } catch (JsonProcessingException | URISyntaxException e) {

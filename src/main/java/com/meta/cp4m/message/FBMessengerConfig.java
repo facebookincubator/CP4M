@@ -11,6 +11,7 @@ package com.meta.cp4m.message;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public class FBMessengerConfig implements HandlerConfig {
@@ -19,14 +20,14 @@ public class FBMessengerConfig implements HandlerConfig {
     private final String verifyToken;
     private final String appSecret;
     private final String pageAccessToken;
-    private final boolean isInstagram;
+    private final String owningPageID;
 
     private FBMessengerConfig(
             @JsonProperty("name") String name,
             @JsonProperty("verify_token") String verifyToken,
             @JsonProperty("app_secret") String appSecret,
             @JsonProperty("page_access_token") String pageAccessToken,
-            @JsonProperty("is_instagram") Boolean isInstagram) {
+            @JsonProperty("owning_page_id") String owningPageID) {
 
         Preconditions.checkArgument(name != null && !name.isBlank(), "name cannot be blank");
         Preconditions.checkArgument(
@@ -35,18 +36,26 @@ public class FBMessengerConfig implements HandlerConfig {
                 appSecret != null && !appSecret.isBlank(), "app_secret cannot be blank");
         Preconditions.checkArgument(
                 pageAccessToken != null && !pageAccessToken.isBlank(), "page_access_token cannot be blank");
+        Preconditions.checkArgument(
+                owningPageID != null && !owningPageID.isBlank(), "owning_page_id cannot be blank");
 
         this.name = name;
         this.verifyToken = verifyToken;
         this.appSecret = appSecret;
         this.pageAccessToken = pageAccessToken;
-        this.isInstagram = isInstagram != null ? isInstagram : false;
+        this.owningPageID = owningPageID;
     }
 
-    public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken, boolean isInstagram) {
+    public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken, String owningPageID) {
         // human readability of the name only matters when it's coming from a config
         return new FBMessengerConfig(
-                UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, isInstagram);
+                UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, owningPageID);
+    }
+
+    public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken) {
+        // human readability of the name only matters when it's coming from a config
+        return new FBMessengerConfig(
+                UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, "-1");
     }
 
     @Override
@@ -71,7 +80,7 @@ public class FBMessengerConfig implements HandlerConfig {
         return pageAccessToken;
     }
 
-    public boolean isInstagram() {
-        return isInstagram;
+    public String owningPageID() {
+        return owningPageID;
     }
 }
