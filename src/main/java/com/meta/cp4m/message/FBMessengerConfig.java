@@ -26,7 +26,7 @@ public class FBMessengerConfig implements HandlerConfig {
             @JsonProperty("verify_token") String verifyToken,
             @JsonProperty("app_secret") String appSecret,
             @JsonProperty("page_access_token") String pageAccessToken,
-            @JsonProperty("is_instagram") boolean isInstagram) {
+            @JsonProperty("is_instagram") Boolean isInstagram) {
 
         Preconditions.checkArgument(name != null && !name.isBlank(), "name cannot be blank");
         Preconditions.checkArgument(
@@ -40,7 +40,7 @@ public class FBMessengerConfig implements HandlerConfig {
         this.verifyToken = verifyToken;
         this.appSecret = appSecret;
         this.pageAccessToken = pageAccessToken;
-        this.isInstagram = isInstagram;
+        this.isInstagram = isInstagram != null ? isInstagram : false;
     }
 
     public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken, boolean isInstagram) {
