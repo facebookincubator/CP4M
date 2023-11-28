@@ -19,12 +19,14 @@ public class FBMessengerConfig implements HandlerConfig {
     private final String verifyToken;
     private final String appSecret;
     private final String pageAccessToken;
+    private final Boolean isInstagram;
 
     private FBMessengerConfig(
             @JsonProperty("name") String name,
             @JsonProperty("verify_token") String verifyToken,
             @JsonProperty("app_secret") String appSecret,
-            @JsonProperty("page_access_token") String pageAccessToken) {
+            @JsonProperty("page_access_token") String pageAccessToken,
+            @JsonProperty("is_instagram") Boolean isInstagram) {
 
         Preconditions.checkArgument(name != null && !name.isBlank(), "name cannot be blank");
         Preconditions.checkArgument(
@@ -38,12 +40,13 @@ public class FBMessengerConfig implements HandlerConfig {
         this.verifyToken = verifyToken;
         this.appSecret = appSecret;
         this.pageAccessToken = pageAccessToken;
+        this.isInstagram = isInstagram != null ? isInstagram : false;
     }
 
-    public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken) {
+    public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken, Boolean isInstagram) {
         // human readability of the name only matters when it's coming from a config
         return new FBMessengerConfig(
-                UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken);
+                UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, isInstagram);
     }
 
     @Override
@@ -66,5 +69,9 @@ public class FBMessengerConfig implements HandlerConfig {
 
     public String pageAccessToken() {
         return pageAccessToken;
+    }
+
+    public Boolean isInstagram() {
+        return isInstagram;
     }
 }

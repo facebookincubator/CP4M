@@ -237,7 +237,7 @@ public class OpenAIPluginTest {
             metaRequests.put(
                 new OutboundRequest(ctx.body(), ctx.headerMap(), ctx.queryParamMap())));
     FBMessageHandler handler =
-        new FBMessageHandler(verifyToken, accessToken, appSecret)
+        new FBMessageHandler(verifyToken, accessToken, appSecret, false)
             .baseURLFactory(ignored -> messageReceiver);
 
     String apiKey = "api key";

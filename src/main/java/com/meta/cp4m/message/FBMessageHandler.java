@@ -44,6 +44,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   private final String appSecret;
 
   private final String accessToken;
+  private final Boolean isInstagram;
 
   private final Deduplicator<Identifier> messageDeduplicator = new Deduplicator<>(10_000);
   private Function<Identifier, URI> baseURLFactory =
@@ -62,16 +63,18 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         }
       };
 
-  public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret) {
+  public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret, Boolean isInstagram) {
     this.verifyToken = verifyToken;
     this.appSecret = appSecret;
     this.accessToken = pageAccessToken;
+    this.isInstagram = isInstagram;
   }
 
   FBMessageHandler(FBMessengerConfig config) {
     this.verifyToken = config.verifyToken();
     this.appSecret = config.appSecret();
     this.accessToken = config.pageAccessToken();
+    this.isInstagram = config.isInstagram();
   }
 
   @Override
@@ -210,7 +213,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     try {
       bodyString = MAPPER.writeValueAsString(body);
       url =
-          new URIBuilder(baseURLFactory.apply(sender))
+          new URIBuilder(baseURLFactory.apply(isInstagram ? Identifier.from("me") : sender))
               .addParameter("access_token", accessToken)
               .build();
     } catch (JsonProcessingException | URISyntaxException e) {

@@ -262,7 +262,7 @@ public class FBMessageHandlerTest {
         Service<FBMessage> service =
                 new Service<>(
                         MemoryStoreConfig.of(1, 1).toStore(),
-                        new FBMessageHandler("0", token, "dummy"),
+                        new FBMessageHandler("0", token, "dummy", false),
                         new DummyLLMPlugin("this is a dummy message"),
                         "/testfbmessage");
         final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
@@ -308,7 +308,7 @@ public class FBMessageHandlerTest {
         Identifier pageId = Identifier.from(106195825075770L);
         String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake don't worry
         String secret = "f74a638462f975e9eadfcbb84e4aa06b"; // it's been rolled don't worry
-        FBMessageHandler messageHandler = new FBMessageHandler("0", token, secret);
+        FBMessageHandler messageHandler = new FBMessageHandler("0", token, secret, false);
         DummyLLMPlugin llmHandler = new DummyLLMPlugin("this is a dummy message");
         MemoryStore<FBMessage> memoryStore = MemoryStoreConfig.of(1, 1).toStore();
         Service<FBMessage> service = new Service<>(memoryStore, messageHandler, llmHandler, path);
@@ -368,7 +368,7 @@ public class FBMessageHandlerTest {
         String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake don't worry
         String secret = "f74a638462f975e9eadfcbb84e4aa06b"; // it's been rolled don't worry
         FBMessageHandler messageHandler =
-                new FBMessageHandler("0", token, secret).baseURLFactory(testURLFactoryFactory(pageId));
+                new FBMessageHandler("0", token, secret, false).baseURLFactory(testURLFactoryFactory(pageId));
 
         String bigText =
                 Stream.generate(() -> "0123456789.").limit(300).collect(Collectors.joining(" "));
