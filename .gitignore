@@ -40,3 +40,4 @@ build/
 ### custom ###
 src/main/java/com/meta/cp4m/mccloskeytest.java
 /dependency-reduced-pom.xml
+CP4M.toml
