@@ -79,7 +79,7 @@ public class FBMessengerConfig implements HandlerConfig {
         return pageAccessToken;
     }
 
-    public @Nullable Optional<String> connectedFacebookPageForInstagram() {
+    public Optional<String> connectedFacebookPageForInstagram() {
         return Optional.ofNullable(connectedFacebookPageForInstagram);
     }
 }
