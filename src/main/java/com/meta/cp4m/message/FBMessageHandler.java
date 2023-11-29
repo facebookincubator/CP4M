@@ -44,7 +44,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   private final String appSecret;
 
   private final String accessToken;
-  @Nullable private final String owningPageID;
+  @Nullable private final String connectedFacebookPageForInstagram;
 
   private final Deduplicator<Identifier> messageDeduplicator = new Deduplicator<>(10_000);
   private Function<Identifier, URI> baseURLFactory =
@@ -63,25 +63,25 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         }
       };
 
-  public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret, @Nullable String owningPageID) {
+  public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret, @Nullable String connectedFacebookPageForInstagram) {
     this.verifyToken = verifyToken;
     this.appSecret = appSecret;
     this.accessToken = pageAccessToken;
-    this.owningPageID = owningPageID;
+    this.connectedFacebookPageForInstagram = connectedFacebookPageForInstagram;
   }
 
   public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret) {
     this.verifyToken = verifyToken;
     this.appSecret = appSecret;
     this.accessToken = pageAccessToken;
-    this.owningPageID = null;
+    this.connectedFacebookPageForInstagram = null;
   }
 
   FBMessageHandler(FBMessengerConfig config) {
     this.verifyToken = config.verifyToken();
     this.appSecret = config.appSecret();
     this.accessToken = config.pageAccessToken();
-    this.owningPageID = config.owningPageID();
+    this.connectedFacebookPageForInstagram = config.connectedFacebookPageForInstagram();
   }
 
   @Override
@@ -220,7 +220,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     try {
       bodyString = MAPPER.writeValueAsString(body);
       url =
-          new URIBuilder(baseURLFactory.apply(owningPageID == null ? sender : Identifier.from(owningPageID)))
+          new URIBuilder(baseURLFactory.apply(connectedFacebookPageForInstagram == null ? sender : Identifier.from(connectedFacebookPageForInstagram)))
               .addParameter("access_token", accessToken)
               .build();
     } catch (JsonProcessingException | URISyntaxException e) {

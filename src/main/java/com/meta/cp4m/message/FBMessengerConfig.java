@@ -22,14 +22,14 @@ public class FBMessengerConfig implements HandlerConfig {
     private final String appSecret;
     private final String pageAccessToken;
     @Nullable
-    private final String owningPageID;
+    private final String connectedFacebookPageForInstagram;
 
     private FBMessengerConfig(
             @JsonProperty("name") String name,
             @JsonProperty("verify_token") String verifyToken,
             @JsonProperty("app_secret") String appSecret,
             @JsonProperty("page_access_token") String pageAccessToken,
-            @JsonProperty("owning_page_id") @Nullable String owningPageID) {
+            @JsonProperty("connected_facebook_page_for_instagram") @Nullable String connectedFacebookPageForInstagram) {
 
         Preconditions.checkArgument(name != null && !name.isBlank(), "name cannot be blank");
         Preconditions.checkArgument(
@@ -43,13 +43,13 @@ public class FBMessengerConfig implements HandlerConfig {
         this.verifyToken = verifyToken;
         this.appSecret = appSecret;
         this.pageAccessToken = pageAccessToken;
-        this.owningPageID = owningPageID;
+        this.connectedFacebookPageForInstagram = connectedFacebookPageForInstagram;
     }
 
-    public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken, @Nullable String owningPageID) {
+    public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken, @Nullable String connectedFacebookPageForInstagram) {
         // human readability of the name only matters when it's coming from a config
         return new FBMessengerConfig(
-                UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, owningPageID);
+                UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, connectedFacebookPageForInstagram);
     }
 
     public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken) {
@@ -80,7 +80,7 @@ public class FBMessengerConfig implements HandlerConfig {
         return pageAccessToken;
     }
 
-    public String owningPageID() {
-        return owningPageID;
+    public String connectedFacebookPageForInstagram() {
+        return connectedFacebookPageForInstagram;
     }
 }
