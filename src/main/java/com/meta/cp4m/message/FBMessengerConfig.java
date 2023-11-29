@@ -10,7 +10,7 @@ package com.meta.cp4m.message;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-import org.jetbrains.annotations.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -21,8 +21,7 @@ public class FBMessengerConfig implements HandlerConfig {
     private final String verifyToken;
     private final String appSecret;
     private final String pageAccessToken;
-    @Nullable
-    private final String connectedFacebookPageForInstagram;
+    private final @Nullable String connectedFacebookPageForInstagram;
 
     private FBMessengerConfig(
             @JsonProperty("name") String name,
@@ -80,7 +79,7 @@ public class FBMessengerConfig implements HandlerConfig {
         return pageAccessToken;
     }
 
-    public String connectedFacebookPageForInstagram() {
-        return connectedFacebookPageForInstagram;
+    public @Nullable Optional<String> connectedFacebookPageForInstagram() {
+        return Optional.ofNullable(connectedFacebookPageForInstagram);
     }
 }

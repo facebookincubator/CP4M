@@ -83,7 +83,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         this.verifyToken = config.verifyToken();
         this.appSecret = config.appSecret();
         this.accessToken = config.pageAccessToken();
-        this.connectedFacebookPageForInstagram = config.connectedFacebookPageForInstagram();
+        this.connectedFacebookPageForInstagram = config.connectedFacebookPageForInstagram().isPresent() ? config.connectedFacebookPageForInstagram().get() : null;
     }
 
     @Override
