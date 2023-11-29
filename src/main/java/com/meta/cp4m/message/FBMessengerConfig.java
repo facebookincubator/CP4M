@@ -10,6 +10,7 @@ package com.meta.cp4m.message;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -20,6 +21,7 @@ public class FBMessengerConfig implements HandlerConfig {
     private final String verifyToken;
     private final String appSecret;
     private final String pageAccessToken;
+    @Nullable
     private final String owningPageID;
 
     private FBMessengerConfig(
@@ -27,7 +29,7 @@ public class FBMessengerConfig implements HandlerConfig {
             @JsonProperty("verify_token") String verifyToken,
             @JsonProperty("app_secret") String appSecret,
             @JsonProperty("page_access_token") String pageAccessToken,
-            @JsonProperty("owning_page_id") String owningPageID) {
+            @JsonProperty("owning_page_id") @Nullable String owningPageID) {
 
         Preconditions.checkArgument(name != null && !name.isBlank(), "name cannot be blank");
         Preconditions.checkArgument(
@@ -41,10 +43,10 @@ public class FBMessengerConfig implements HandlerConfig {
         this.verifyToken = verifyToken;
         this.appSecret = appSecret;
         this.pageAccessToken = pageAccessToken;
-        this.owningPageID = owningPageID == null || owningPageID.isBlank() ? "-1" : owningPageID;
+        this.owningPageID = owningPageID;
     }
 
-    public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken, String owningPageID) {
+    public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken, @Nullable String owningPageID) {
         // human readability of the name only matters when it's coming from a config
         return new FBMessengerConfig(
                 UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, owningPageID);
@@ -53,7 +55,7 @@ public class FBMessengerConfig implements HandlerConfig {
     public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken) {
         // human readability of the name only matters when it's coming from a config
         return new FBMessengerConfig(
-                UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, "-1");
+                UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, null);
     }
 
     @Override

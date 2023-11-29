@@ -44,7 +44,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   private final String appSecret;
 
   private final String accessToken;
-  private final String owningPageID;
+  @Nullable private final String owningPageID;
 
   private final Deduplicator<Identifier> messageDeduplicator = new Deduplicator<>(10_000);
   private Function<Identifier, URI> baseURLFactory =
@@ -63,7 +63,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
         }
       };
 
-  public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret, String owningPageID) {
+  public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret, @Nullable String owningPageID) {
     this.verifyToken = verifyToken;
     this.appSecret = appSecret;
     this.accessToken = pageAccessToken;
@@ -74,7 +74,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     this.verifyToken = verifyToken;
     this.appSecret = appSecret;
     this.accessToken = pageAccessToken;
-    this.owningPageID = "-1";
+    this.owningPageID = null;
   }
 
   FBMessageHandler(FBMessengerConfig config) {
@@ -220,7 +220,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     try {
       bodyString = MAPPER.writeValueAsString(body);
       url =
-          new URIBuilder(baseURLFactory.apply(owningPageID.equals("-1") ? sender : Identifier.from(owningPageID)))
+          new URIBuilder(baseURLFactory.apply(owningPageID == null ? sender : Identifier.from(owningPageID)))
               .addParameter("access_token", accessToken)
               .build();
     } catch (JsonProcessingException | URISyntaxException e) {
