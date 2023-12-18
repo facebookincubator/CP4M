@@ -9,6 +9,7 @@
 package com.meta.cp4m.message;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -88,7 +89,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     } catch (JsonProcessingException | NullPointerException e) {
       LOGGER
           .atWarn()
-          .setMessage("Unable to parse message form Meta webhook")
+          .setMessage("Unable to parse message from Meta webhook")
           .setCause(e)
           .addKeyValue("body", ctx.body())
           .addKeyValue("headers", ctx.headerMap())
@@ -183,6 +184,59 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     return output;
   }
 
+  private List<FBMessage> postHandler(Context ctx, JsonNode body) {
+    JsonNode entries = body.get("entry");
+    ArrayList<FBMessage> output = new ArrayList<>();
+    for (JsonNode entry : entries) {
+      @Nullable JsonNode messaging = entry.get("messaging");
+      if (messaging == null) {
+        continue;
+      }
+      for (JsonNode message : messaging) {
+
+        Identifier senderId = Identifier.from(message.get("sender").get("id").asLong());
+        Identifier recipientId = Identifier.from(message.get("recipient").get("id").asLong());
+        Instant timestamp = Instant.ofEpochMilli(message.get("timestamp").asLong());
+        @Nullable JsonNode messageObject = message.get("message");
+        if (messageObject != null) {
+          // https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/messages
+          Identifier messageId = Identifier.from(messageObject.get("mid").textValue());
+          if (messageDeduplicator.addAndGetIsDuplicate(messageId)) {
+            continue;
+          }
+
+          @Nullable JsonNode textObject = messageObject.get("text");
+          if (textObject != null && textObject.isTextual()) {
+            FBMessage m =
+                new FBMessage(
+                    timestamp,
+                    messageId,
+                    senderId,
+                    recipientId,
+                    textObject.textValue(),
+                    Message.Role.USER);
+            output.add(m);
+          } else {
+            LOGGER
+                .atWarn()
+                .setMessage("received message without text, unable to handle this")
+                .addKeyValue("body", body)
+                .log();
+          }
+        } else {
+          LOGGER
+              .atWarn()
+              .setMessage(
+                  "received a message without a 'message' key, unable to handle this message type")
+              .addKeyValue("body", body)
+              .log();
+        }
+      }
+    }
+
+    return output;
+  }
+
   @TestOnly
   public @This FBMessageHandler baseURLFactory(Function<Identifier, URI> baseURLFactory) {
     this.baseURLFactory = Objects.requireNonNull(baseURLFactory);
@@ -236,5 +290,34 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   @Override
   public Collection<HandlerType> handlers() {
     return List.of(HandlerType.GET, HandlerType.POST);
+  }
+
+  @Override
+  public List<RouteDetails<?, FBMessage>> routeDetails() {
+    RouteDetails<JsonNode, FBMessage> postDetails =
+        new RouteDetails<>(
+            HandlerType.POST,
+            ctx -> {
+              @Nullable String contentType = ctx.contentType();
+              if (contentType != null
+                  && ContentType.parse(contentType).isSameMimeType(ContentType.APPLICATION_JSON)
+                  && MetaHandlerUtils.postHeaderValid(ctx, appSecret)) {
+                JsonNode body;
+                try {
+                  body = MAPPER.readTree(ctx.body());
+                } catch (JsonProcessingException e) {
+                  throw new BadRequestResponse("unable to parse body");
+                }
+                // TODO: need better validation
+                @Nullable JsonNode objectNode = body.get("object");
+                if (objectNode != null && objectNode.textValue().equals("page")) {
+                  return Optional.of(body);
+                }
+              }
+              return Optional.empty();
+            },
+            this::postHandler);
+
+    return List.of(MetaHandlerUtils.subscriptionVerificationRouteDetails(verifyToken), postDetails);
   }
 }

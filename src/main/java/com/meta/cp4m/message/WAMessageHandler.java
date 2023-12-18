@@ -21,16 +21,14 @@ import io.javalin.http.HandlerType;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.net.URIBuilder;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
 import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
@@ -106,6 +104,39 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
       throw new RuntimeException(e);
     }
     throw new UnsupportedOperationException("Only accepting get and post methods");
+  }
+
+  private List<WAMessage> post(Context ctx, WebhookPayload payload) {
+    List<WAMessage> waMessages = new ArrayList<>();
+    payload.entry().stream()
+        .flatMap(e -> e.changes().stream())
+        .forEach(
+            change -> {
+              Identifier phoneNumberId = change.value().metadata().phoneNumberId();
+              for (WebhookMessage message : change.value().messages()) {
+                if (messageDeduplicator.addAndGetIsDuplicate(message.id())) {
+                  continue; // message is a duplicate
+                }
+                if (message.type() != WebhookMessage.WebhookMessageType.TEXT) {
+                  LOGGER.warn(
+                      "received message of type '"
+                          + message.type()
+                          + "', only able to handle text messages at this time");
+                  continue;
+                }
+                TextWebhookMessage textMessage = (TextWebhookMessage) message;
+                waMessages.add(
+                    new WAMessage(
+                        message.timestamp(),
+                        message.id(),
+                        message.from(),
+                        phoneNumberId,
+                        textMessage.text().body(),
+                        Message.Role.USER));
+                readExecutor.execute(() -> markRead(phoneNumberId, textMessage.id().toString()));
+              }
+            });
+    return waMessages;
   }
 
   List<WAMessage> postHandler(Context ctx) {
@@ -191,6 +222,31 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   @Override
   public Collection<HandlerType> handlers() {
     return List.of(HandlerType.GET, HandlerType.POST);
+  }
+
+  @Override
+  public List<RouteDetails<?, WAMessage>> routeDetails() {
+    RouteDetails<WebhookPayload, WAMessage> postDetails =
+        new RouteDetails<>(
+            HandlerType.POST,
+            ctx -> {
+              @Nullable String contentType = ctx.contentType();
+              if (contentType != null &&
+                  ContentType.parse(contentType).isSameMimeType(ContentType.APPLICATION_JSON)
+                  && MetaHandlerUtils.postHeaderValid(ctx, appSecret)) {
+                String bodyString = ctx.body();
+                WebhookPayload payload;
+                try {
+                  payload = MAPPER.readValue(bodyString, WebhookPayload.class);
+                  return Optional.of(payload);
+                } catch (Exception e) {
+                  return Optional.empty();
+                }
+              }
+              return Optional.empty();
+            },
+            this::post);
+    return List.of(MetaHandlerUtils.subscriptionVerificationRouteDetails(verifyToken), postDetails);
   }
 
   private void markRead(Identifier phoneNumberId, String messageId) {

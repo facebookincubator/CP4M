@@ -50,11 +50,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class FBMessageHandlerTest {
+public class FBMessageRouteDetailsTest {
 
   /** Example message collected directly from the messenger webhook */
   public static final String SAMPLE_MESSAGE =
       "{\"object\":\"page\",\"entry\":[{\"id\":\"106195825075770\",\"time\":1692813219204,\"messaging\":[{\"sender\":{\"id\":\"6357858494326947\"},\"recipient\":{\"id\":\"106195825075770\"},\"timestamp\":1692813218705,\"message\":{\"mid\":\"m_kT_mWOSYh_eK3kF8chtyCWfcD9-gomvu4mhaMFQl-gt4D3LjORi6k3BXD6_x9a-FOUt-D2LFuywJN6HfrpAnDg\",\"text\":\"asdfa\"}}]}]}";
+
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final String SAMPLE_MESSAGE_HMAC =
       "sha256=8620d18213fa2612d16117b65168ef97404fa13189528014c5362fec31215985";
@@ -89,7 +90,10 @@ public class FBMessageHandlerTest {
     URI uri =
         URIBuilder.localhost().setScheme("http").setPort(runner.port()).appendPath(path).build();
 
-    Request request = Request.post(uri).bodyString(body, ContentType.APPLICATION_JSON);
+    Request request =
+        Request.post(uri)
+            .bodyString(body, ContentType.APPLICATION_JSON)
+            .setHeader("Content-Type", "application/json");
     if (calculateHmac) {
       String hmac = messageHandler.hmac(body);
       request.setHeader("X-Hub-Signature-256", "sha256=" + hmac);
@@ -134,7 +138,7 @@ public class FBMessageHandlerTest {
                 true),
             new TestArgument(
                 "a non page object type",
-                200,
+                400,
                 r -> createMessageRequest("{\"object\": \"not a page\"}", r),
                 false),
             new TestArgument(
@@ -201,14 +205,14 @@ public class FBMessageHandlerTest {
                         r),
                 false),
             new TestArgument(
-                "missing hmac", 403, r -> createMessageRequest(SAMPLE_MESSAGE, r, false), false),
+                "missing hmac", 400, r -> createMessageRequest(SAMPLE_MESSAGE, r, false), false),
             new TestArgument(
                 "invalid json", 400, r -> createMessageRequest("invalid_json.", r), false),
             new TestArgument(
                 "valid json, invalid body", 400, r -> createMessageRequest("{}", r), false),
             new TestArgument(
                 "invalid hmac",
-                403,
+                400,
                 r ->
                     createMessageRequest(SAMPLE_MESSAGE, r, false)
                         .addHeader("X-Hub-Signature-256", "abcdef0123456789"),
@@ -247,12 +251,13 @@ public class FBMessageHandlerTest {
 
   @Test
   void validation() throws IOException, URISyntaxException {
-    String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake
-    int challenge = 1158201444;
+    final String pageToken = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake
+    final int challenge = 1158201444;
+    final String verifyToken = "oamnw9230rjadoia";
     Service<FBMessage> service =
         new Service<>(
             MemoryStoreConfig.of(1, 1).toStore(),
-            new FBMessageHandler("0", token, "dummy"),
+            new FBMessageHandler(verifyToken, pageToken, "dummy"),
             new DummyLLMPlugin("this is a dummy message"),
             "/testfbmessage");
     final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
@@ -262,7 +267,7 @@ public class FBMessageHandlerTest {
           ImmutableMap.<String, String>builder()
               .put("hub.mode", "subscribe")
               .put("hub.challenge", Integer.toString(challenge))
-              .put("hub.verify_token", token)
+              .put("hub.verify_token", verifyToken)
               .build();
       response = getRequest("testfbmessage", runner.port(), params);
     }
@@ -299,7 +304,7 @@ public class FBMessageHandlerTest {
     String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake don't worry
     String secret = "f74a638462f975e9eadfcbb84e4aa06b"; // it's been rolled don't worry
     FBMessageHandler messageHandler = new FBMessageHandler("0", token, secret);
-    DummyLLMPlugin llmHandler = new DummyLLMPlugin("this is a dummy message");
+    DummyLLMPlugin<FBMessage> llmHandler = new DummyLLMPlugin<>("this is a dummy message");
     MemoryStore<FBMessage> memoryStore = MemoryStoreConfig.of(1, 1).toStore();
     Service<FBMessage> service = new Service<>(memoryStore, messageHandler, llmHandler, path);
     final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);

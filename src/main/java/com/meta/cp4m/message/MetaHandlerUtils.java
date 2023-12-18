@@ -13,9 +13,16 @@ import io.javalin.http.ForbiddenResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalInt;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+
+import io.javalin.http.HandlerType;
 import org.apache.hc.client5.http.utils.Hex;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 class MetaHandlerUtils {
   static void subscriptionVerification(Context ctx, String verifyToken) {
@@ -25,6 +32,26 @@ class MetaHandlerUtils {
         .check(v -> v.equals(verifyToken), "verify_token is incorrect");
     int challenge = ctx.queryParamAsClass("hub.challenge", int.class).get();
     ctx.result(String.valueOf(challenge));
+  }
+
+  static <T extends Message>
+      MessageHandler.RouteDetails<Integer, T> subscriptionVerificationRouteDetails(
+          String verifyToken) {
+    return new MessageHandler.RouteDetails<>(
+        HandlerType.GET,
+        ctx ->
+        // validateSubscription handles putting challenge into context response if it succeeds
+        {
+          if (Objects.equals(ctx.queryParam("hub.mode"), "subscribe")
+              && Objects.equals(ctx.queryParam("hub.verify_token"), verifyToken)) {
+            return Optional.of(ctx.queryParamAsClass("hub.challenge", Integer.class).get());
+          }
+          return Optional.empty();
+        },
+        (ctx, challenge) -> {
+          ctx.result(String.valueOf(challenge));
+          return List.of();
+        });
   }
 
   static String hmac(String body, String appSecret) {
@@ -64,5 +91,20 @@ class MetaHandlerUtils {
             },
             "X-Hub-Signature-256 could not be validated")
         .getOrThrow(ignored -> new ForbiddenResponse("X-Hub-Signature-256 could not be validated"));
+  }
+
+  static boolean postHeaderValid(Context ctx, String appSecret) {
+    @Nullable String sig = ctx.headerMap().get("X-Hub-Signature-256");
+    if (sig == null) {
+      return false;
+    }
+
+    String[] hashParts = sig.strip().split("=");
+    if (hashParts.length != 2) {
+      return false;
+    }
+
+    String calculatedHmac = hmac(ctx.body(), appSecret);
+    return hashParts[1].equals(calculatedHmac);
   }
 }

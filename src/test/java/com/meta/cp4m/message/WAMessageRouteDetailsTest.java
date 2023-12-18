@@ -25,7 +25,7 @@ import org.apache.hc.client5.http.fluent.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class WAMessageHandlerTest {
+class WAMessageRouteDetailsTest {
 
   static final String VALID =
       """
@@ -106,7 +106,7 @@ class WAMessageHandlerTest {
   private final ServiceTestHarness<WAMessage> harness =
       ServiceTestHarness.newWAServiceTestHarness();
 
-  WAMessageHandlerTest() throws JsonProcessingException {}
+  WAMessageRouteDetailsTest() throws JsonProcessingException {}
 
   @BeforeEach
   void setUp() {
