@@ -330,9 +330,9 @@ public class FBMessageHandlerTest {
 
     FBMessageHandler messageHandler;
     if (isInstagram) {
-      messageHandler = new FBMessageHandler("0", token, secret, pageId.toString());
+      messageHandler = new FBMessageHandler("0", token, secret, true);
     } else {
-      messageHandler = new FBMessageHandler("0", token, secret);
+      messageHandler = new FBMessageHandler("0", token, secret, false);
     }
     DummyLLMPlugin<FBMessage> llmHandler = new DummyLLMPlugin<>("this is a dummy message");
     MemoryStore<FBMessage> memoryStore = MemoryStoreConfig.of(1, 1).toStore();

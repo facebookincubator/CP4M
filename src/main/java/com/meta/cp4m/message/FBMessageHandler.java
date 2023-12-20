@@ -44,7 +44,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   private final String appSecret;
 
   private final String accessToken;
-  private final @Nullable String connectedFacebookPageForInstagram;
+  private final boolean instagramMode;
 
   private final Deduplicator<Identifier> messageDeduplicator = new Deduplicator<>(10_000);
   private Function<Identifier, URI> baseURLFactory =
@@ -64,31 +64,25 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
       };
 
   public FBMessageHandler(
-      String verifyToken,
-      String pageAccessToken,
-      String appSecret,
-      @Nullable String connectedFacebookPageForInstagram) {
+      String verifyToken, String pageAccessToken, String appSecret, boolean instagramMode) {
     this.verifyToken = verifyToken;
     this.appSecret = appSecret;
     this.accessToken = pageAccessToken;
-    this.connectedFacebookPageForInstagram = connectedFacebookPageForInstagram;
+    this.instagramMode = instagramMode;
   }
 
   public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret) {
     this.verifyToken = verifyToken;
     this.appSecret = appSecret;
     this.accessToken = pageAccessToken;
-    this.connectedFacebookPageForInstagram = null;
+    this.instagramMode = false;
   }
 
   FBMessageHandler(FBMessengerConfig config) {
     this.verifyToken = config.verifyToken();
     this.appSecret = config.appSecret();
     this.accessToken = config.pageAccessToken();
-    this.connectedFacebookPageForInstagram =
-        config.connectedFacebookPageForInstagram().isPresent()
-            ? config.connectedFacebookPageForInstagram().get()
-            : null;
+    this.instagramMode = config.instagramMode();
   }
 
   @TestOnly
@@ -178,11 +172,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     try {
       bodyString = MAPPER.writeValueAsString(body);
       url =
-          new URIBuilder(
-                  baseURLFactory.apply(
-                      connectedFacebookPageForInstagram == null
-                          ? sender
-                          : Identifier.from(connectedFacebookPageForInstagram)))
+          new URIBuilder(baseURLFactory.apply(sender))
               .addParameter("access_token", accessToken)
               .build();
     } catch (JsonProcessingException | URISyntaxException e) {
@@ -226,8 +216,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
                   throw new BadRequestResponse("unable to parse body");
                 }
                 // TODO: need better validation
-                String expectedObjectValue =
-                    connectedFacebookPageForInstagram == null ? "page" : "instagram";
+                String expectedObjectValue = instagramMode ? "instagram" : "page";
                 @Nullable JsonNode objectNode = body.get("object");
                 if (objectNode != null && objectNode.textValue().equals(expectedObjectValue)) {
                   return Optional.of(body);
