@@ -10,6 +10,7 @@ package com.meta.cp4m.message;
 
 import com.meta.cp4m.Identifier;
 import java.time.Instant;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public record FBMessage(
     Instant timestamp,
@@ -17,5 +18,17 @@ public record FBMessage(
     Identifier senderId,
     Identifier recipientId,
     String message,
-    Role role)
-    implements Message {}
+    Role role,
+    @Nullable String accessToken)
+    implements Message {
+
+  public FBMessage(
+      Instant timestamp,
+      Identifier instanceId,
+      Identifier senderId,
+      Identifier recipientId,
+      String message,
+      Role role) {
+    this(timestamp, instanceId, senderId, recipientId, message, role, null);
+  }
+}

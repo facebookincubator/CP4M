@@ -158,12 +158,14 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   @Override
   public void respond(FBMessage message) throws IOException {
     List<String> chunkedText = CHUNKER.chunks(message.message()).toList();
+    String accessToken = message.accessToken() == null ? this.accessToken : message.accessToken();
     for (String text : chunkedText) {
-      send(text, message.recipientId(), message.senderId());
+      send(text, message.recipientId(), message.senderId(), accessToken);
     }
   }
 
-  private void send(String message, Identifier recipient, Identifier sender) throws IOException {
+  private void send(String message, Identifier recipient, Identifier sender, String accessToken)
+      throws IOException {
     URI url;
     ObjectNode body = MAPPER.createObjectNode();
     body.put("messaging_type", "RESPONSE").putObject("recipient").put("id", recipient.toString());
