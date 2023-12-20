@@ -76,30 +76,6 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     this.appSecret = config.appSecret();
   }
 
-  @Override
-  public List<WAMessage> processRequest(Context ctx) {
-
-    try {
-      switch (ctx.handlerType()) {
-        case GET -> {
-          MetaHandlerUtils.subscriptionVerification(ctx, verifyToken);
-          LOGGER.debug("Meta verified callback url successfully");
-          return Collections.emptyList();
-        }
-        case POST -> {
-          return postHandler(ctx);
-        }
-      }
-    } catch (RuntimeException e) {
-      LOGGER.error(e.getMessage(), e);
-      throw e;
-    } catch (Exception e) {
-      LOGGER.error(e.getMessage(), e);
-      throw new RuntimeException(e);
-    }
-    throw new UnsupportedOperationException("Only accepting get and post methods");
-  }
-
   private List<WAMessage> post(Context ctx, WebhookPayload payload) {
     List<WAMessage> waMessages = new ArrayList<>();
     payload.entry().stream()
@@ -130,55 +106,6 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                 readExecutor.execute(() -> markRead(phoneNumberId, textMessage.id().toString()));
               }
             });
-    return waMessages;
-  }
-
-  List<WAMessage> postHandler(Context ctx) {
-    MetaHandlerUtils.postHeaderValidator(ctx, appSecret);
-    String bodyString = ctx.body();
-    WebhookPayload payload;
-    try {
-      payload = MAPPER.readValue(bodyString, WebhookPayload.class);
-    } catch (Exception e) {
-      LOGGER
-          .atWarn()
-          .addKeyValue("body", bodyString)
-          .setMessage(
-              "unable to process message, server may be subscribed to a 'webhook field' it cannot process")
-          .log();
-      throw new RuntimeException(e);
-    }
-
-    List<WAMessage> waMessages = new ArrayList<>();
-    payload.entry().stream()
-        .flatMap(e -> e.changes().stream())
-        .forEach(
-            change -> {
-              Identifier phoneNumberId = change.value().metadata().phoneNumberId();
-              for (WebhookMessage message : change.value().messages()) {
-                if (messageDeduplicator.addAndGetIsDuplicate(message.id())) {
-                  continue; // message is a duplicate
-                }
-                if (message.type() != WebhookMessage.WebhookMessageType.TEXT) {
-                  LOGGER.warn(
-                      "received message of type '"
-                          + message.type()
-                          + "', only able to handle text messages at this time");
-                  continue;
-                }
-                TextWebhookMessage textMessage = (TextWebhookMessage) message;
-                waMessages.add(
-                    new WAMessage(
-                        message.timestamp(),
-                        message.id(),
-                        message.from(),
-                        phoneNumberId,
-                        textMessage.text().body(),
-                        Message.Role.USER));
-                readExecutor.execute(() -> markRead(phoneNumberId, textMessage.id().toString()));
-              }
-            });
-
     return waMessages;
   }
 
@@ -214,19 +141,14 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   }
 
   @Override
-  public Collection<HandlerType> handlers() {
-    return List.of(HandlerType.GET, HandlerType.POST);
-  }
-
-  @Override
   public List<RouteDetails<?, WAMessage>> routeDetails() {
     RouteDetails<WebhookPayload, WAMessage> postDetails =
         new RouteDetails<>(
             HandlerType.POST,
             ctx -> {
               @Nullable String contentType = ctx.contentType();
-              if (contentType != null &&
-                  ContentType.parse(contentType).isSameMimeType(ContentType.APPLICATION_JSON)
+              if (contentType != null
+                  && ContentType.parse(contentType).isSameMimeType(ContentType.APPLICATION_JSON)
                   && MetaHandlerUtils.postHeaderValid(ctx, appSecret)) {
                 String bodyString = ctx.body();
                 WebhookPayload payload;

@@ -13,17 +13,13 @@ import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.MessageHandler;
 import com.meta.cp4m.message.RequestProcessor;
 import com.meta.cp4m.message.ThreadState;
-import com.meta.cp4m.routing.Acceptor;
-import com.meta.cp4m.routing.Handler;
 import com.meta.cp4m.routing.Route;
 import com.meta.cp4m.store.ChatStore;
-import io.javalin.Javalin;
 import io.javalin.http.Context;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,15 +42,6 @@ public class Service<T extends Message> {
     this.path = path;
   }
 
-  void handle(Context ctx) {
-    List<T> messages = handler.processRequest(ctx);
-    // TODO: once we have a non-volatile store, on startup send stored but not replied to messages
-    for (T m : messages) {
-      ThreadState<T> thread = store.add(m);
-      executorService.submit(() -> execute(thread));
-    }
-  }
-
   <IN> void handler(Context ctx, IN in, RequestProcessor<IN, T> processor) {
     List<T> messages = null;
     try {
@@ -72,10 +59,6 @@ public class Service<T extends Message> {
       ThreadState<T> thread = store.add(m);
       executorService.submit(() -> execute(thread));
     }
-  }
-
-  public void register(Javalin app) {
-    handler.handlers().forEach(m -> app.addHandler(m, path, this::handle));
   }
 
   public String path() {
