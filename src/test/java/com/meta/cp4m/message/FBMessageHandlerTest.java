@@ -50,7 +50,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class FBMessageRouteDetailsTest {
+public class FBMessageHandlerTest {
 
   /** Example message collected directly from the messenger webhook */
   public static final String SAMPLE_MESSAGE =
@@ -59,14 +59,18 @@ public class FBMessageRouteDetailsTest {
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final String SAMPLE_MESSAGE_HMAC =
       "sha256=8620d18213fa2612d16117b65168ef97404fa13189528014c5362fec31215985";
-  private static JsonNode PARSED_SAMPLE_MESSAGE;
+  public static final JsonNode PARSED_SAMPLE_MESSAGE;
+
+  static {
+    try {
+      PARSED_SAMPLE_MESSAGE = MAPPER.readTree(SAMPLE_MESSAGE);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private Javalin app;
   private BlockingQueue<OutboundRequest> requests;
-
-  @BeforeAll
-  static void beforeAll() throws JsonProcessingException {
-    PARSED_SAMPLE_MESSAGE = MAPPER.readTree(SAMPLE_MESSAGE);
-  }
 
   private static HttpResponse getRequest(String path, int port, Map<String, String> params)
       throws IOException, URISyntaxException {

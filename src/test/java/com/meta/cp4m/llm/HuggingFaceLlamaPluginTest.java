@@ -308,7 +308,7 @@ public class HuggingFaceLlamaPluginTest {
 
     // TODO: create test harness
     Request request =
-        FBMessageRouteDetailsTest.createMessageRequest(FBMessageRouteDetailsTest.SAMPLE_MESSAGE, runner);
+        FBMessageHandlerTest.createMessageRequest(FBMessageHandlerTest.SAMPLE_MESSAGE, runner);
     HttpResponse response = request.execute().returnResponse();
     assertThat(response.getCode()).isEqualTo(200);
     @Nullable OutboundRequest or = HuggingFaceLlamaRequests.poll(500, TimeUnit.MILLISECONDS);

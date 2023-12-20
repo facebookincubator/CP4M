@@ -70,12 +70,6 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
         }
       };
 
-  public WAMessageHandler(String verifyToken, String appSecret, String accessToken) {
-    this.verifyToken = verifyToken;
-    this.appSecret = appSecret;
-    this.accessToken = accessToken;
-  }
-
   public WAMessageHandler(WAMessengerConfig config) {
     this.verifyToken = config.verifyToken();
     this.accessToken = config.accessToken();

@@ -10,11 +10,9 @@ package com.meta.cp4m.message;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Identifier;
-import com.meta.cp4m.message.ServiceTestHarness.ReceivedRequest;
 import com.meta.cp4m.message.webhook.whatsapp.Utils;
 import java.io.IOException;
 import java.util.Collection;
@@ -25,7 +23,7 @@ import org.apache.hc.client5.http.fluent.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class WAMessageRouteDetailsTest {
+class WAMessageHandlerTest {
 
   static final String VALID =
       """
@@ -101,12 +99,8 @@ class WAMessageRouteDetailsTest {
 }
 """;
   private static final JsonMapper MAPPER = Utils.JSON_MAPPER;
-  private final ObjectNode validNode = (ObjectNode) MAPPER.readTree(VALID);
-
   private final ServiceTestHarness<WAMessage> harness =
       ServiceTestHarness.newWAServiceTestHarness();
-
-  WAMessageRouteDetailsTest() throws JsonProcessingException {}
 
   @BeforeEach
   void setUp() {
