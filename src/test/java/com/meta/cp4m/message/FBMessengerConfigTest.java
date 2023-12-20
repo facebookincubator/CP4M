@@ -49,7 +49,12 @@ class FBMessengerConfigTest {
               .required(true)
               .validValues("123")
               .invalidValues("", " ")
-              .getter(FBMessengerConfig::pageAccessToken));
+              .getter(FBMessengerConfig::pageAccessToken),
+          ConfigParamTestSpec.of(FBMessengerConfig.class, "instagram_mode")
+              .required(false)
+              .validValues(true, false)
+              .invalidValues("anything that's not a boolean", 3.14)
+              .getter(FBMessengerConfig::instagramMode));
 
   static Stream<Named<ConfigParamTestSpec<FBMessengerConfig>>> required() {
     return PARAMS.stream().filter(ConfigParamTestSpec::required).map(p -> Named.of(p.name(), p));
@@ -94,6 +99,12 @@ class FBMessengerConfigTest {
     for (JsonNode invalidValue : param.invalidValues()) {
       config.set(param.name(), invalidValue);
       assertThatThrownBy(() -> mapper.convertValue(config, FBMessengerConfig.class))
+          .withFailMessage(
+              "expecting the value of '"
+                  + invalidValue
+                  + "' to be invalid for field '"
+                  + param.name()
+                  + "'")
           .isInstanceOf(IllegalArgumentException.class);
     }
   }

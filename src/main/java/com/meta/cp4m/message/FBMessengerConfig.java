@@ -10,10 +10,8 @@ package com.meta.cp4m.message;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.util.Optional;
 import java.util.UUID;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class FBMessengerConfig implements HandlerConfig {
 
@@ -21,14 +19,14 @@ public class FBMessengerConfig implements HandlerConfig {
     private final String verifyToken;
     private final String appSecret;
     private final String pageAccessToken;
-    private final @Nullable String connectedFacebookPageForInstagram;
+  private final boolean instagramMode;
 
-    private FBMessengerConfig(
-            @JsonProperty("name") String name,
-            @JsonProperty("verify_token") String verifyToken,
-            @JsonProperty("app_secret") String appSecret,
-            @JsonProperty("page_access_token") String pageAccessToken,
-            @JsonProperty("connected_facebook_page_for_instagram") @Nullable String connectedFacebookPageForInstagram) {
+  private FBMessengerConfig(
+      @JsonProperty("name") String name,
+      @JsonProperty("verify_token") String verifyToken,
+      @JsonProperty("app_secret") String appSecret,
+      @JsonProperty("page_access_token") String pageAccessToken,
+      @JsonProperty("instagram_mode") @Nullable Boolean instagramMode) {
 
         Preconditions.checkArgument(name != null && !name.isBlank(), "name cannot be blank");
         Preconditions.checkArgument(
@@ -42,19 +40,20 @@ public class FBMessengerConfig implements HandlerConfig {
         this.verifyToken = verifyToken;
         this.appSecret = appSecret;
         this.pageAccessToken = pageAccessToken;
-        this.connectedFacebookPageForInstagram = connectedFacebookPageForInstagram;
+    this.instagramMode = instagramMode != null && instagramMode;
     }
 
-    public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken, @Nullable String connectedFacebookPageForInstagram) {
-        // human readability of the name only matters when it's coming from a config
-        return new FBMessengerConfig(
-                UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, connectedFacebookPageForInstagram);
+  public static FBMessengerConfig of(
+      String verifyToken, String appSecret, String pageAccessToken, boolean instagramMode) {
+    // human readability of the name only matters when it's coming from a config
+    return new FBMessengerConfig(
+        UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, instagramMode);
     }
 
     public static FBMessengerConfig of(String verifyToken, String appSecret, String pageAccessToken) {
-        // human readability of the name only matters when it's coming from a config
-        return new FBMessengerConfig(
-                UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, null);
+    // human readability of the name only matters when it's coming from a config
+    return new FBMessengerConfig(
+        UUID.randomUUID().toString(), verifyToken, appSecret, pageAccessToken, false);
     }
 
     @Override
@@ -79,7 +78,7 @@ public class FBMessengerConfig implements HandlerConfig {
         return pageAccessToken;
     }
 
-    public Optional<String> connectedFacebookPageForInstagram() {
-        return Optional.ofNullable(connectedFacebookPageForInstagram);
+  public boolean instagramMode() {
+    return instagramMode;
     }
 }
