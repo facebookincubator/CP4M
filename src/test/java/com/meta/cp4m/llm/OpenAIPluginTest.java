@@ -212,7 +212,7 @@ public class OpenAIPluginTest {
 
     for (int i = 0; i < thread.messages().size(); i++) {
       FBMessage threadMessage = thread.messages().get(i);
-      JsonNode sentMessage = body.get("messages").get(i + 1);  // system message is not in the stack
+      JsonNode sentMessage = body.get("messages").get(i + 1); // system message is not in the stack
       assertSoftly(
           s ->
               s.assertThat(threadMessage.message())

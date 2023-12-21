@@ -149,9 +149,9 @@ public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
 
     ArrayNode messages = MAPPER.createArrayNode();
     messages
-            .addObject()
-            .put("role", Role.SYSTEM.toString().toLowerCase())
-            .put("content", config.systemMessage());
+        .addObject()
+        .put("role", Role.SYSTEM.toString().toLowerCase())
+        .put("content", config.systemMessage());
     for (T message : threadState.messages()) {
       messages
           .addObject()
