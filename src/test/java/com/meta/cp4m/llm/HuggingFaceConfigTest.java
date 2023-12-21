@@ -28,7 +28,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class HuggingFaceConfigTest {
 
-    private static final ObjectMapper MAPPER = ConfigurationUtils.jsonMapper();
+  private static final ObjectMapper MAPPER = ConfigurationUtils.jsonMapper();
   static final Collection<ConfigItem> CONFIG_ITEMS =
       ImmutableList.of(
           new ConfigItem(
@@ -90,92 +90,94 @@ class HuggingFaceConfigTest {
               false,
               LongNode.valueOf(2000),
               List.of(LongNode.valueOf(-1), LongNode.valueOf(100_000))));
-    private ObjectNode minimalConfig;
+  private ObjectNode minimalConfig;
 
-    static Stream<ConfigItem> configItems() {
-        return CONFIG_ITEMS.stream();
-    }
+  static Stream<ConfigItem> configItems() {
+    return CONFIG_ITEMS.stream();
+  }
 
-    static Stream<Arguments> invalidValues() {
-        return configItems()
-                .flatMap(c -> c.invalidValues().stream().map(t -> Arguments.of(c.key(), t)));
-    }
+  static Stream<Arguments> invalidValues() {
+    return configItems()
+        .flatMap(c -> c.invalidValues().stream().map(t -> Arguments.of(c.key(), t)));
+  }
 
-    static Stream<String> requiredKeys() {
-        return configItems().filter(ConfigItem::required).map(ConfigItem::key);
-    }
+  static Stream<String> requiredKeys() {
+    return configItems().filter(ConfigItem::required).map(ConfigItem::key);
+  }
 
-    @BeforeEach
-    void setUp() {
-        minimalConfig = MAPPER.createObjectNode();
-        CONFIG_ITEMS.forEach(
-                t -> {
-                    if (t.required()) {
-                        minimalConfig.set(t.key(), t.validValue());
-                    }
-                });
-    }
+  @BeforeEach
+  void setUp() {
+    minimalConfig = MAPPER.createObjectNode();
+    CONFIG_ITEMS.forEach(
+        t -> {
+          if (t.required()) {
+            minimalConfig.set(t.key(), t.validValue());
+          }
+        });
+  }
 
-    @Test
-    void maximalValidConfig() throws JsonProcessingException {
-        ObjectNode body = MAPPER.createObjectNode();
-        CONFIG_ITEMS.forEach(t -> body.set(t.key(), t.validValue()));
-        HuggingFaceConfig config = MAPPER.readValue(MAPPER.writeValueAsString(body), HuggingFaceConfig.class);
-        assertThat(config.temperature().isPresent()).isTrue();
-        assertThat(config.frequencyPenalty().isPresent()).isTrue();
-        assertThat(config.topP().isPresent()).isTrue();
-        assertThat(config.maxOutputTokens().isPresent()).isTrue();
-        assertThat(config.presencePenalty().isPresent()).isTrue();
-        assertThat(config.frequencyPenalty().isPresent()).isTrue();
-        assertThat(config.logitBias().isEmpty()).isFalse();
-    }
+  @Test
+  void maximalValidConfig() throws JsonProcessingException {
+    ObjectNode body = MAPPER.createObjectNode();
+    CONFIG_ITEMS.forEach(t -> body.set(t.key(), t.validValue()));
+    HuggingFaceConfig config =
+        MAPPER.readValue(MAPPER.writeValueAsString(body), HuggingFaceConfig.class);
+    assertThat(config.temperature().isPresent()).isTrue();
+    assertThat(config.frequencyPenalty().isPresent()).isTrue();
+    assertThat(config.topP().isPresent()).isTrue();
+    assertThat(config.maxOutputTokens().isPresent()).isTrue();
+    assertThat(config.presencePenalty().isPresent()).isTrue();
+    assertThat(config.frequencyPenalty().isPresent()).isTrue();
+    assertThat(config.logitBias().isEmpty()).isFalse();
+  }
 
-    @Test
-    void minimalValidConfig() throws JsonProcessingException {
-        ObjectNode body = MAPPER.createObjectNode();
-        CONFIG_ITEMS.forEach(
-                t -> {
-                    if (t.required()) {
-                        body.set(t.key(), t.validValue());
-                    }
-                });
-        HuggingFaceConfig config = MAPPER.readValue(MAPPER.writeValueAsString(body), HuggingFaceConfig.class);
-        assertThat(config.temperature().isEmpty()).isTrue();
-        assertThat(config.frequencyPenalty().isEmpty()).isTrue();
-        assertThat(config.topP().isEmpty()).isTrue();
-        assertThat(config.maxOutputTokens().isEmpty()).isTrue();
-        assertThat(config.presencePenalty().isEmpty()).isTrue();
-        assertThat(config.frequencyPenalty().isEmpty()).isTrue();
-        assertThat(config.logitBias().isEmpty()).isTrue();
-    }
+  @Test
+  void minimalValidConfig() throws JsonProcessingException {
+    ObjectNode body = MAPPER.createObjectNode();
+    CONFIG_ITEMS.forEach(
+        t -> {
+          if (t.required()) {
+            body.set(t.key(), t.validValue());
+          }
+        });
+    HuggingFaceConfig config =
+        MAPPER.readValue(MAPPER.writeValueAsString(body), HuggingFaceConfig.class);
+    assertThat(config.temperature().isEmpty()).isTrue();
+    assertThat(config.frequencyPenalty().isEmpty()).isTrue();
+    assertThat(config.topP().isEmpty()).isTrue();
+    assertThat(config.maxOutputTokens().isEmpty()).isTrue();
+    assertThat(config.presencePenalty().isEmpty()).isTrue();
+    assertThat(config.frequencyPenalty().isEmpty()).isTrue();
+    assertThat(config.logitBias().isEmpty()).isTrue();
+  }
 
-    @ParameterizedTest
-    @MethodSource("configItems")
-    void nullValues(ConfigItem item) throws JsonProcessingException {
-        minimalConfig.putNull(item.key());
-        String bodyString = MAPPER.writeValueAsString(minimalConfig);
-        assertThatThrownBy(() -> MAPPER.readValue(bodyString, HuggingFaceConfig.class))
-                .isInstanceOf(Exception.class);
-    }
+  @ParameterizedTest
+  @MethodSource("configItems")
+  void nullValues(ConfigItem item) throws JsonProcessingException {
+    minimalConfig.putNull(item.key());
+    String bodyString = MAPPER.writeValueAsString(minimalConfig);
+    assertThatThrownBy(() -> MAPPER.readValue(bodyString, HuggingFaceConfig.class))
+        .isInstanceOf(Exception.class);
+  }
 
-    @ParameterizedTest
-    @MethodSource("invalidValues")
-    void invalidValues(String key, JsonNode value) throws JsonProcessingException {
-        minimalConfig.set(key, value);
-        String bodyString = MAPPER.writeValueAsString(minimalConfig);
-        assertThatThrownBy(() -> MAPPER.readValue(bodyString, HuggingFaceConfig.class))
-                .isInstanceOf(Exception.class);
-    }
+  @ParameterizedTest
+  @MethodSource("invalidValues")
+  void invalidValues(String key, JsonNode value) throws JsonProcessingException {
+    minimalConfig.set(key, value);
+    String bodyString = MAPPER.writeValueAsString(minimalConfig);
+    assertThatThrownBy(() -> MAPPER.readValue(bodyString, HuggingFaceConfig.class))
+        .isInstanceOf(Exception.class);
+  }
 
-    @ParameterizedTest
-    @MethodSource("requiredKeys")
-    void requiredKeysMissing(String key) throws JsonProcessingException {
-        minimalConfig.remove(key);
-        String bodyString = MAPPER.writeValueAsString(minimalConfig);
-        assertThatThrownBy(() -> MAPPER.readValue(bodyString, HuggingFaceConfig.class))
-                .isInstanceOf(Exception.class);
-    }
+  @ParameterizedTest
+  @MethodSource("requiredKeys")
+  void requiredKeysMissing(String key) throws JsonProcessingException {
+    minimalConfig.remove(key);
+    String bodyString = MAPPER.writeValueAsString(minimalConfig);
+    assertThatThrownBy(() -> MAPPER.readValue(bodyString, HuggingFaceConfig.class))
+        .isInstanceOf(Exception.class);
+  }
 
-    record ConfigItem(
-            String key, boolean required, JsonNode validValue, List<JsonNode> invalidValues) {}
+  record ConfigItem(
+      String key, boolean required, JsonNode validValue, List<JsonNode> invalidValues) {}
 }

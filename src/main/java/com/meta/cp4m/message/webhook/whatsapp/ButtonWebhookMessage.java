@@ -25,6 +25,7 @@ public class ButtonWebhookMessage implements WebhookMessage {
   private final Identifier from;
   private final Identifier id;
   private final Instant timestamp;
+
   @JsonCreator
   public ButtonWebhookMessage(
       @JsonProperty("button") Button button,

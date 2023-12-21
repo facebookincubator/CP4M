@@ -26,6 +26,7 @@ public class AudioWebhookMessage implements ReferableWebhookMessage {
   private final Identifier id;
   private final Instant timestamp;
   private final @Nullable Referral referral;
+
   @JsonCreator
   public AudioWebhookMessage(
       @JsonProperty("audio") Audio audio,

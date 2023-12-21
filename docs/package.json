@@ -53,7 +53,7 @@
   "engines": {
     "node": ">=16.14"
   },
-  "overrides":{
+  "overrides": {
     "trim": "^0.0.3",
     "got": "^11.8.5"
   }

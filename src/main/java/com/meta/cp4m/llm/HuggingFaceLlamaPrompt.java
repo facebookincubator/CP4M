@@ -21,88 +21,81 @@ import java.util.*;
 
 public class HuggingFaceLlamaPrompt<T extends Message> {
 
-    private final String systemMessage;
-    private final long maxInputTokens;
-    private final HuggingFaceTokenizer tokenizer;
+  private final String systemMessage;
+  private final long maxInputTokens;
+  private final HuggingFaceTokenizer tokenizer;
 
-    public HuggingFaceLlamaPrompt(String systemMessage, long maxInputTokens) {
+  public HuggingFaceLlamaPrompt(String systemMessage, long maxInputTokens) {
 
-        this.systemMessage = systemMessage;
-        this.maxInputTokens = maxInputTokens;
-        URL llamaTokenizerUrl =
-                Objects.requireNonNull(
-                        HuggingFaceLlamaPrompt.class.getClassLoader().getResource("llamaTokenizer.json"));
-        URI llamaTokenizer;
-        try {
-            llamaTokenizer = llamaTokenizerUrl.toURI();
-            tokenizer = HuggingFaceTokenizer.newInstance(Paths.get(llamaTokenizer));
+    this.systemMessage = systemMessage;
+    this.maxInputTokens = maxInputTokens;
+    URL llamaTokenizerUrl =
+        Objects.requireNonNull(
+            HuggingFaceLlamaPrompt.class.getClassLoader().getResource("llamaTokenizer.json"));
+    URI llamaTokenizer;
+    try {
+      llamaTokenizer = llamaTokenizerUrl.toURI();
+      tokenizer = HuggingFaceTokenizer.newInstance(Paths.get(llamaTokenizer));
 
-        } catch (URISyntaxException | IOException e) {
-            // this should be impossible
-            throw new RuntimeException(e);
+    } catch (URISyntaxException | IOException e) {
+      // this should be impossible
+      throw new RuntimeException(e);
+    }
+  }
+
+  public Optional<String> createPrompt(ThreadState<T> threadState) {
+
+    PromptBuilder builder = new PromptBuilder();
+
+    int totalTokens = tokenCount(this.systemMessage) + 5; // Account for closing tokens
+    builder.addSystem(this.systemMessage);
+
+    for (int i = threadState.messages().size() - 1; i >= 0; i--) {
+      Message m = threadState.messages().get(i);
+      totalTokens += tokenCount(m.message());
+      if (totalTokens > maxInputTokens) {
+        if (i == threadState.messages().size() - 1) {
+          return Optional.empty();
         }
+        break;
+      }
+      switch (m.role()) {
+        case USER -> builder.addUser(m.message());
+        case ASSISTANT -> builder.addAssistant(m.message());
+      }
     }
 
-    public Optional<String> createPrompt(ThreadState<T> threadState) {
+    return Optional.of(builder.build());
+  }
 
-        PromptBuilder builder = new PromptBuilder();
+  private int tokenCount(String message) {
+    Encoding encoding = tokenizer.encode(message);
+    return encoding.getTokens().length;
+  }
 
-        int totalTokens = tokenCount(this.systemMessage) + 5; // Account for closing tokens
-        builder.addSystem(this.systemMessage);
+  private static class PromptBuilder {
 
-        for (int i = threadState.messages().size() - 1; i >= 0; i--) {
-            Message m = threadState.messages().get(i);
-            totalTokens += tokenCount(m.message());
-            if (totalTokens > maxInputTokens) {
-                if (i == threadState.messages().size() - 1){
-                    return Optional.empty();
-                }
-                break;
-            }
-            switch (m.role()) {
-                case USER -> builder.addUser(m.message());
-                case ASSISTANT -> builder.addAssistant(m.message());
-            }
-        }
+    StringBuilder promptStringBuilder = new StringBuilder();
+    StringBuilder messagesStringBuilder = new StringBuilder();
 
-        return Optional.of(builder.build());
+    void addSystem(String message) {
+      promptStringBuilder.append("<s>[INST] <<SYS>>\n").append(message).append("\n<</SYS>>\n\n");
     }
 
-    private int tokenCount(String message) {
-        Encoding encoding = tokenizer.encode(message);
-        return encoding.getTokens().length;
+    void addAssistant(String message) {
+      StringBuilder tempBuilder = new StringBuilder();
+      tempBuilder.append(message).append(" </s><s>[INST] ");
+      messagesStringBuilder.append(tempBuilder.reverse());
     }
 
-    private static class PromptBuilder {
-        
-        StringBuilder promptStringBuilder = new StringBuilder();
-        StringBuilder messagesStringBuilder = new StringBuilder();
-
-        void addSystem(String message) {
-            promptStringBuilder
-                    .append("<s>[INST] <<SYS>>\n")
-                    .append(message)
-                    .append("\n<</SYS>>\n\n");
-        }
-
-        void addAssistant(String message) {
-            StringBuilder tempBuilder = new StringBuilder();
-            tempBuilder
-                    .append(message)
-                    .append(" </s><s>[INST] ");
-            messagesStringBuilder.append(tempBuilder.reverse());
-        }
-
-        void addUser(String message) {
-            StringBuilder tempBuilder = new StringBuilder();
-            tempBuilder
-                    .append(message)
-                    .append(" [/INST] ");
-            messagesStringBuilder.append(tempBuilder.reverse());
-        }
-
-        String build() {
-            return promptStringBuilder.append(messagesStringBuilder.reverse()).toString().strip();
-        }
+    void addUser(String message) {
+      StringBuilder tempBuilder = new StringBuilder();
+      tempBuilder.append(message).append(" [/INST] ");
+      messagesStringBuilder.append(tempBuilder.reverse());
     }
+
+    String build() {
+      return promptStringBuilder.append(messagesStringBuilder.reverse()).toString().strip();
+    }
+  }
 }
