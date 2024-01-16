@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 public class WAMessageHandler implements MessageHandler<WAMessage> {
   private static final String API_VERSION = "v17.0";
   private static final JsonMapper MAPPER = Utils.JSON_MAPPER;
-  private static final Logger LOGGER = LoggerFactory.getLogger(FBMessageHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WAMessageHandler.class);
 
   /**
    * <a
