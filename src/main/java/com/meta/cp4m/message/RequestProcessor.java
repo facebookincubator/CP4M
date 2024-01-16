@@ -9,7 +9,6 @@
 package com.meta.cp4m.message;
 
 import io.javalin.http.Context;
-
 import java.util.List;
 
 @FunctionalInterface

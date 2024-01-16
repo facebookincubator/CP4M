@@ -10,8 +10,6 @@ package com.meta.cp4m.routing;
 
 import io.javalin.http.Context;
 
-import java.util.List;
-
 @FunctionalInterface
 public interface Handler<I> {
 

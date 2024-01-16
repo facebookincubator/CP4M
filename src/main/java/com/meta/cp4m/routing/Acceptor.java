@@ -8,10 +8,7 @@
 
 package com.meta.cp4m.routing;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.meta.cp4m.message.Message;
 import io.javalin.http.Context;
-
 import java.util.Optional;
 
 @FunctionalInterface

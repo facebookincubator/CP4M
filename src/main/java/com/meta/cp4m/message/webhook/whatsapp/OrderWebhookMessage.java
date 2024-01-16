@@ -25,6 +25,7 @@ public class OrderWebhookMessage implements WebhookMessage {
   private final Identifier from;
   private final Identifier id;
   private final Instant timestamp;
+
   @JsonCreator
   public OrderWebhookMessage(
       @JsonProperty("order") Order order,

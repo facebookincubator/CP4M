@@ -11,12 +11,10 @@ package com.meta.cp4m;
 import com.google.common.base.Preconditions;
 import com.meta.cp4m.routing.Route;
 import io.javalin.Javalin;
-
-import java.util.*;
-
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
+import java.util.*;
 import org.checkerframework.common.returnsreceiver.qual.This;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

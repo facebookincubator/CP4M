@@ -8,7 +8,6 @@
 
 package com.meta.cp4m.routing;
 
-import com.meta.cp4m.message.Message;
 import io.javalin.http.HandlerType;
 
 public record Route<IN>(

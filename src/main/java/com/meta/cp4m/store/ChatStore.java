@@ -16,8 +16,8 @@ import java.util.List;
  * This class is in charge of both maintaining a chat history and managing a queue of conversations
  * that require a response.
  *
- * <p>Adding a message from {@link com.meta.cp4m.message.Message.Role#USER} will indicate that
- * the conversation needs a response.
+ * <p>Adding a message from {@link com.meta.cp4m.message.Message.Role#USER} will indicate that the
+ * conversation needs a response.
  *
  * @param <T> the type of message being passed
  */

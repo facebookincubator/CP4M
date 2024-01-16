@@ -26,6 +26,7 @@ public class InteractiveWebhookMessage implements WebhookMessage {
   private final Identifier from;
   private final Identifier id;
   private final Instant timestamp;
+
   @JsonCreator
   public InteractiveWebhookMessage(
       @JsonProperty("interactive") ObjectNode interactive,

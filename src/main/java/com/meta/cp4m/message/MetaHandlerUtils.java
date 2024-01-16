@@ -10,17 +10,15 @@ package com.meta.cp4m.message;
 
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.HandlerType;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-
-import io.javalin.http.HandlerType;
 import org.apache.hc.client5.http.utils.Hex;
 import org.checkerframework.checker.nullness.qual.Nullable;
 

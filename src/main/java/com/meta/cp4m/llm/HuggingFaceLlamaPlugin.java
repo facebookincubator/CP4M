@@ -24,53 +24,54 @@ import org.apache.hc.core5.http.ContentType;
 
 public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private final HuggingFaceConfig config;
-    private final HuggingFaceLlamaPrompt<T> promptCreator;
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private final HuggingFaceConfig config;
+  private final HuggingFaceLlamaPrompt<T> promptCreator;
 
-    private URI endpoint;
+  private URI endpoint;
 
-    public HuggingFaceLlamaPlugin(HuggingFaceConfig config) {
-        this.config = config;
-        this.endpoint = this.config.endpoint();
-        promptCreator = new HuggingFaceLlamaPrompt<>(config.systemMessage(), config.maxInputTokens());
+  public HuggingFaceLlamaPlugin(HuggingFaceConfig config) {
+    this.config = config;
+    this.endpoint = this.config.endpoint();
+    promptCreator = new HuggingFaceLlamaPrompt<>(config.systemMessage(), config.maxInputTokens());
+  }
+
+  @Override
+  public T handle(ThreadState<T> threadState) throws IOException {
+    ObjectNode body = MAPPER.createObjectNode();
+    ObjectNode params = MAPPER.createObjectNode();
+
+    config.topP().ifPresent(v -> params.put("top_p", v));
+    config.temperature().ifPresent(v -> params.put("temperature", v));
+    config.maxOutputTokens().ifPresent(v -> params.put("max_new_tokens", v));
+
+    body.set("parameters", params);
+
+    Optional<String> prompt = promptCreator.createPrompt(threadState);
+    if (prompt.isEmpty()) {
+      return threadState.newMessageFromBot(
+          Instant.now(), "I'm sorry but that request was too long for me.");
     }
 
-    @Override
-    public T handle(ThreadState<T> threadState) throws IOException {
-        ObjectNode body = MAPPER.createObjectNode();
-        ObjectNode params = MAPPER.createObjectNode();
+    body.put("inputs", prompt.get());
 
-        config.topP().ifPresent(v -> params.put("top_p", v));
-        config.temperature().ifPresent(v -> params.put("temperature", v));
-        config.maxOutputTokens().ifPresent(v -> params.put("max_new_tokens", v));
-
-        body.set("parameters", params);
-
-        Optional<String> prompt = promptCreator.createPrompt(threadState);
-        if (prompt.isEmpty()) {
-            return threadState.newMessageFromBot(Instant.now(), "I'm sorry but that request was too long for me.");
-        }
-
-        body.put("inputs", prompt.get());
-
-        String bodyString;
-        try {
-            bodyString = MAPPER.writeValueAsString(body);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e); // this should be impossible
-        }
-        Response response =
-                Request.post(endpoint)
-                        .bodyString(bodyString, ContentType.APPLICATION_JSON)
-                        .setHeader("Authorization", "Bearer " + config.apiKey())
-                        .execute();
-
-        JsonNode responseBody = MAPPER.readTree(response.returnContent().asBytes());
-        String allGeneratedText = responseBody.get(0).get("generated_text").textValue();
-        String llmResponse = allGeneratedText.strip().replace(prompt.get().strip(), "");
-        Instant timestamp = Instant.now();
-
-        return threadState.newMessageFromBot(timestamp, llmResponse);
+    String bodyString;
+    try {
+      bodyString = MAPPER.writeValueAsString(body);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e); // this should be impossible
     }
+    Response response =
+        Request.post(endpoint)
+            .bodyString(bodyString, ContentType.APPLICATION_JSON)
+            .setHeader("Authorization", "Bearer " + config.apiKey())
+            .execute();
+
+    JsonNode responseBody = MAPPER.readTree(response.returnContent().asBytes());
+    String allGeneratedText = responseBody.get(0).get("generated_text").textValue();
+    String llmResponse = allGeneratedText.strip().replace(prompt.get().strip(), "");
+    Instant timestamp = Instant.now();
+
+    return threadState.newMessageFromBot(timestamp, llmResponse);
+  }
 }

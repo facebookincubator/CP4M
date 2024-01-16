@@ -10,10 +10,9 @@ package com.meta.cp4m.message;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Optional;
 import java.util.UUID;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class FBMessengerConfig implements HandlerConfig {
 
