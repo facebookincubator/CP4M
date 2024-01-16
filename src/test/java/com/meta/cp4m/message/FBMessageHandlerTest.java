@@ -431,11 +431,11 @@ public class FBMessageHandlerTest {
     }
 
     private TestArgument(
-        String name,
+    String name,
         int expectedReturnCode,
         ThrowableFunction<ServicesRunner, Request> requestFactory,
         boolean messageExpected,
-        int timesToSendMessage) {
+    int timesToSendMessage) {
       this(name, expectedReturnCode, requestFactory, messageExpected, timesToSendMessage, false);
     }
 
