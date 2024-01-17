@@ -8,6 +8,7 @@
 
 package com.meta.cp4m.message;
 
+import com.meta.cp4m.store.ChatStore;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import java.io.IOException;
@@ -22,7 +23,7 @@ public interface MessageHandler<T extends Message> {
    * @param ctx the context corresponding to an incoming request
    * @return return a {@link Message} object if appropriate
    */
-  List<T> processRequest(Context ctx);
+  List<T> processRequest(Context ctx, ChatStore<T> store);
 
   /**
    * The method needed to respond to a message from a user

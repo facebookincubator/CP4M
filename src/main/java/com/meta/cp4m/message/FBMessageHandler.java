@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.cp4m.Identifier;
+import com.meta.cp4m.store.ChatStore;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
@@ -39,6 +40,8 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   private static final JsonMapper MAPPER = new JsonMapper();
   private static final Logger LOGGER = LoggerFactory.getLogger(FBMessageHandler.class);
   private static final TextChunker CHUNKER = TextChunker.standard(2000);
+
+  private static final MessageFactory<FBMessage> MESSAGE_FACTORY = MessageFactory.instance(FBMessage.class);
 
   private final String verifyToken;
   private final String appSecret;
@@ -92,14 +95,14 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   }
 
   @Override
-  public List<FBMessage> processRequest(Context ctx) {
+  public List<FBMessage> processRequest(Context ctx, ChatStore<FBMessage> store) {
     try {
       switch (ctx.handlerType()) {
         case GET -> {
           return getHandler(ctx);
         }
         case POST -> {
-          return postHandler(ctx);
+          return postHandler(ctx,store);
         }
       }
     } catch (JsonProcessingException | NullPointerException e) {
@@ -133,7 +136,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     return MetaHandlerUtils.hmac(body, appSecret);
   }
 
-  private List<FBMessage> postHandler(Context ctx) throws JsonProcessingException {
+  private List<FBMessage> postHandler(Context ctx, ChatStore<FBMessage> store) throws JsonProcessingException {
     MetaHandlerUtils.postHeaderValidator(ctx, appSecret);
 
     String bodyString = ctx.body();
@@ -178,14 +181,9 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
 
           @Nullable JsonNode textObject = messageObject.get("text");
           if (textObject != null && textObject.isTextual()) {
-            FBMessage m =
-                new FBMessage(
-                    timestamp,
-                    messageId,
-                    senderId,
-                    recipientId,
-                    textObject.textValue(),
-                    Message.Role.USER);
+            ThreadState<FBMessage> thread = store.get(Message.threadId(senderId,recipientId));
+            FBMessage parentMessage = thread == null ? null : thread.tail();
+            FBMessage m = MESSAGE_FACTORY.newMessage(timestamp, textObject.textValue(), senderId, recipientId,messageId, Message.Role.USER,parentMessage);
             output.add(m);
           } else {
             LOGGER

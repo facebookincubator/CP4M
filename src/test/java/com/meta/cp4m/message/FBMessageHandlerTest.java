@@ -378,7 +378,7 @@ public class FBMessageHandlerTest {
         Stream.generate(() -> "0123456789.").limit(300).collect(Collectors.joining(" "));
     FBMessage bigMessage =
         new FBMessage(
-            Instant.now(), Identifier.random(), pageId, Identifier.random(), bigText, Role.USER);
+            Instant.now(), Identifier.random(), pageId, Identifier.random(), bigText, Role.USER,null);
     messageHandler.respond(bigMessage);
     assertThat(requests.size()).isEqualTo(300);
     assertThat(requests).allSatisfy(m -> assertThat(m.body()).contains("0123456789"));

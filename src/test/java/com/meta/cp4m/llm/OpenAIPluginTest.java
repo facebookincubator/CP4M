@@ -63,7 +63,7 @@ public class OpenAIPluginTest {
                   Identifier.random(),
                   Identifier.random(),
                   Identifier.random(),
-                  Role.USER));
+                  Role.USER, null));
 
   static {
     ((ObjectNode) SAMPLE_RESPONSE)
@@ -198,7 +198,7 @@ public class OpenAIPluginTest {
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
-                    Role.USER));
+                    Role.USER, null));
     thread = thread.with(thread.newMessageFromUser(Instant.now(), "2", Identifier.from(2)));
     thread = thread.with(thread.newMessageFromUser(Instant.now(), "3", Identifier.from(3)));
     thread = thread.with(thread.newMessageFromUser(Instant.now(), "4", Identifier.from(4)));

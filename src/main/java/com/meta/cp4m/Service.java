@@ -41,7 +41,7 @@ public class Service<T extends Message> {
   }
 
   void handle(Context ctx) {
-    List<T> messages = handler.processRequest(ctx);
+    List<T> messages = handler.processRequest(ctx, store);
     // TODO: once we have a non-volatile store, on startup send stored but not replied to messages
     for (T m : messages) {
       ThreadState<T> thread = store.add(m);
@@ -69,6 +69,7 @@ public class Service<T extends Message> {
       LOGGER.error("failed to communicate with LLM", e);
       return;
     }
+    llmResponse = thread.tail();
     store.add(llmResponse);
     try {
       handler.respond(llmResponse);

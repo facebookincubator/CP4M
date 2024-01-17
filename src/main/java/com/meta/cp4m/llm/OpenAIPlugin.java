@@ -162,7 +162,7 @@ public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
     Optional<ArrayNode> prunedMessages = pruneMessages(messages, null);
     if (prunedMessages.isEmpty()) {
       return threadState.newMessageFromBot(
-          Instant.now(), "I'm sorry but that request was too long for me.");
+          Instant.now(), "I'm sorry but that request was too long for me.",fromUser);
     }
     body.set("messages", prunedMessages.get());
 
@@ -182,6 +182,6 @@ public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
     Instant timestamp = Instant.ofEpochSecond(responseBody.get("created").longValue());
     JsonNode choice = responseBody.get("choices").get(0);
     String messageContent = choice.get("message").get("content").textValue();
-    return threadState.newMessageFromBot(timestamp, messageContent);
+    return threadState.newMessageFromBot(timestamp, messageContent,fromUser);
   }
 }

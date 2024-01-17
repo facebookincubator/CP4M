@@ -32,10 +32,10 @@ class ThreadStateTest {
             Identifier.random(),
             Identifier.random(),
             Identifier.random(),
-            Message.Role.USER);
+            Message.Role.USER, null);
 
     ThreadState<FBMessage> ms = ThreadState.of(message1);
-    FBMessage message2 = ms.newMessageFromBot(start.plusSeconds(1), "other sample message");
+    FBMessage message2 = ms.newMessageFromBot(start.plusSeconds(1), "other sample message", message1);
     ms = ms.with(message2);
     assertThat(ms.messages()).hasSize(2);
     assertThat(ms.messages().get(0)).isSameAs(message1);
@@ -59,10 +59,10 @@ class ThreadStateTest {
             Identifier.random(),
             Identifier.random(),
             Identifier.random(),
-            Message.Role.USER);
+            Message.Role.USER, null);
     ThreadState<FBMessage> ms = ThreadState.of(message2);
 
-    FBMessage message1 = ms.newMessageFromBot(start.minusSeconds(1), "other sample message");
+    FBMessage message1 = ms.newMessageFromBot(start.minusSeconds(1), "other sample message", message2);
 
     ms = ms.with(message1);
     assertThat(ms.messages().get(0)).isSameAs(message1);
@@ -86,7 +86,7 @@ class ThreadStateTest {
             Identifier.random(),
             Identifier.random(),
             Identifier.random(),
-            Message.Role.USER);
+            Message.Role.USER, null);
 
     ThreadState<FBMessage> ms = ThreadState.of(message1);
     FBMessage message2 =
@@ -96,11 +96,12 @@ class ThreadStateTest {
             message1.recipientId(),
             message1.senderId(),
             Identifier.random(),
-            Message.Role.ASSISTANT);
+            Message.Role.ASSISTANT,
+                message1);
 
     final ThreadState<FBMessage> finalMs = ms;
     assertThatCode(() -> finalMs.with(message2)).doesNotThrowAnyException();
-    assertThatCode(() -> finalMs.with(finalMs.newMessageFromBot(start, "")))
+    assertThatCode(() -> finalMs.with(finalMs.newMessageFromBot(start, "",message1)))
         .doesNotThrowAnyException();
     assertThatCode(() -> finalMs.with(finalMs.newMessageFromUser(start, "", Identifier.random())))
         .doesNotThrowAnyException();
@@ -114,7 +115,7 @@ class ThreadStateTest {
             Identifier.random(),
             message1.recipientId(),
             Identifier.random(),
-            Message.Role.USER);
+            Message.Role.USER, null);
 
     ThreadState<FBMessage> finalMs1 = ms;
     assertThatThrownBy(() -> finalMs1.with(mDifferentSenderId))
@@ -127,7 +128,7 @@ class ThreadStateTest {
             message1.senderId(),
             Identifier.random(),
             Identifier.random(),
-            Message.Role.USER);
+            Message.Role.USER, null);
     assertThatThrownBy(() -> finalMs1.with(mDifferentRecipientId))
         .isInstanceOf(IllegalArgumentException.class);
 
@@ -138,7 +139,7 @@ class ThreadStateTest {
             message1.recipientId(),
             message1.senderId(),
             Identifier.random(),
-            Message.Role.USER);
+            Message.Role.USER, null);
     assertThatThrownBy(() -> finalMs1.with(illegalSenderId))
         .isInstanceOf(IllegalArgumentException.class);
 
@@ -149,7 +150,7 @@ class ThreadStateTest {
             message1.senderId(),
             message1.recipientId(),
             Identifier.random(),
-            Message.Role.ASSISTANT);
+            Message.Role.ASSISTANT, null);
     assertThatThrownBy(() -> finalMs1.with(illegalRecipientId))
         .isInstanceOf(IllegalArgumentException.class);
   }
@@ -165,7 +166,7 @@ class ThreadStateTest {
                         Identifier.random(),
                         Identifier.random(),
                         Identifier.random(),
-                        Message.Role.SYSTEM)))
+                        Message.Role.SYSTEM, null)))
         .isInstanceOf(IllegalArgumentException.class);
 
     ThreadState<FBMessage> threadState =
@@ -176,7 +177,7 @@ class ThreadStateTest {
                 Identifier.random(),
                 Identifier.random(),
                 Identifier.random(),
-                Message.Role.USER));
+                Message.Role.USER, null));
     assertThatThrownBy(
             () ->
                 threadState.with(
@@ -186,7 +187,42 @@ class ThreadStateTest {
                         Identifier.random(),
                         Identifier.random(),
                         Identifier.random(),
-                        Message.Role.SYSTEM)))
+                        Message.Role.SYSTEM, null)))
         .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void orderPreservationWhenUserSendsTwoMessagesInARow() {
+    Instant start = Instant.now();
+    Identifier senderId= Identifier.random();
+    Identifier recipientId = Identifier.random();
+    FBMessage userMessage1 =
+            FACTORY.newMessage(
+                    start,
+                    "sample message 1",
+                    senderId,
+                    recipientId,
+                    Identifier.random(),
+                    Message.Role.USER, null);
+
+    ThreadState<FBMessage> ms = ThreadState.of(userMessage1);
+    FBMessage userMessage2 =
+            FACTORY.newMessage(
+                    start.plusSeconds(1),
+                    "sample message 2",
+                    senderId,
+                    recipientId,
+                    Identifier.random(),
+                    Message.Role.USER, userMessage1);
+    ms = ms.with(userMessage2);
+    FBMessage botMessage1 = ms.newMessageFromBot(start.plusSeconds(4), "bot sample message 1", userMessage1);
+    ms = ms.with(botMessage1);
+    FBMessage botMessage2 = ms.newMessageFromBot(start.plusSeconds(8), "bot sample message 2", userMessage2);
+    ms = ms.with(botMessage2);
+    assertThat(ms.messages()).hasSize(4);
+    assertThat(ms.messages().get(0)).isSameAs(userMessage1);
+    assertThat(ms.messages().get(1)).isSameAs(botMessage1);
+    assertThat(ms.messages().get(2)).isSameAs(userMessage2);
+    assertThat(ms.messages().get(3)).isSameAs(botMessage2);
   }
 }

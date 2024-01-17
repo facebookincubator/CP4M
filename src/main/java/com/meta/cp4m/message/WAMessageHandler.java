@@ -16,6 +16,7 @@ import com.meta.cp4m.message.webhook.whatsapp.TextWebhookMessage;
 import com.meta.cp4m.message.webhook.whatsapp.Utils;
 import com.meta.cp4m.message.webhook.whatsapp.WebhookMessage;
 import com.meta.cp4m.message.webhook.whatsapp.WebhookPayload;
+import com.meta.cp4m.store.ChatStore;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import java.io.IOException;
@@ -40,6 +41,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   private static final String API_VERSION = "v17.0";
   private static final JsonMapper MAPPER = Utils.JSON_MAPPER;
   private static final Logger LOGGER = LoggerFactory.getLogger(FBMessageHandler.class);
+  private static final MessageFactory<WAMessage> MESSAGE_FACTORY = MessageFactory.instance(WAMessage.class);
 
   /**
    * <a
@@ -85,7 +87,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   }
 
   @Override
-  public List<WAMessage> processRequest(Context ctx) {
+  public List<WAMessage> processRequest(Context ctx, ChatStore<WAMessage> store) {
 
     try {
       switch (ctx.handlerType()) {
@@ -95,7 +97,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
           return Collections.emptyList();
         }
         case POST -> {
-          return postHandler(ctx);
+          return postHandler(ctx,store);
         }
       }
     } catch (RuntimeException e) {
@@ -108,7 +110,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     throw new UnsupportedOperationException("Only accepting get and post methods");
   }
 
-  List<WAMessage> postHandler(Context ctx) {
+  List<WAMessage> postHandler(Context ctx, ChatStore<WAMessage> store) {
     MetaHandlerUtils.postHeaderValidator(ctx, appSecret);
     String bodyString = ctx.body();
     WebhookPayload payload;
@@ -142,14 +144,9 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                   continue;
                 }
                 TextWebhookMessage textMessage = (TextWebhookMessage) message;
-                waMessages.add(
-                    new WAMessage(
-                        message.timestamp(),
-                        message.id(),
-                        message.from(),
-                        phoneNumberId,
-                        textMessage.text().body(),
-                        Message.Role.USER));
+                ThreadState<WAMessage> thread = store.get(Message.threadId(message.from(),phoneNumberId));
+                WAMessage parentMessage = thread == null ? null : thread.tail();
+                WAMessage m = MESSAGE_FACTORY.newMessage(message.timestamp(), textMessage.text().body(), message.from(), phoneNumberId,message.id(), Message.Role.USER,parentMessage);
                 readExecutor.execute(() -> markRead(phoneNumberId, textMessage.id().toString()));
               }
             });

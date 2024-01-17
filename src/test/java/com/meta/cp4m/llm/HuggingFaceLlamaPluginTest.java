@@ -66,7 +66,8 @@ public class HuggingFaceLlamaPluginTest {
                   Identifier.random(),
                   Identifier.random(),
                   Identifier.random(),
-                  Role.USER));
+                  Role.USER,
+                      null));
 
   static {
     SAMPLE_RESPONSE.addObject().put("generated_text", TEST_MESSAGE);
@@ -145,7 +146,7 @@ public class HuggingFaceLlamaPluginTest {
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
-                    Role.USER));
+                    Role.USER, null));
     HuggingFaceLlamaPrompt<FBMessage> promptBuilder =
         new HuggingFaceLlamaPrompt<>(config.systemMessage(), config.maxInputTokens());
     Optional<String> createdPayload = promptBuilder.createPrompt(stack);
@@ -173,7 +174,7 @@ public class HuggingFaceLlamaPluginTest {
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
-                    Role.USER));
+                    Role.USER, null));
     FBMessage response = plugin.handle(thread);
     assertThat(response.message()).isEqualTo("I'm sorry but that request was too long for me.");
   }
@@ -197,7 +198,7 @@ public class HuggingFaceLlamaPluginTest {
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
-                    Role.USER));
+                    Role.USER,null));
     thread =
         thread.with(thread.newMessageFromUser(Instant.now(), "test message", Identifier.from(2)));
     HuggingFaceLlamaPrompt<FBMessage> promptBuilder =
@@ -256,7 +257,7 @@ public class HuggingFaceLlamaPluginTest {
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
-                    Role.USER));
+                    Role.USER, null));
     stack = stack.with(stack.newMessageFromUser(Instant.now(), "2", Identifier.from(2)));
     stack = stack.with(stack.newMessageFromUser(Instant.now(), "3", Identifier.from(3)));
     stack = stack.with(stack.newMessageFromUser(Instant.now(), "4", Identifier.from(4)));

@@ -17,5 +17,6 @@ public record FBMessage(
     Identifier senderId,
     Identifier recipientId,
     String message,
-    Role role)
+    Role role,
+    Message parentMessage)
     implements Message {}

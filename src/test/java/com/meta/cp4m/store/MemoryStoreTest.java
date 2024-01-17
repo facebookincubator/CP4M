@@ -27,14 +27,14 @@ class MemoryStoreTest {
     assertThat(memoryStore.size()).isEqualTo(0);
     FBMessage message =
         messageFactory.newMessage(
-            Instant.now(), "", senderId, recipientId, Identifier.random(), Message.Role.ASSISTANT);
+            Instant.now(), "", senderId, recipientId, Identifier.random(), Message.Role.ASSISTANT, null);
     ThreadState<FBMessage> thread = memoryStore.add(message);
     assertThat(memoryStore.size()).isEqualTo(1);
     assertThat(thread.messages()).hasSize(1).contains(message);
 
     FBMessage message2 =
         messageFactory.newMessage(
-            Instant.now(), "", recipientId, senderId, Identifier.random(), Message.Role.USER);
+            Instant.now(), "", recipientId, senderId, Identifier.random(), Message.Role.USER, null);
     thread = memoryStore.add(message2);
     assertThat(memoryStore.size()).isEqualTo(1);
     assertThat(thread.messages()).hasSize(2).contains(message, message2);
@@ -46,7 +46,7 @@ class MemoryStoreTest {
             Identifier.random(),
             Identifier.random(),
             Identifier.random(),
-            Message.Role.USER);
+            Message.Role.USER, null);
     thread = memoryStore.add(message3);
     assertThat(memoryStore.size()).isEqualTo(2);
     assertThat(thread.messages()).hasSize(1).contains(message3);

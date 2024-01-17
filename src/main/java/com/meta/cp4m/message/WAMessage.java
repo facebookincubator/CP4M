@@ -17,5 +17,6 @@ public record WAMessage(
     Identifier senderId,
     Identifier recipientId,
     String message,
-    Role role)
+    Role role,
+    Message parentMessage)
     implements Message {}

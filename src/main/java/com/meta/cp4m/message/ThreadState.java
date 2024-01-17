@@ -39,14 +39,19 @@ public class ThreadState<T extends Message> {
         old.tail().threadId().equals(newMessage.threadId()),
         "all messages in a thread must have the same thread id");
     List<T> messages = old.messages;
-    if (newMessage.timestamp().isBefore(old.tail().timestamp())) {
-      this.messages =
+//    if (newMessage.timestamp().isBefore(old.tail().timestamp())) {
+//      this.messages =
+//          Stream.concat(messages.stream(), Stream.of(newMessage))
+//              .sorted(Comparator.comparing(Message::timestamp))
+//              .collect(Collectors.toUnmodifiableList());
+//    } else {
+//      this.messages = ImmutableList.<T>builder().addAll(messages).add(newMessage).build();
+//    }
+
+    this.messages =
           Stream.concat(messages.stream(), Stream.of(newMessage))
-              .sorted(Comparator.comparing(Message::timestamp))
+              .sorted((m1,m2) -> m1.parentMessage() == m2.parentMessage() ? (m1.role().compareTo(m2.role())) : (m1.timestamp().compareTo(m2.timestamp())))
               .collect(Collectors.toUnmodifiableList());
-    } else {
-      this.messages = ImmutableList.<T>builder().addAll(messages).add(newMessage).build();
-    }
 
     Preconditions.checkArgument(
         old.userId().equals(userId()) && old.botId().equals(botId()),
@@ -77,13 +82,13 @@ public class ThreadState<T extends Message> {
     };
   }
 
-  public T newMessageFromBot(Instant timestamp, String message) {
+  public T newMessageFromBot(Instant timestamp, String message, T parentMessage) {
     return messageFactory.newMessage(
-        timestamp, message, botId(), userId(), Identifier.random(), Role.ASSISTANT);
+        timestamp, message, botId(), userId(), Identifier.random(), Role.ASSISTANT, parentMessage);
   }
 
   public T newMessageFromUser(Instant timestamp, String message, Identifier instanceId) {
-    return messageFactory.newMessage(timestamp, message, userId(), botId(), instanceId, Role.USER);
+    return messageFactory.newMessage(timestamp, message, userId(), botId(), instanceId, Role.USER, this.tail());
   }
 
   public ThreadState<T> with(T message) {
@@ -97,4 +102,5 @@ public class ThreadState<T extends Message> {
   public T tail() {
     return messages.get(messages.size() - 1);
   }
+
 }
