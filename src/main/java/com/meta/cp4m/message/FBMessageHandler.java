@@ -95,14 +95,14 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   }
 
   @Override
-  public List<FBMessage> processRequest(Context ctx, ChatStore<FBMessage> store) {
+  public List<FBMessage> processRequest(Context ctx) {
     try {
       switch (ctx.handlerType()) {
         case GET -> {
           return getHandler(ctx);
         }
         case POST -> {
-          return postHandler(ctx,store);
+          return postHandler(ctx);
         }
       }
     } catch (JsonProcessingException | NullPointerException e) {
@@ -136,7 +136,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     return MetaHandlerUtils.hmac(body, appSecret);
   }
 
-  private List<FBMessage> postHandler(Context ctx, ChatStore<FBMessage> store) throws JsonProcessingException {
+  private List<FBMessage> postHandler(Context ctx) throws JsonProcessingException {
     MetaHandlerUtils.postHeaderValidator(ctx, appSecret);
 
     String bodyString = ctx.body();
@@ -181,9 +181,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
 
           @Nullable JsonNode textObject = messageObject.get("text");
           if (textObject != null && textObject.isTextual()) {
-            ThreadState<FBMessage> thread = store.get(Message.threadId(senderId,recipientId));
-            FBMessage parentMessage = thread == null ? null : thread.tail();
-            FBMessage m = MESSAGE_FACTORY.newMessage(timestamp, textObject.textValue(), senderId, recipientId,messageId, Message.Role.USER,parentMessage);
+            FBMessage m = MESSAGE_FACTORY.newMessage(timestamp, textObject.textValue(), senderId, recipientId,messageId, Message.Role.USER,null);
             output.add(m);
           } else {
             LOGGER

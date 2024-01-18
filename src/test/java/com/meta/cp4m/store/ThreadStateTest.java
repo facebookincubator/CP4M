@@ -220,9 +220,9 @@ class ThreadStateTest {
     FBMessage botMessage2 = ms.newMessageFromBot(start.plusSeconds(8), "bot sample message 2", userMessage2);
     ms = ms.with(botMessage2);
     assertThat(ms.messages()).hasSize(4);
-    assertThat(ms.messages().get(0)).isSameAs(userMessage1);
-    assertThat(ms.messages().get(1)).isSameAs(botMessage1);
-    assertThat(ms.messages().get(2)).isSameAs(userMessage2);
-    assertThat(ms.messages().get(3)).isSameAs(botMessage2);
+    assertThat(ms.messages().get(0).message()).isSameAs(userMessage1.message());
+    assertThat(ms.messages().get(1).message()).isSameAs(botMessage1.message());
+    assertThat(ms.messages().get(2).message()).isSameAs(userMessage2.message());
+    assertThat(ms.messages().get(3).message()).isSameAs(botMessage2.message());
   }
 }

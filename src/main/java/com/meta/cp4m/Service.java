@@ -41,7 +41,7 @@ public class Service<T extends Message> {
   }
 
   void handle(Context ctx) {
-    List<T> messages = handler.processRequest(ctx, store);
+    List<T> messages = handler.processRequest(ctx);
     // TODO: once we have a non-volatile store, on startup send stored but not replied to messages
     for (T m : messages) {
       ThreadState<T> thread = store.add(m);

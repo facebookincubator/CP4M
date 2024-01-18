@@ -87,7 +87,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   }
 
   @Override
-  public List<WAMessage> processRequest(Context ctx, ChatStore<WAMessage> store) {
+  public List<WAMessage> processRequest(Context ctx) {
 
     try {
       switch (ctx.handlerType()) {
@@ -97,7 +97,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
           return Collections.emptyList();
         }
         case POST -> {
-          return postHandler(ctx,store);
+          return postHandler(ctx);
         }
       }
     } catch (RuntimeException e) {
@@ -110,7 +110,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     throw new UnsupportedOperationException("Only accepting get and post methods");
   }
 
-  List<WAMessage> postHandler(Context ctx, ChatStore<WAMessage> store) {
+  List<WAMessage> postHandler(Context ctx) {
     MetaHandlerUtils.postHeaderValidator(ctx, appSecret);
     String bodyString = ctx.body();
     WebhookPayload payload;
@@ -144,9 +144,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                   continue;
                 }
                 TextWebhookMessage textMessage = (TextWebhookMessage) message;
-                ThreadState<WAMessage> thread = store.get(Message.threadId(message.from(),phoneNumberId));
-                WAMessage parentMessage = thread == null ? null : thread.tail();
-                WAMessage m = MESSAGE_FACTORY.newMessage(message.timestamp(), textMessage.text().body(), message.from(), phoneNumberId,message.id(), Message.Role.USER,parentMessage);
+                WAMessage m = MESSAGE_FACTORY.newMessage(message.timestamp(), textMessage.text().body(), message.from(), phoneNumberId,message.id(), Message.Role.USER,null);
                 readExecutor.execute(() -> markRead(phoneNumberId, textMessage.id().toString()));
               }
             });

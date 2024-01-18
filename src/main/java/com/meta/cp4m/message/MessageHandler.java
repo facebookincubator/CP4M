@@ -23,7 +23,7 @@ public interface MessageHandler<T extends Message> {
    * @param ctx the context corresponding to an incoming request
    * @return return a {@link Message} object if appropriate
    */
-  List<T> processRequest(Context ctx, ChatStore<T> store);
+  List<T> processRequest(Context ctx);
 
   /**
    * The method needed to respond to a message from a user

@@ -33,23 +33,15 @@ public class ThreadState<T extends Message> {
   private ThreadState(ThreadState<T> old, T newMessage) {
     Objects.requireNonNull(newMessage);
     Preconditions.checkArgument(
-        newMessage.role() != Role.SYSTEM, "ThreadState should never hold a system message");
+            newMessage.role() != Role.SYSTEM, "ThreadState should never hold a system message");
     messageFactory = old.messageFactory;
     Preconditions.checkArgument(
         old.tail().threadId().equals(newMessage.threadId()),
         "all messages in a thread must have the same thread id");
     List<T> messages = old.messages;
-//    if (newMessage.timestamp().isBefore(old.tail().timestamp())) {
-//      this.messages =
-//          Stream.concat(messages.stream(), Stream.of(newMessage))
-//              .sorted(Comparator.comparing(Message::timestamp))
-//              .collect(Collectors.toUnmodifiableList());
-//    } else {
-//      this.messages = ImmutableList.<T>builder().addAll(messages).add(newMessage).build();
-//    }
-
+    T mWithParentMessage = newMessage.role() == Role.USER ? (T) newMessage.addParentMessage(old.tail()): newMessage;
     this.messages =
-          Stream.concat(messages.stream(), Stream.of(newMessage))
+          Stream.concat(messages.stream(), Stream.of(mWithParentMessage))
               .sorted((m1,m2) -> m1.parentMessage() == m2.parentMessage() ? (m1.role().compareTo(m2.role())) : (m1.timestamp().compareTo(m2.timestamp())))
               .collect(Collectors.toUnmodifiableList());
 

@@ -19,4 +19,10 @@ public record FBMessage(
     String message,
     Role role,
     Message parentMessage)
-    implements Message {}
+    implements Message {
+    private static final MessageFactory<FBMessage> MESSAGE_FACTORY = MessageFactory.instance(FBMessage.class);
+    @Override
+    public Message addParentMessage(Message parentMessage) {
+        return MESSAGE_FACTORY.newMessage(timestamp(),message(),senderId(),recipientId(),instanceId(), Role.USER, parentMessage);
+    }
+}

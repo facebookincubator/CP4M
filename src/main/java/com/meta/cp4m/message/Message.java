@@ -12,7 +12,6 @@ import com.meta.cp4m.Identifier;
 import java.time.Instant;
 
 public interface Message {
-
   public static Identifier threadId(Identifier id1, Identifier id2) {
     if (id1.compareTo(id2) <= 0) {
       return Identifier.from(id1.toString() + '|' + id2);
@@ -23,6 +22,8 @@ public interface Message {
   static void parentMessage(Message parentMessage){
 
   }
+
+  public Message addParentMessage(Message parentMessage);
 
   Instant timestamp();
 
