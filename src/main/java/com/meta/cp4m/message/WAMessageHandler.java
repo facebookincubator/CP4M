@@ -21,16 +21,14 @@ import io.javalin.http.HandlerType;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.net.URIBuilder;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
 import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
@@ -39,7 +37,7 @@ import org.slf4j.LoggerFactory;
 public class WAMessageHandler implements MessageHandler<WAMessage> {
   private static final String API_VERSION = "v17.0";
   private static final JsonMapper MAPPER = Utils.JSON_MAPPER;
-  private static final Logger LOGGER = LoggerFactory.getLogger(FBMessageHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WAMessageHandler.class);
 
   /**
    * <a
@@ -72,58 +70,13 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
         }
       };
 
-  public WAMessageHandler(String verifyToken, String appSecret, String accessToken) {
-    this.verifyToken = verifyToken;
-    this.appSecret = appSecret;
-    this.accessToken = accessToken;
-  }
-
   public WAMessageHandler(WAMessengerConfig config) {
     this.verifyToken = config.verifyToken();
     this.accessToken = config.accessToken();
     this.appSecret = config.appSecret();
   }
 
-  @Override
-  public List<WAMessage> processRequest(Context ctx) {
-
-    try {
-      switch (ctx.handlerType()) {
-        case GET -> {
-          MetaHandlerUtils.subscriptionVerification(ctx, verifyToken);
-          LOGGER.debug("Meta verified callback url successfully");
-          return Collections.emptyList();
-        }
-        case POST -> {
-          return postHandler(ctx);
-        }
-      }
-    } catch (RuntimeException e) {
-      LOGGER.error(e.getMessage(), e);
-      throw e;
-    } catch (Exception e) {
-      LOGGER.error(e.getMessage(), e);
-      throw new RuntimeException(e);
-    }
-    throw new UnsupportedOperationException("Only accepting get and post methods");
-  }
-
-  List<WAMessage> postHandler(Context ctx) {
-    MetaHandlerUtils.postHeaderValidator(ctx, appSecret);
-    String bodyString = ctx.body();
-    WebhookPayload payload;
-    try {
-      payload = MAPPER.readValue(bodyString, WebhookPayload.class);
-    } catch (Exception e) {
-      LOGGER
-          .atWarn()
-          .addKeyValue("body", bodyString)
-          .setMessage(
-              "unable to process message, server may be subscribed to a 'webhook field' it cannot process")
-          .log();
-      throw new RuntimeException(e);
-    }
-
+  private List<WAMessage> post(Context ctx, WebhookPayload payload) {
     List<WAMessage> waMessages = new ArrayList<>();
     payload.entry().stream()
         .flatMap(e -> e.changes().stream())
@@ -153,7 +106,6 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                 readExecutor.execute(() -> markRead(phoneNumberId, textMessage.id().toString()));
               }
             });
-
     return waMessages;
   }
 
@@ -189,8 +141,28 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   }
 
   @Override
-  public Collection<HandlerType> handlers() {
-    return List.of(HandlerType.GET, HandlerType.POST);
+  public List<RouteDetails<?, WAMessage>> routeDetails() {
+    RouteDetails<WebhookPayload, WAMessage> postDetails =
+        new RouteDetails<>(
+            HandlerType.POST,
+            ctx -> {
+              @Nullable String contentType = ctx.contentType();
+              if (contentType != null
+                  && ContentType.parse(contentType).isSameMimeType(ContentType.APPLICATION_JSON)
+                  && MetaHandlerUtils.postHeaderValid(ctx, appSecret)) {
+                String bodyString = ctx.body();
+                WebhookPayload payload;
+                try {
+                  payload = MAPPER.readValue(bodyString, WebhookPayload.class);
+                  return Optional.of(payload);
+                } catch (Exception e) {
+                  return Optional.empty();
+                }
+              }
+              return Optional.empty();
+            },
+            this::post);
+    return List.of(MetaHandlerUtils.subscriptionVerificationRouteDetails(verifyToken), postDetails);
   }
 
   private void markRead(Identifier phoneNumberId, String messageId) {

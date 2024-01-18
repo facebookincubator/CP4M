@@ -91,66 +91,13 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
             : null;
   }
 
-  @Override
-  public List<FBMessage> processRequest(Context ctx) {
-    try {
-      switch (ctx.handlerType()) {
-        case GET -> {
-          return getHandler(ctx);
-        }
-        case POST -> {
-          return postHandler(ctx);
-        }
-      }
-    } catch (JsonProcessingException | NullPointerException e) {
-      LOGGER
-          .atWarn()
-          .setMessage("Unable to parse message from Meta webhook")
-          .setCause(e)
-          .addKeyValue("body", ctx.body())
-          .addKeyValue("headers", ctx.headerMap())
-          .log();
-      throw new BadRequestResponse("Invalid body");
-    } catch (RuntimeException e) {
-      LOGGER.error(e.getMessage(), e);
-      throw e;
-    } catch (Exception e) {
-      LOGGER.error(e.getMessage(), e);
-      throw new RuntimeException(e);
-    }
-    throw new UnsupportedOperationException("Only accepting get and post methods");
-  }
-
-  private List<FBMessage> getHandler(Context ctx) {
-    MetaHandlerUtils.subscriptionVerification(ctx, verifyToken);
-    LOGGER.debug("Meta verified callback url successfully");
-    return Collections.emptyList();
-  }
-
   @TestOnly
   String hmac(String body) {
     // TODO: refactor test so we don't need this
     return MetaHandlerUtils.hmac(body, appSecret);
   }
 
-  private List<FBMessage> postHandler(Context ctx) throws JsonProcessingException {
-    MetaHandlerUtils.postHeaderValidator(ctx, appSecret);
-
-    String bodyString = ctx.body();
-    JsonNode body = MAPPER.readTree(bodyString);
-    String object = body.get("object").textValue();
-    if (!object.equals("page") && !object.equals("instagram")) {
-      LOGGER
-          .atWarn()
-          .setMessage(
-              "received body with value of "
-                  + object
-                  + " for 'object', expected 'page' or 'instagram'")
-          .addKeyValue("body", bodyString)
-          .log();
-      return Collections.emptyList();
-    }
-    // TODO: need better validation
+  private List<FBMessage> postHandler(Context ctx, JsonNode body) {
     JsonNode entries = body.get("entry");
     ArrayList<FBMessage> output = new ArrayList<>();
     for (JsonNode entry : entries) {
@@ -191,7 +138,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
             LOGGER
                 .atWarn()
                 .setMessage("received message without text, unable to handle this")
-                .addKeyValue("body", bodyString)
+                .addKeyValue("body", body)
                 .log();
           }
         } else {
@@ -199,7 +146,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
               .atWarn()
               .setMessage(
                   "received a message without a 'message' key, unable to handle this message type")
-              .addKeyValue("body", bodyString)
+              .addKeyValue("body", body)
               .log();
         }
       }
@@ -263,7 +210,33 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   }
 
   @Override
-  public Collection<HandlerType> handlers() {
-    return List.of(HandlerType.GET, HandlerType.POST);
+  public List<RouteDetails<?, FBMessage>> routeDetails() {
+    RouteDetails<JsonNode, FBMessage> postDetails =
+        new RouteDetails<>(
+            HandlerType.POST,
+            ctx -> {
+              @Nullable String contentType = ctx.contentType();
+              if (contentType != null
+                  && ContentType.parse(contentType).isSameMimeType(ContentType.APPLICATION_JSON)
+                  && MetaHandlerUtils.postHeaderValid(ctx, appSecret)) {
+                JsonNode body;
+                try {
+                  body = MAPPER.readTree(ctx.body());
+                } catch (JsonProcessingException e) {
+                  throw new BadRequestResponse("unable to parse body");
+                }
+                // TODO: need better validation
+                String expectedObjectValue =
+                    connectedFacebookPageForInstagram == null ? "page" : "instagram";
+                @Nullable JsonNode objectNode = body.get("object");
+                if (objectNode != null && objectNode.textValue().equals(expectedObjectValue)) {
+                  return Optional.of(body);
+                }
+              }
+              return Optional.empty();
+            },
+            this::postHandler);
+
+    return List.of(MetaHandlerUtils.subscriptionVerificationRouteDetails(verifyToken), postDetails);
   }
 }

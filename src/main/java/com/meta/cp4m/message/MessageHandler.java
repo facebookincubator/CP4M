@@ -8,21 +8,14 @@
 
 package com.meta.cp4m.message;
 
-import io.javalin.http.Context;
+import com.meta.cp4m.routing.Acceptor;
 import io.javalin.http.HandlerType;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 
 public interface MessageHandler<T extends Message> {
-
-  /**
-   * Process incoming requests from the messaging service, including messages from the user.
-   *
-   * @param ctx the context corresponding to an incoming request
-   * @return return a {@link Message} object if appropriate
-   */
-  List<T> processRequest(Context ctx);
+  record RouteDetails<IN, OUT extends Message>(
+      HandlerType handlerType, Acceptor<IN> acceptor, RequestProcessor<IN, OUT> requestProcessor) {}
 
   /**
    * The method needed to respond to a message from a user
@@ -31,8 +24,5 @@ public interface MessageHandler<T extends Message> {
    */
   void respond(T message) throws IOException;
 
-  /**
-   * @return The different {@link HandlerType}s that this handler expects to receive
-   */
-  Collection<HandlerType> handlers();
+  List<RouteDetails<?, T>> routeDetails();
 }
