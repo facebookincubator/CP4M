@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.Service;
@@ -59,17 +60,22 @@ public class FBMessageHandlerTest {
       "{\"object\":\"instagram\",\"entry\":[{\"time\":1692813219204,\"id\":\"106195825075770\",\"messaging\":[{\"sender\":{\"id\":\"6357858494326947\"},\"recipient\":{\"id\":\"106195825075770\"},\"timestamp\":1692813218705,\"message\":{\"mid\":\"m_kT_mWOSYh_eK3kF8chtyCWfcD9-gomvu4mhaMFQl-gt4D3LjORi6k3BXD6_x9a-FOUt-D2LFuywJN6HfrpAnDg\",\"text\":\"asdfa\"}}]}]}";
   public static final String SAMPLE_IG_MESSAGE_ECHO =
       "{\"object\":\"instagram\",\"entry\":[{\"time\":1700539232059,\"id\":\"90010138419114\",\"messaging\":[{\"sender\":{\"id\":\"90010138419114\"},\"recipient\":{\"id\":\"7069898263033409\"},\"timestamp\":1700539231795,\"message\":{\"mid\":\"aWdfZAG1faXRlbToxOklHTWVzc2FnZAUlEOjkwMDEwMTM4NDE5MTE0OjM0MDI4MjM2Njg0MTcxMDMwMTI0NDI1OTQ1NTA3ODk2MDQ3NzQ1MDozMTM2OTQxMTk5NjIzMzQ1ODM2OTgxMjI5OTgwNTM2MDEyOAZDZD\",\"text\":\"This is a reply\",\"is_echo\":true}}]}]}";
+
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final String SAMPLE_MESSAGE_HMAC =
       "sha256=8620d18213fa2612d16117b65168ef97404fa13189528014c5362fec31215985";
-  private static JsonNode PARSED_SAMPLE_MESSAGE;
+  public static final JsonNode PARSED_SAMPLE_MESSAGE;
+
+  static {
+    try {
+      PARSED_SAMPLE_MESSAGE = MAPPER.readTree(SAMPLE_MESSAGE);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private Javalin app;
   private BlockingQueue<OutboundRequest> requests;
-
-  @BeforeAll
-  static void beforeAll() throws JsonProcessingException {
-    PARSED_SAMPLE_MESSAGE = MAPPER.readTree(SAMPLE_MESSAGE);
-  }
 
   private static HttpResponse getRequest(String path, int port, Map<String, String> params)
       throws IOException, URISyntaxException {
@@ -93,7 +99,10 @@ public class FBMessageHandlerTest {
     URI uri =
         URIBuilder.localhost().setScheme("http").setPort(runner.port()).appendPath(path).build();
 
-    Request request = Request.post(uri).bodyString(body, ContentType.APPLICATION_JSON);
+    Request request =
+        Request.post(uri)
+            .bodyString(body, ContentType.APPLICATION_JSON)
+            .setHeader("Content-Type", "application/json");
     if (calculateHmac) {
       String hmac = messageHandler.hmac(body);
       request.setHeader("X-Hub-Signature-256", "sha256=" + hmac);
@@ -135,20 +144,23 @@ public class FBMessageHandlerTest {
                 "test the send it twice scenario",
                 200,
                 r -> createMessageRequest(SAMPLE_MESSAGE, r),
-                true),
+                true,
+                2),
             new TestArgument(
                 "valid instagram message",
                 200,
                 r -> createMessageRequest(SAMPLE_IG_MESSAGE, r),
+                true,
                 true),
             new TestArgument(
                 "instagram message echo",
                 200,
                 r -> createMessageRequest(SAMPLE_IG_MESSAGE_ECHO, r),
-                false),
+                false,
+                true),
             new TestArgument(
                 "a non page object type",
-                200,
+                400,
                 r -> createMessageRequest("{\"object\": \"not a page\"}", r),
                 false),
             new TestArgument(
@@ -215,14 +227,14 @@ public class FBMessageHandlerTest {
                         r),
                 false),
             new TestArgument(
-                "missing hmac", 403, r -> createMessageRequest(SAMPLE_MESSAGE, r, false), false),
+                "missing hmac", 400, r -> createMessageRequest(SAMPLE_MESSAGE, r, false), false),
             new TestArgument(
                 "invalid json", 400, r -> createMessageRequest("invalid_json.", r), false),
             new TestArgument(
                 "valid json, invalid body", 400, r -> createMessageRequest("{}", r), false),
             new TestArgument(
                 "invalid hmac",
-                403,
+                400,
                 r ->
                     createMessageRequest(SAMPLE_MESSAGE, r, false)
                         .addHeader("X-Hub-Signature-256", "abcdef0123456789"),
@@ -234,7 +246,8 @@ public class FBMessageHandlerTest {
                 Named.of(a.name, a.expectedReturnCode),
                 Named.of("_", a.requestFactory),
                 Named.of("_", a.messageExpected),
-                Named.of("_", a.timesToSendMessage())));
+                Named.of("_", a.timesToSendMessage()),
+                Named.of("_", a.isInstagram())));
   }
 
   @BeforeEach
@@ -261,13 +274,14 @@ public class FBMessageHandlerTest {
 
   @Test
   void validation() throws IOException, URISyntaxException {
-    String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake
-    int challenge = 1158201444;
+    final String pageToken = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake
+    final int challenge = 1158201444;
+    final String verifyToken = "oamnw9230rjadoia";
     Service<FBMessage> service =
         new Service<>(
             MemoryStoreConfig.of(1, 1).toStore(),
-            new FBMessageHandler("0", token, "dummy"),
-            new DummyLLMPlugin("this is a dummy message"),
+            new FBMessageHandler(verifyToken, pageToken, "dummy"),
+            new DummyLLMPlugin<>("this is a dummy message"),
             "/testfbmessage");
     final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
     HttpResponse response;
@@ -276,7 +290,7 @@ public class FBMessageHandlerTest {
           ImmutableMap.<String, String>builder()
               .put("hub.mode", "subscribe")
               .put("hub.challenge", Integer.toString(challenge))
-              .put("hub.verify_token", token)
+              .put("hub.verify_token", verifyToken)
               .build();
       response = getRequest("testfbmessage", runner.port(), params);
     }
@@ -290,7 +304,7 @@ public class FBMessageHandlerTest {
 
   private Function<Identifier, URI> testURLFactoryFactory(Identifier pageId) {
     return p -> {
-      assertThat(p).isEqualTo(pageId);
+      Preconditions.checkArgument(p.equals(pageId));
       try {
         return URIBuilder.localhost().setScheme("http").setPort(app.port()).build();
       } catch (URISyntaxException | UnknownHostException e) {
@@ -306,14 +320,21 @@ public class FBMessageHandlerTest {
       int expectedReturnCode,
       ThrowableFunction<ServicesRunner, Request> requestFactory,
       boolean messageExpected,
-      int timesToSendMessage)
+      int timesToSendMessage,
+      boolean isInstagram)
       throws Exception {
     String path = "/testfbmessage";
     Identifier pageId = Identifier.from(106195825075770L);
     String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake don't worry
     String secret = "f74a638462f975e9eadfcbb84e4aa06b"; // it's been rolled don't worry
-    FBMessageHandler messageHandler = new FBMessageHandler("0", token, secret);
-    DummyLLMPlugin llmHandler = new DummyLLMPlugin("this is a dummy message");
+
+    FBMessageHandler messageHandler;
+    if (isInstagram) {
+      messageHandler = new FBMessageHandler("0", token, secret, pageId.toString());
+    } else {
+      messageHandler = new FBMessageHandler("0", token, secret);
+    }
+    DummyLLMPlugin<FBMessage> llmHandler = new DummyLLMPlugin<>("this is a dummy message");
     MemoryStore<FBMessage> memoryStore = MemoryStoreConfig.of(1, 1).toStore();
     Service<FBMessage> service = new Service<>(memoryStore, messageHandler, llmHandler, path);
     final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
@@ -396,11 +417,34 @@ public class FBMessageHandlerTest {
       String name,
       int expectedReturnCode,
       ThrowableFunction<ServicesRunner, Request> requestFactory,
-      boolean messageExpected) {
+      boolean messageExpected,
+      int timesToSendMessage,
+      boolean isInstagram) {
 
-    // hacky way to try the send twice scenario
-    int timesToSendMessage() {
-      return name.contains("send it twice") ? 2 : 1;
+    private TestArgument(
+        String name,
+        int expectedReturnCode,
+        ThrowableFunction<ServicesRunner, Request> requestFactory,
+        boolean messageExpected,
+        boolean isInstagram) {
+      this(name, expectedReturnCode, requestFactory, messageExpected, 1, isInstagram);
+    }
+
+    private TestArgument(
+    String name,
+        int expectedReturnCode,
+        ThrowableFunction<ServicesRunner, Request> requestFactory,
+        boolean messageExpected,
+    int timesToSendMessage) {
+      this(name, expectedReturnCode, requestFactory, messageExpected, timesToSendMessage, false);
+    }
+
+    private TestArgument(
+        String name,
+        int expectedReturnCode,
+        ThrowableFunction<ServicesRunner, Request> requestFactory,
+        boolean messageExpected) {
+      this(name, expectedReturnCode, requestFactory, messageExpected, 1);
     }
   }
 }

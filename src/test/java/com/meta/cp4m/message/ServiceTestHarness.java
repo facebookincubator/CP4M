@@ -8,26 +8,21 @@
 
 package com.meta.cp4m.message;
 
+import com.meta.cp4m.DummyWebServer;
+import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Service;
 import com.meta.cp4m.ServicesRunner;
 import com.meta.cp4m.llm.DummyLLMPlugin;
 import com.meta.cp4m.llm.LLMPlugin;
 import com.meta.cp4m.store.ChatStore;
 import com.meta.cp4m.store.MemoryStoreConfig;
-import io.javalin.Javalin;
-import io.javalin.http.HandlerType;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
-import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.net.URIBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.common.reflection.qual.NewInstance;
 import org.checkerframework.common.returnsreceiver.qual.This;
 
 public class ServiceTestHarness<T extends Message> {
@@ -36,13 +31,12 @@ public class ServiceTestHarness<T extends Message> {
   private static final String APP_SECRET = "test_app_secret";
   private static final String SERVICE_PATH = "/testservice";
   private static final String WEBSERVER_PATH = "/testserver";
-  private final BlockingQueue<ReceivedRequest> receivedRequests = new ArrayBlockingQueue<>(1000);
   private final ChatStore<T> chatStore;
   private final MessageHandler<T> handler;
   private final LLMPlugin<T> llmPlugin;
   private final Service<T> service;
   private final ServicesRunner runner;
-  private final Javalin javalin;
+  private final DummyWebServer dummyWebServer = DummyWebServer.create();
 
   private ServiceTestHarness(
       ChatStore<T> chatStore, MessageHandler<T> handler, LLMPlugin<T> llmPlugin) {
@@ -51,7 +45,6 @@ public class ServiceTestHarness<T extends Message> {
     this.llmPlugin = llmPlugin;
     this.service = new Service<>(chatStore, handler, llmPlugin, SERVICE_PATH);
     this.runner = ServicesRunner.newInstance().service(service);
-    javalin = newJavalin();
   }
 
   public static ServiceTestHarness<WAMessage> newWAServiceTestHarness() {
@@ -62,46 +55,6 @@ public class ServiceTestHarness<T extends Message> {
     ServiceTestHarness<WAMessage> harness = new ServiceTestHarness<>(chatStore, handler, llmPlugin);
     handler.baseUrlFactory(ignored -> harness.webserverURI());
     return harness;
-  }
-
-  public Service<T> service() {
-    return service;
-  }
-
-  public ServicesRunner runner() {
-    return runner;
-  }
-
-  public Javalin javalin() {
-    return javalin;
-  }
-
-  private Javalin newJavalin() {
-    Javalin javalin = Javalin.create();
-    javalin
-        .addHandler(
-            HandlerType.GET,
-            "/<path>",
-            ctx ->
-                receivedRequests.put(
-                    new ReceivedRequest(
-                        ctx.path(),
-                        ctx.body(),
-                        ctx.contentType(),
-                        ctx.headerMap(),
-                        ctx.queryParamMap())))
-        .addHandler(
-            HandlerType.POST,
-            "/<path>",
-            ctx ->
-                receivedRequests.put(
-                    new ReceivedRequest(
-                        ctx.path(),
-                        ctx.body(),
-                        ctx.contentType(),
-                        ctx.headerMap(),
-                        ctx.queryParamMap())));
-    return javalin;
   }
 
   public Request post() {
@@ -146,23 +99,14 @@ public class ServiceTestHarness<T extends Message> {
     }
   }
 
-  public @NewInstance ServiceTestHarness<T> withLLMPlugin(LLMPlugin<T> plugin) {
-    return new ServiceTestHarness<>(chatStore, handler, plugin);
-  }
-
-  public @NewInstance ServiceTestHarness<T> withChatStore(ChatStore<T> chatStore) {
-    return new ServiceTestHarness<>(chatStore, handler, llmPlugin);
-  }
-
   public @This ServiceTestHarness<T> start() {
-    javalin.start(0);
     runner.port(0).start();
     return this;
   }
 
   public @This ServiceTestHarness<T> stop() {
     runner.close();
-    javalin.close();
+    dummyWebServer.close();
     return this;
   }
 
@@ -203,22 +147,10 @@ public class ServiceTestHarness<T extends Message> {
   }
 
   public int webserverPort() {
-    return javalin.port();
+    return dummyWebServer.port();
   }
 
-  public ServiceTestHarness.@Nullable ReceivedRequest pollWebserver(long milliseconds)
-      throws InterruptedException {
-    return receivedRequests.poll(milliseconds, TimeUnit.MILLISECONDS);
+  public @Nullable ReceivedRequest pollWebserver(long milliseconds) throws InterruptedException {
+    return dummyWebServer.poll(milliseconds);
   }
-
-  public ServiceTestHarness.@Nullable ReceivedRequest pollWebserver() {
-    return receivedRequests.poll();
-  }
-
-  public record ReceivedRequest(
-      String path,
-      String body,
-      @Nullable String contentType,
-      Map<String, String> headerMap,
-      Map<String, java.util.List<String>> stringListMap) {}
 }

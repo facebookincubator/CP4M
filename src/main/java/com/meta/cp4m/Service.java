@@ -11,11 +11,13 @@ package com.meta.cp4m;
 import com.meta.cp4m.llm.LLMPlugin;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.MessageHandler;
+import com.meta.cp4m.message.RequestProcessor;
 import com.meta.cp4m.message.ThreadState;
+import com.meta.cp4m.routing.Route;
 import com.meta.cp4m.store.ChatStore;
-import io.javalin.Javalin;
 import io.javalin.http.Context;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -40,17 +42,23 @@ public class Service<T extends Message> {
     this.path = path;
   }
 
-  void handle(Context ctx) {
-    List<T> messages = handler.processRequest(ctx);
+  <IN> void handler(Context ctx, IN in, RequestProcessor<IN, T> processor) {
+    List<T> messages = null;
+    try {
+      messages = processor.process(ctx, in);
+    } catch (Exception e) {
+      LOGGER
+          .atError()
+          .addKeyValue("body", ctx.body())
+          .addKeyValue("headers", ctx.headerMap())
+          .setMessage("unable to process request")
+          .log();
+    }
     // TODO: once we have a non-volatile store, on startup send stored but not replied to messages
     for (T m : messages) {
       ThreadState<T> thread = store.add(m);
       executorService.submit(() -> execute(thread));
     }
-  }
-
-  public void register(Javalin app) {
-    handler.handlers().forEach(m -> app.addHandler(m, path, this::handle));
   }
 
   public String path() {
@@ -78,5 +86,23 @@ public class Service<T extends Message> {
       // TODO: implement retry with exponential backoff
       LOGGER.error("an error occurred while attempting to respond", e);
     }
+  }
+
+  private <E> Route<E> toRoute(MessageHandler.RouteDetails<E, T> routeDetails) {
+    return new Route<>(
+        path,
+        routeDetails.handlerType(),
+        routeDetails.acceptor(),
+        (ctx, in) -> handler(ctx, in, routeDetails.requestProcessor()));
+  }
+
+  List<Route<?>> routes() {
+    List<MessageHandler.RouteDetails<?, T>> routeDetails = handler.routeDetails();
+    List<Route<?>> routes = new ArrayList<>(routeDetails.size());
+    for (MessageHandler.RouteDetails<?, T> routeDetail : routeDetails) {
+      Route<?> route = toRoute(routeDetail);
+      routes.add(route);
+    }
+    return routes;
   }
 }
