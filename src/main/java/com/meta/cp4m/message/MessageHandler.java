@@ -8,7 +8,6 @@
 
 package com.meta.cp4m.message;
 
-import com.meta.cp4m.store.ChatStore;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import java.io.IOException;

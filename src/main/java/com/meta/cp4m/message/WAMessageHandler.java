@@ -16,7 +16,6 @@ import com.meta.cp4m.message.webhook.whatsapp.TextWebhookMessage;
 import com.meta.cp4m.message.webhook.whatsapp.Utils;
 import com.meta.cp4m.message.webhook.whatsapp.WebhookMessage;
 import com.meta.cp4m.message.webhook.whatsapp.WebhookPayload;
-import com.meta.cp4m.store.ChatStore;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import java.io.IOException;
