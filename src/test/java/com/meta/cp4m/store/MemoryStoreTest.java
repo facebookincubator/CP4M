@@ -37,7 +37,9 @@ class MemoryStoreTest {
             Instant.now(), "", recipientId, senderId, Identifier.random(), Message.Role.USER, null);
     thread = memoryStore.add(message2);
     assertThat(memoryStore.size()).isEqualTo(1);
-    assertThat(thread.messages()).hasSize(2).contains(message, message2);
+    assertThat(thread.messages()).hasSize(2);
+    assertThat(thread.messages().get(0).instanceId()).isSameAs(message.instanceId());
+    assertThat(thread.messages().get(1).instanceId()).isSameAs(message2.instanceId());
 
     FBMessage message3 =
         messageFactory.newMessage(
