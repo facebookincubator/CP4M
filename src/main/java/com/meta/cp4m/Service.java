@@ -69,7 +69,6 @@ public class Service<T extends Message> {
       LOGGER.error("failed to communicate with LLM", e);
       return;
     }
-    llmResponse = thread.tail();
     store.add(llmResponse);
     try {
       handler.respond(llmResponse);
