@@ -44,8 +44,15 @@ public interface Message {
   }
 
   enum Role {
-    ASSISTANT,
-    USER,
-    SYSTEM
+    ASSISTANT(0),
+    USER(1),
+    SYSTEM(2);
+
+    public final Integer priority;
+
+    private Role(Integer priority){
+      this.priority = priority;
+    }
+
   }
 }

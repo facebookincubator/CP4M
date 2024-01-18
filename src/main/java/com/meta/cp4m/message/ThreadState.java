@@ -42,7 +42,7 @@ public class ThreadState<T extends Message> {
     T mWithParentMessage = newMessage.role() == Role.USER ? (T) newMessage.addParentMessage(old.tail()): newMessage;
     this.messages =
           Stream.concat(messages.stream(), Stream.of(mWithParentMessage))
-              .sorted((m1,m2) -> m1.parentMessage() == m2.parentMessage() ? (m1.role().compareTo(m2.role())) : (m1.timestamp().compareTo(m2.timestamp())))
+              .sorted((m1,m2) -> m1.parentMessage() == m2.parentMessage() ? (m1.role().priority.compareTo(m2.role().priority)) : (m1.timestamp().compareTo(m2.timestamp())))
               .collect(Collectors.toUnmodifiableList());
 
     Preconditions.checkArgument(
