@@ -88,12 +88,12 @@ public class ServiceTestHarness<T extends Message> {
 
   public URI serviceURI() {
     try {
-      return URIBuilder.localhost()
+      return URIBuilder.loopbackAddress()
           .appendPath(SERVICE_PATH)
           .setScheme("http")
           .setPort(servicePort())
           .build();
-    } catch (URISyntaxException | UnknownHostException e) {
+    } catch (URISyntaxException e) {
       // this should be impossible
       throw new RuntimeException(e);
     }
