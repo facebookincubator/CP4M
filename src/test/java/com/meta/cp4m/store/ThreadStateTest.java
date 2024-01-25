@@ -11,22 +11,21 @@ package com.meta.cp4m.store;
 import static org.assertj.core.api.Assertions.*;
 
 import com.meta.cp4m.Identifier;
-import com.meta.cp4m.message.FBMessage;
-import com.meta.cp4m.message.Message;
-import com.meta.cp4m.message.MessageFactory;
-import com.meta.cp4m.message.ThreadState;
+import com.meta.cp4m.message.*;
+
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
 class ThreadStateTest {
 
-  private static final MessageFactory<FBMessage> FACTORY = MessageFactory.instance(FBMessage.class);
+  private static final MessageFactory<FBMessage> FB_FACTORY = MessageFactory.instance(FBMessage.class);
+  private static final MessageFactory<WAMessage> WA_FACTORY = MessageFactory.instance(WAMessage.class);
 
   @Test
   void orderPreservation() {
     Instant start = Instant.now();
     FBMessage message1 =
-        FACTORY.newMessage(
+        FB_FACTORY.newMessage(
             start,
             "sample message",
             Identifier.random(),
@@ -53,7 +52,7 @@ class ThreadStateTest {
   void orderCorrection() {
     Instant start = Instant.now();
     FBMessage message2 =
-        FACTORY.newMessage(
+        FB_FACTORY.newMessage(
             start,
             "sample message",
             Identifier.random(),
@@ -80,7 +79,7 @@ class ThreadStateTest {
   void botAndUserId() {
     Instant start = Instant.now();
     FBMessage message1 =
-        FACTORY.newMessage(
+        FB_FACTORY.newMessage(
             start,
             "sample message",
             Identifier.random(),
@@ -90,7 +89,7 @@ class ThreadStateTest {
 
     ThreadState<FBMessage> ms = ThreadState.of(message1);
     FBMessage message2 =
-        FACTORY.newMessage(
+        FB_FACTORY.newMessage(
             start,
             "sample message",
             message1.recipientId(),
@@ -108,7 +107,7 @@ class ThreadStateTest {
     assertThat(ms.userId()).isEqualTo(message1.senderId());
     assertThat(ms.botId()).isEqualTo(message1.recipientId());
     FBMessage mDifferentSenderId =
-        FACTORY.newMessage(
+        FB_FACTORY.newMessage(
             start,
             "",
             Identifier.random(),
@@ -121,7 +120,7 @@ class ThreadStateTest {
         .isInstanceOf(IllegalArgumentException.class);
 
     FBMessage mDifferentRecipientId =
-        FACTORY.newMessage(
+        FB_FACTORY.newMessage(
             start,
             "",
             message1.senderId(),
@@ -132,7 +131,7 @@ class ThreadStateTest {
         .isInstanceOf(IllegalArgumentException.class);
 
     FBMessage illegalSenderId =
-        FACTORY.newMessage(
+        FB_FACTORY.newMessage(
             start,
             "",
             message1.recipientId(),
@@ -143,7 +142,7 @@ class ThreadStateTest {
         .isInstanceOf(IllegalArgumentException.class);
 
     FBMessage illegalRecipientId =
-        FACTORY.newMessage(
+        FB_FACTORY.newMessage(
             start,
             "",
             message1.senderId(),
@@ -159,7 +158,7 @@ class ThreadStateTest {
     assertThatThrownBy(
             () ->
                 ThreadState.of(
-                    FACTORY.newMessage(
+                    FB_FACTORY.newMessage(
                         Instant.now(),
                         "",
                         Identifier.random(),
@@ -170,7 +169,7 @@ class ThreadStateTest {
 
     ThreadState<FBMessage> threadState =
         ThreadState.of(
-            FACTORY.newMessage(
+            FB_FACTORY.newMessage(
                 Instant.now(),
                 "",
                 Identifier.random(),
@@ -180,7 +179,7 @@ class ThreadStateTest {
     assertThatThrownBy(
             () ->
                 threadState.with(
-                    FACTORY.newMessage(
+                    FB_FACTORY.newMessage(
                         Instant.now(),
                         "",
                         Identifier.random(),
@@ -191,12 +190,12 @@ class ThreadStateTest {
   }
 
   @Test
-  void orderPreservationWhenUserSendsTwoMessagesInARow() {
+  void orderPreservationWhenUserSendsTwoMessagesInARowFBMessage() {
     Instant start = Instant.now();
     Identifier senderId= Identifier.random();
     Identifier recipientId = Identifier.random();
     FBMessage userMessage1 =
-            FACTORY.newMessage(
+            FB_FACTORY.newMessage(
                     start,
                     "sample message 1",
                     senderId,
@@ -205,7 +204,7 @@ class ThreadStateTest {
                     Message.Role.USER);
     ThreadState<FBMessage> ms = ThreadState.of(userMessage1);
     FBMessage userMessage2 =
-            FACTORY.newMessage(
+            FB_FACTORY.newMessage(
                     start.plusSeconds(1),
                     "sample message 2",
                     senderId,
@@ -217,6 +216,41 @@ class ThreadStateTest {
     FBMessage botMessage1 = finalMs.newMessageFromBot(start.plusSeconds(4), "bot sample message 1");
     ms = ms.with(botMessage1);
     FBMessage botMessage2 = ms.newMessageFromBot(start.plusSeconds(8), "bot sample message 2");
+    ms = ms.with(botMessage2);
+    assertThat(ms.messages()).hasSize(4);
+    assertThat(ms.messages().get(0).instanceId()).isSameAs(userMessage1.instanceId());
+    assertThat(ms.messages().get(1).instanceId()).isSameAs(botMessage1.instanceId());
+    assertThat(ms.messages().get(2).instanceId()).isSameAs(userMessage2.instanceId());
+    assertThat(ms.messages().get(3).instanceId()).isSameAs(botMessage2.instanceId());
+  }
+
+  @Test
+  void orderPreservationWhenUserSendsTwoMessagesInARowWAMessage() {
+    Instant start = Instant.now();
+    Identifier senderId= Identifier.random();
+    Identifier recipientId = Identifier.random();
+    WAMessage userMessage1 =
+            WA_FACTORY.newMessage(
+                    start,
+                    "sample message 1",
+                    senderId,
+                    recipientId,
+                    Identifier.random(),
+                    Message.Role.USER);
+    ThreadState<WAMessage> ms = ThreadState.of(userMessage1);
+    WAMessage userMessage2 =
+            WA_FACTORY.newMessage(
+                    start.plusSeconds(1),
+                    "sample message 2",
+                    senderId,
+                    recipientId,
+                    Identifier.random(),
+                    Message.Role.USER);
+    ThreadState<WAMessage> finalMs = ms;
+    ms = ms.with(userMessage2);
+    WAMessage botMessage1 = finalMs.newMessageFromBot(start.plusSeconds(4), "bot sample message 1");
+    ms = ms.with(botMessage1);
+    WAMessage botMessage2 = ms.newMessageFromBot(start.plusSeconds(8), "bot sample message 2");
     ms = ms.with(botMessage2);
     assertThat(ms.messages()).hasSize(4);
     assertThat(ms.messages().get(0).instanceId()).isSameAs(userMessage1.instanceId());

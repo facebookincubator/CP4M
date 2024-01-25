@@ -9,6 +9,7 @@
 package com.meta.cp4m.message;
 
 import com.meta.cp4m.Identifier;
+import org.checkerframework.checker.lock.qual.NewObject;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.time.Instant;
@@ -21,7 +22,7 @@ public interface Message {
     return Identifier.from(id2.toString() + '|' + id1);
   }
 
-  public <T extends Message> T withParentMessage(Message parentMessage);
+  public <T extends Message> @NewObject T withParentMessage(Message parentMessage);
 
   Instant timestamp();
 

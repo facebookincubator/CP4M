@@ -9,6 +9,8 @@
 package com.meta.cp4m.message;
 
 import com.meta.cp4m.Identifier;
+import org.checkerframework.checker.lock.qual.NewObject;
+
 import java.time.Instant;
 
 public record FBMessage(
@@ -21,7 +23,7 @@ public record FBMessage(
     Message parentMessage)
     implements Message {
     @Override
-    public Message withParentMessage(Message parentMessage) {
+    public @NewObject Message withParentMessage(Message parentMessage) {
         return new FBMessage(timestamp(),instanceId(),senderId(),recipientId(),message(), role(), parentMessage);
     }
 }
