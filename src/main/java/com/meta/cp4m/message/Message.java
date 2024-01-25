@@ -9,21 +9,19 @@
 package com.meta.cp4m.message;
 
 import com.meta.cp4m.Identifier;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.time.Instant;
 
 public interface Message {
-  public static Identifier threadId(Identifier id1, Identifier id2) {
+  private static Identifier threadId(Identifier id1, Identifier id2) {
     if (id1.compareTo(id2) <= 0) {
       return Identifier.from(id1.toString() + '|' + id2);
     }
     return Identifier.from(id2.toString() + '|' + id1);
   }
 
-  static void parentMessage(Message parentMessage){
-
-  }
-
-  public Message addParentMessage(Message parentMessage);
+  public <T extends Message> T withParentMessage(Message parentMessage);
 
   Instant timestamp();
 
@@ -37,7 +35,7 @@ public interface Message {
 
   Role role();
 
-  Message parentMessage();
+  @Nullable Message parentMessage();
 
   default Identifier threadId() {
     return threadId(senderId(), recipientId());
@@ -48,10 +46,14 @@ public interface Message {
     USER(1),
     SYSTEM(2);
 
-    public final Integer priority;
+    private final int priority;
 
     private Role(Integer priority){
       this.priority = priority;
+    }
+
+    public int getPriority(){
+      return this.priority;
     }
 
   }

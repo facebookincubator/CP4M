@@ -39,15 +39,22 @@ public class ThreadState<T extends Message> {
         old.tail().threadId().equals(newMessage.threadId()),
         "all messages in a thread must have the same thread id");
     List<T> messages = old.messages;
-    T mWithParentMessage = newMessage.role() == Role.USER ? (T) newMessage.addParentMessage(old.tail()): newMessage;
+    T mWithParentMessage = newMessage.role() == Role.USER ? newMessage.withParentMessage(old.tail()): newMessage;
     this.messages =
           Stream.concat(messages.stream(), Stream.of(mWithParentMessage))
-              .sorted((m1,m2) -> m1.parentMessage() == m2.parentMessage() ? (m1.role().priority.compareTo(m2.role().priority)) : (m1.timestamp().compareTo(m2.timestamp())))
+              .sorted((m1,m2) -> m1.parentMessage() == m2.parentMessage() ? compare(m1.role().getPriority(),m2.role().getPriority()) : (m1.timestamp().compareTo(m2.timestamp())))
               .collect(Collectors.toUnmodifiableList());
-
+    Identifier oldUserId = old.userId();
+    Identifier userId = userId();
+    Identifier oldBotId = old.botId();
+    Identifier botId = botId();
     Preconditions.checkArgument(
         old.userId().equals(userId()) && old.botId().equals(botId()),
         "userId and botId not consistent with this thread state");
+  }
+
+  private int compare(int priority1, int priority2){
+    return priority1 > priority2 ? +1 : priority1 < priority2 ? -1 : 0;
   }
 
   public static <T extends Message> ThreadState<T> of(T message) {
@@ -74,13 +81,14 @@ public class ThreadState<T extends Message> {
     };
   }
 
-  public T newMessageFromBot(Instant timestamp, String message, T parentMessage) {
-    return messageFactory.newMessage(
-        timestamp, message, botId(), userId(), Identifier.random(), Role.ASSISTANT, parentMessage);
+  public T newMessageFromBot(Instant timestamp, String message) {
+    T newMessage = messageFactory.newMessage(
+        timestamp, message, botId(), userId(), Identifier.random(), Role.ASSISTANT);
+    return newMessage.withParentMessage(tail());
   }
 
   public T newMessageFromUser(Instant timestamp, String message, Identifier instanceId) {
-    return messageFactory.newMessage(timestamp, message, userId(), botId(), instanceId, Role.USER, this.tail());
+    return messageFactory.newMessage(timestamp, message, userId(), botId(), instanceId, Role.USER);
   }
 
   public ThreadState<T> with(T message) {

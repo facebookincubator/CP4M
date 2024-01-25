@@ -21,9 +21,9 @@ public interface MessageFactory<T extends Message> {
   Map<Class<? extends Message>, MessageFactory<? extends Message>> FACTORY_MAP =
       Stream.<FactoryContainer<?>>of(
               new FactoryContainer<>(
-                  FBMessage.class, (t, m, si, ri, ii, r, pm) -> new FBMessage(t, ii, si, ri, m, r, pm)),
+                  FBMessage.class, (t, m, si, ri, ii, r) -> new FBMessage(t, ii, si, ri, m, r,null)),
               new FactoryContainer<>(
-                  WAMessage.class, (t, m, si, ri, ii, r, pm) -> new WAMessage(t, ii, si, ri, m, r, pm)))
+                  WAMessage.class, (t, m, si, ri, ii, r) -> new WAMessage(t, ii, si, ri, m, r,null)))
           .collect(
               Collectors.toUnmodifiableMap(FactoryContainer::clazz, FactoryContainer::factory));
 
@@ -46,8 +46,7 @@ public interface MessageFactory<T extends Message> {
       Identifier senderId,
       Identifier recipientId,
       Identifier instanceId,
-      Role role,
-      Message parentMessage);
+      Role role);
 
   /** this exists to provide compiler guarantees for type matching in the FACTORY_MAP */
   record FactoryContainer<T extends Message>(Class<T> clazz, MessageFactory<T> factory) {}

@@ -127,7 +127,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
 
           @Nullable JsonNode textObject = messageObject.get("text");
           if (textObject != null && textObject.isTextual()) {
-            FBMessage m = MESSAGE_FACTORY.newMessage(timestamp, textObject.textValue(), senderId, recipientId,messageId, Message.Role.USER,null);
+            FBMessage m = MESSAGE_FACTORY.newMessage(timestamp, textObject.textValue(), senderId, recipientId,messageId, Message.Role.USER);
             output.add(m);
           } else {
             LOGGER

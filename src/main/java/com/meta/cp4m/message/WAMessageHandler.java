@@ -96,7 +96,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                   continue;
                 }
                 TextWebhookMessage textMessage = (TextWebhookMessage) message;
-                WAMessage waMessage = MESSAGE_FACTORY.newMessage(message.timestamp(), textMessage.text().body(), message.from(), phoneNumberId,message.id(), Message.Role.USER,null);
+                WAMessage waMessage = MESSAGE_FACTORY.newMessage(message.timestamp(), textMessage.text().body(), message.from(), phoneNumberId,message.id(), Message.Role.USER);
                 readExecutor.execute(() -> markRead(phoneNumberId, textMessage.id().toString()));
                 waMessages.add(waMessage);
               }
