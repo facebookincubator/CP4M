@@ -22,6 +22,6 @@ public record WAMessage(
     implements Message {
     @Override
     public Message withParentMessage(Message parentMessage) {
-        return new WAMessage(timestamp(),instanceId(),senderId(),recipientId(),message(), Role.USER, parentMessage);
+        return new WAMessage(timestamp(),instanceId(),senderId(),recipientId(),message(), role(), parentMessage);
     }
 }
