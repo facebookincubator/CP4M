@@ -23,7 +23,7 @@ public record WAMessage(
     Message parentMessage)
     implements Message {
     @Override
-    public @NewObject Message withParentMessage(Message parentMessage) {
+    public @NewObject WAMessage withParentMessage(Message parentMessage) {
         return new WAMessage(timestamp(),instanceId(),senderId(),recipientId(),message(), role(), parentMessage);
     }
 }

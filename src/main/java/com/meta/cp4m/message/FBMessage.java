@@ -23,7 +23,7 @@ public record FBMessage(
     Message parentMessage)
     implements Message {
     @Override
-    public @NewObject Message withParentMessage(Message parentMessage) {
+    public @NewObject FBMessage withParentMessage(Message parentMessage) {
         return new FBMessage(timestamp(),instanceId(),senderId(),recipientId(),message(), role(), parentMessage);
     }
 }

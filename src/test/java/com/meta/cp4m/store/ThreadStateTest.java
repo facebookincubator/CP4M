@@ -149,7 +149,7 @@ class ThreadStateTest {
             message1.recipientId(),
             Identifier.random(),
             Message.Role.ASSISTANT);
-    assertThatThrownBy(() -> finalMs1.with((FBMessage) illegalRecipientId.withParentMessage(message1)))
+    assertThatThrownBy(() -> finalMs1.with(illegalRecipientId.withParentMessage(message1)))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
