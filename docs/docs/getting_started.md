@@ -250,6 +250,9 @@ By contributing to Spectrum, you agree that your contributions will be licensed 
 
 ## 6. FAQs
 
+**What is a service in CP4M?**
+
+A set of 3 objects: A handler, a Store, and an plugin.
 
 
 **What is a Handler in CP4M?**
@@ -260,7 +263,7 @@ A Handler handles incoming messages from Meta and contains logic to respond to t
 
 A ChatStore stores messages in-memory and stores an entire threadState, which is a set of messages that comprise a thread of messages between a user and an assistant (bot).
 
-**What is an LLMPlugin in CP4M?**
+**What is a Plugin in CP4M?**
 
 An LLMPlugin handles the process of sending a threadstate to a plugin such as OpenAI or LLama, and handles tokenization and request handling.
 
