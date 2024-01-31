@@ -70,7 +70,7 @@ The following steps will help you get CP4M installed and running locally on your
 
 <!---->
 
-    git clone https://github.com/facebookincubator/CP4M.git
+    ``` git clone https://github.com/facebookincubator/CP4M.git ```
 
 
 ### Setting up dev environment and IDE
@@ -79,7 +79,10 @@ The following steps will help you get CP4M installed and running locally on your
 
   - **Note: Make sure you install the Community Edition**
 
-  ![](https://lh7-us.googleusercontent.com/1JMNn0e7nm2c3ZPlBiBux9VPxV_t1LkSnHZ1sdHW1OLygxxQBj_g9fooDWLcfNLHl1aZTFZGIOrNsUI6-qQAO61RCTOZVRu9EDfyu_ja-J7xol0LYr4eyY9kKkjb5tLgW4vM8MV1jBxp-l4NstIgWvw)Open IntelliJ and select Open Project or Get from VCS
+
+- Open IntelliJ and select Open Project or Get from VCS
+
+![](https://lh7-us.googleusercontent.com/1JMNn0e7nm2c3ZPlBiBux9VPxV_t1LkSnHZ1sdHW1OLygxxQBj_g9fooDWLcfNLHl1aZTFZGIOrNsUI6-qQAO61RCTOZVRu9EDfyu_ja-J7xol0LYr4eyY9kKkjb5tLgW4vM8MV1jBxp-l4NstIgWvw)
 
 - If you select open, you’ll have to browse to and select the CP4M directory you cloned in the previous step
 
@@ -95,16 +98,16 @@ The following steps will help you get CP4M installed and running locally on your
 
 - After you select the correct version of the SDK you’re now ready to run tests by clicking run test in the main test directory: 
 
-  - Note: MainTest does not currently run ALL tests, so you will have to run the different tests inside their respective directories
+  - **Note: MainTest does not currently run ALL tests, so you will have to run the different tests inside their respective directories**
 
 ![](https://lh7-us.googleusercontent.com/tuWo9pUHkCtYhjbFimjjXNVGB8P-gSLYbZ3dCh_O-eM7B6i85mZ965lzLCN2YkOLQyByL1zoHF7kwAG_vngyd1jrt7NKzVSQGsv2N3FsIEl95WK_AQpXR-D7naMqV3dj1U5J6LC0qyRm1Bdvt1ajTxc)
 
-- You’ll also want to select the correct maven project by clicking on the maven tab on the right hand side of the IDE and selecting version 21 of the Java SDK. (note: You can also run CP4m from this tab by hitting the play button and selecting  `maven package`
+- You’ll also want to select the correct maven project by clicking on the maven tab on the right hand side of the IDE and selecting version 21 of the Java SDK. ( **note: You can also run CP4m from this tab by hitting the play button and selecting  `maven package`**)
 
 ![](https://lh7-us.googleusercontent.com/9MJLGXs61UNDhxq2d_C074IY75EvT83h8tPqgFOy_3HKGuCI2UGBICcujCO2LGodountNMx1lkpMLTyOlSTSncl8zrcWVWo7vI7Ja9194TBMUvHDEn-HwtIpt4g_EbTpOqtr19mfz1NjCTisLNaDoGc)
 
 
-## ***
+***
 
 ## 3. Usage
 
@@ -112,21 +115,23 @@ The following steps will help you get CP4M installed and running locally on your
 
 - These commands change your directory to the CP4M directory, build a docker image named cp4m and then run that image and expose port 8080 for webhooks.
 
-<!---->
+```
 
     $ cd CP4M
     $ docker build -t cp4m .
     $ docker run -v /tmp/cp4m:/tmp/cpm4 -e CP4M_CONFIGURATION_FILE=/tmp/cp4m/cp4m.toml -p 8080:8080 cp4m 
+
+```
 
 
 ### Building & Running CP4M Locally
 
 - This command will build the project locally using maven and will run the resulting .jar file
 
-`mvn` `clean` `-U` `package` `-Dcustom.jarName=cp4m` `-Dmanve.test.skip=true`
+```mvn clean -U package -Dcustom.jarName=cp4m -Dmanve.test.skip=true```
 
 
-## ***
+***
 
 ## 4. Configuration
 
@@ -136,14 +141,14 @@ Almost All of CP4M’s configurations are set via a configuration file. This fil
 
 1. Create a file to hold the configuration
 
-<!---->
-
+```
     mkdir /tmp/cp4m
     touch /tmp/cp4m/cp4m.toml
+```
 
 2. Copy on of the texts below into your newly created TOML file
 
-Example: Whatsapp & OpenAI
+**Example: Whatsapp & OpenAI**
 
     port = 8080
 
@@ -172,7 +177,7 @@ Example: Whatsapp & OpenAI
     store = "memory_test"
     handler = "whatsapp_test"
 
-Example: Messenger & LLama 2 (via Hugging Face)
+**Example: Messenger & LLama 2 (via Hugging Face)**
 
     port = 8080
 
@@ -205,7 +210,7 @@ Example: Messenger & LLama 2 (via Hugging Face)
       
 
 
-## ***
+***
 
 ## 5. Contributing
 
@@ -241,13 +246,11 @@ Complete your CLA here: <https://code.facebook.com/cla>.
 By contributing to Spectrum, you agree that your contributions will be licensed under its MIT license.
 
 
-## ***
+***
 
 ## 6. FAQs
 
-**What is CP4M?**
 
-CP4M stands for Conversational Platform for Meta. It is a platform for building conversational interfaces.
 
 **What is a Handler in CP4M?**
 
