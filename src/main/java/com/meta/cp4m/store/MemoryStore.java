@@ -58,9 +58,4 @@ public class MemoryStore<T extends Message> implements ChatStore<T> {
   public List<ThreadState<T>> list() {
     return store.asMap().values().stream().toList();
   }
-
-  @Override
-  public ThreadState<T> get(Identifier threadId){
-    return this.store.asMap().get(threadId);
-  }
 }
