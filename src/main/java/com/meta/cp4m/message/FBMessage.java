@@ -19,11 +19,5 @@ public record FBMessage(
     Identifier senderId,
     Identifier recipientId,
     String message,
-    Role role,
-    Message parentMessage)
-    implements Message {
-    @Override
-    public @NewObject FBMessage withParentMessage(Message parentMessage) {
-        return new FBMessage(timestamp(),instanceId(),senderId(),recipientId(),message(), role(), parentMessage);
-    }
-}
+    Role role)
+    implements Message {}

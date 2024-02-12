@@ -21,9 +21,9 @@ public interface MessageFactory<T extends Message> {
   Map<Class<? extends Message>, MessageFactory<? extends Message>> FACTORY_MAP =
       Stream.<FactoryContainer<?>>of(
               new FactoryContainer<>(
-                  FBMessage.class, (t, m, si, ri, ii, r) -> new FBMessage(t, ii, si, ri, m, r,null)),
+                  FBMessage.class, (t, m, si, ri, ii, r) -> new FBMessage(t, ii, si, ri, m, r)),
               new FactoryContainer<>(
-                  WAMessage.class, (t, m, si, ri, ii, r) -> new WAMessage(t, ii, si, ri, m, r,null)))
+                  WAMessage.class, (t, m, si, ri, ii, r) -> new WAMessage(t, ii, si, ri, m, r)))
           .collect(
               Collectors.toUnmodifiableMap(FactoryContainer::clazz, FactoryContainer::factory));
 

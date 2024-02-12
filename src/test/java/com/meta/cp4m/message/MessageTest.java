@@ -22,8 +22,8 @@ class MessageTest {
     Identifier id0 = Identifier.from("0");
     Identifier id1 = Identifier.from("1");
     Identifier id2 = Identifier.from("2");
-    Message message = new FBMessage(timestamp, id0, id1, id2, "", Message.Role.ASSISTANT, null);
-    Message response = new FBMessage(timestamp, id0, id2, id1, "", Message.Role.ASSISTANT, null);
+    Message message = new FBMessage(timestamp, id0, id1, id2, "", Message.Role.ASSISTANT);
+    Message response = new FBMessage(timestamp, id0, id2, id1, "", Message.Role.ASSISTANT);
     assertThat(message.threadId()).isEqualTo(response.threadId());
 
     message =
@@ -33,7 +33,7 @@ class MessageTest {
             Identifier.from("12"),
             Identifier.from("34"),
             "",
-            Message.Role.ASSISTANT, null);
+            Message.Role.ASSISTANT);
     response =
         new FBMessage(
             timestamp,
@@ -41,7 +41,7 @@ class MessageTest {
             Identifier.from("1"),
             Identifier.from("234"),
             "",
-            Message.Role.ASSISTANT, null);
+            Message.Role.ASSISTANT);
     assertThat(message.threadId()).isNotEqualTo(response.threadId());
   }
 }

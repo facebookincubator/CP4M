@@ -22,8 +22,6 @@ public interface Message {
     return Identifier.from(id2.toString() + '|' + id1);
   }
 
-  public <T extends Message> @NewObject T withParentMessage(Message parentMessage);
-
   Instant timestamp();
 
   Identifier instanceId();
@@ -36,8 +34,6 @@ public interface Message {
 
   Role role();
 
-  @Nullable Message parentMessage();
-
   default Identifier threadId() {
     return threadId(senderId(), recipientId());
   }
@@ -49,7 +45,7 @@ public interface Message {
 
     private final int priority;
 
-    private Role(Integer priority){
+    Role(Integer priority){
       this.priority = priority;
     }
 

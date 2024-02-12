@@ -18,43 +18,41 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ThreadState<T extends Message> {
-  private final List<T> messages;
+  private final List<MessageNode<T>> messageNodes;
   private final MessageFactory<T> messageFactory;
 
   private ThreadState(T message) {
     Objects.requireNonNull(message);
     Preconditions.checkArgument(
         message.role() != Role.SYSTEM, "ThreadState should never hold a system message");
-    this.messages = ImmutableList.of(message);
+    MessageNode<T> messageNode = new MessageNode<>(message,null);
+    this.messageNodes = ImmutableList.of(messageNode);
     messageFactory = MessageFactory.instance(message);
   }
 
   /** Constructor that exists to support the with method */
-  private ThreadState(ThreadState<T> old, T newMessage) {
+  private ThreadState(ThreadState<T> current, ThreadState<T> old, T newMessage) {
     Objects.requireNonNull(newMessage);
     Preconditions.checkArgument(
             newMessage.role() != Role.SYSTEM, "ThreadState should never hold a system message");
-    messageFactory = old.messageFactory;
+    messageFactory = current.messageFactory;
     Preconditions.checkArgument(
-        old.tail().threadId().equals(newMessage.threadId()),
-        "all messages in a thread must have the same thread id");
-    List<T> messages = old.messages;
-    T mWithParentMessage = newMessage.role() == Role.USER ? newMessage.withParentMessage(old.tail()): newMessage;
-    this.messages =
-          Stream.concat(messages.stream(), Stream.of(mWithParentMessage))
-              .sorted((m1,m2) -> m1.parentMessage() == m2.parentMessage() ? compare(m1.role().getPriority(),m2.role().getPriority()) : (m1.timestamp().compareTo(m2.timestamp())))
-              .collect(Collectors.toUnmodifiableList());
-    Identifier oldUserId = old.userId();
-    Identifier userId = userId();
-    Identifier oldBotId = old.botId();
-    Identifier botId = botId();
+            old.tail().threadId().equals(newMessage.threadId()),
+            "all messages in a thread must have the same thread id");
+    List<MessageNode<T>> messageNodes = current.messageNodes;
+    MessageNode<T> mWithParentMessage = new MessageNode<>(newMessage,old.tail());
+    this.messageNodes =
+            Stream.concat(messageNodes.stream(), Stream.of(mWithParentMessage))
+                    .sorted((m1,m2) -> m1.getParentMessage() == m2.getParentMessage() ? compare(m1.getMessage().role().getPriority(),m2.getMessage().role().getPriority()) : (m1.getMessage().timestamp().compareTo(m2.getMessage().timestamp())))
+                    .collect(Collectors.toUnmodifiableList());
+
     Preconditions.checkArgument(
-        old.userId().equals(userId()) && old.botId().equals(botId()),
-        "userId and botId not consistent with this thread state");
+            old.userId().equals(userId()) && old.botId().equals(botId()),
+            "userId and botId not consistent with this thread state");
   }
 
   private int compare(int priority1, int priority2){
-    return priority1 > priority2 ? +1 : priority1 < priority2 ? -1 : 0;
+    return Integer.compare(priority1, priority2);
   }
 
   public static <T extends Message> ThreadState<T> of(T message) {
@@ -82,9 +80,8 @@ public class ThreadState<T extends Message> {
   }
 
   public T newMessageFromBot(Instant timestamp, String message) {
-    T newMessage = messageFactory.newMessage(
+    return messageFactory.newMessage(
         timestamp, message, botId(), userId(), Identifier.random(), Role.ASSISTANT);
-    return newMessage.withParentMessage(tail());
   }
 
   public T newMessageFromUser(Instant timestamp, String message, Identifier instanceId) {
@@ -92,15 +89,19 @@ public class ThreadState<T extends Message> {
   }
 
   public ThreadState<T> with(T message) {
-    return new ThreadState<>(this, message);
+    return new ThreadState<>(this,this, message);
+  }
+
+  public ThreadState<T> with(ThreadState<T> thread,T message) {
+    return new ThreadState<>(this,thread, message);
   }
 
   public List<T> messages() {
-    return messages;
+    return messageNodes.stream().map(MessageNode::getMessage).collect(Collectors.toList());
   }
 
   public T tail() {
-    return messages.get(messages.size() - 1);
+    return messageNodes.get(messageNodes.size() - 1).getMessage();
   }
 
 }

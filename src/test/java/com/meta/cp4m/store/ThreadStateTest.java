@@ -98,12 +98,12 @@ class ThreadStateTest {
             Message.Role.ASSISTANT);
 
     final ThreadState<FBMessage> finalMs = ms;
-    assertThatCode(() -> finalMs.with(message2)).doesNotThrowAnyException();
-    assertThatCode(() -> finalMs.with(finalMs.newMessageFromBot(start, "")))
+    assertThatCode(() -> finalMs.with(finalMs,message2)).doesNotThrowAnyException();
+    assertThatCode(() -> finalMs.with(finalMs,finalMs.newMessageFromBot(start, "")))
         .doesNotThrowAnyException();
     assertThatCode(() -> finalMs.with(finalMs.newMessageFromUser(start, "", Identifier.random())))
         .doesNotThrowAnyException();
-    ms = ms.with(message2);
+    ms = ms.with(ms,message2);
     assertThat(ms.userId()).isEqualTo(message1.senderId());
     assertThat(ms.botId()).isEqualTo(message1.recipientId());
     FBMessage mDifferentSenderId =
@@ -149,7 +149,7 @@ class ThreadStateTest {
             message1.recipientId(),
             Identifier.random(),
             Message.Role.ASSISTANT);
-    assertThatThrownBy(() -> finalMs1.with(illegalRecipientId.withParentMessage(message1)))
+    assertThatThrownBy(() -> finalMs1.with(finalMs1,illegalRecipientId))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -214,9 +214,9 @@ class ThreadStateTest {
     ThreadState<FBMessage> finalMs = ms;
     ms = ms.with(userMessage2);
     FBMessage botMessage1 = finalMs.newMessageFromBot(start.plusSeconds(4), "bot sample message 1");
-    ms = ms.with(botMessage1);
+    ms = ms.with(finalMs,botMessage1);
     FBMessage botMessage2 = ms.newMessageFromBot(start.plusSeconds(8), "bot sample message 2");
-    ms = ms.with(botMessage2);
+    ms = ms.with(ms, botMessage2);
     assertThat(ms.messages()).hasSize(4);
     assertThat(ms.messages().get(0).instanceId()).isSameAs(userMessage1.instanceId());
     assertThat(ms.messages().get(1).instanceId()).isSameAs(botMessage1.instanceId());
@@ -249,9 +249,9 @@ class ThreadStateTest {
     ThreadState<WAMessage> finalMs = ms;
     ms = ms.with(userMessage2);
     WAMessage botMessage1 = finalMs.newMessageFromBot(start.plusSeconds(4), "bot sample message 1");
-    ms = ms.with(botMessage1);
+    ms = ms.with(finalMs,botMessage1);
     WAMessage botMessage2 = ms.newMessageFromBot(start.plusSeconds(8), "bot sample message 2");
-    ms = ms.with(botMessage2);
+    ms = ms.with(ms,botMessage2);
     assertThat(ms.messages()).hasSize(4);
     assertThat(ms.messages().get(0).instanceId()).isSameAs(userMessage1.instanceId());
     assertThat(ms.messages().get(1).instanceId()).isSameAs(botMessage1.instanceId());
