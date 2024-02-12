@@ -31,6 +31,4 @@ public interface ChatStore<T extends Message> {
   long size();
 
   List<ThreadState<T>> list();
-
-  ThreadState<T> get(Identifier threadId);
 }
