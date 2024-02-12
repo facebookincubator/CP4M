@@ -31,7 +31,7 @@ public class MemoryStore<T extends Message> implements ChatStore<T> {
   }
 
   @Override
-  public ThreadState<T>  add(T message) {
+  public ThreadState<T> add(T message) {
     return this.store
         .asMap()
         .compute(
