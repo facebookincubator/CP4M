@@ -43,7 +43,7 @@ public class ThreadState<T extends Message> {
     MessageNode<T> mWithParentMessage = new MessageNode<>(newMessage,old.tail());
     this.messageNodes =
             Stream.concat(messageNodes.stream(), Stream.of(mWithParentMessage))
-                    .sorted((m1,m2) -> m1.getParentMessage() == m2.getParentMessage() ? compare(m1.getMessage().role().getPriority(),m2.getMessage().role().getPriority()) : (m1.getMessage().timestamp().compareTo(m2.getMessage().timestamp())))
+                    .sorted((m1,m2) -> m1.getParentMessage() == m2.getParentMessage() ? compare(m1.getMessage().role().priority(),m2.getMessage().role().priority()) : (m1.getMessage().timestamp().compareTo(m2.getMessage().timestamp())))
                     .collect(Collectors.toUnmodifiableList());
 
     Preconditions.checkArgument(

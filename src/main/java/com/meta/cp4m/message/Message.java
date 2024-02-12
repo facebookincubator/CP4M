@@ -9,8 +9,6 @@
 package com.meta.cp4m.message;
 
 import com.meta.cp4m.Identifier;
-import org.checkerframework.checker.lock.qual.NewObject;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.time.Instant;
 
@@ -49,7 +47,7 @@ public interface Message {
       this.priority = priority;
     }
 
-    public int getPriority(){
+    public int priority(){
       return this.priority;
     }
 
