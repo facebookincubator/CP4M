@@ -254,14 +254,14 @@ public class FBMessageHandlerTest {
   void setUp() {
 
     app = Javalin.create();
-    app.addHandler(
+    app.addHttpHandler(
         HandlerType.GET, "*", ctx -> fail("the pipeline should only be sending post requests"));
-    app.addHandler(
+    app.addHttpHandler(
         HandlerType.DELETE, "*", ctx -> fail("the pipeline should only be sending post requests"));
-    app.addHandler(
+    app.addHttpHandler(
         HandlerType.PUT, "*", ctx -> fail("the pipeline should only be sending post requests"));
     requests = new LinkedBlockingQueue<>();
-    app.addHandler(
+    app.addHttpHandler(
         HandlerType.POST,
         "/",
         ctx -> requests.add(new OutboundRequest(ctx.body(), ctx.headerMap(), ctx.queryParamMap())));
@@ -269,7 +269,7 @@ public class FBMessageHandlerTest {
 
   @AfterEach
   void tearDown() {
-    app.close();
+    app.stop();
   }
 
   @Test
