@@ -1,4 +1,4 @@
-FROM maven:3.9-eclipse-temurin-20-alpine AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
 
 WORKDIR /opt/cp4m
 
@@ -7,7 +7,7 @@ COPY src src
 
 RUN mvn clean -U package -Dcustom.jarName=cp4m -Dmaven.test.skip=true
 
-FROM eclipse-temurin:20-jdk-alpine
+FROM eclipse-temurin:21
 WORKDIR /opt/cp4m
 COPY --from=build /opt/cp4m/target/cp4m.jar .
 
