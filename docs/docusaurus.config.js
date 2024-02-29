@@ -86,16 +86,6 @@ const config = {
         links: [
           {
             title: 'Learn',
-            items: [
-              {
-                label: 'Style Guide',
-                to: 'docs/',
-              },
-              {
-                label: 'Second Doc',
-                to: 'docs/doc2',
-              },
-            ],
           },
           {
             title: 'More',
@@ -137,7 +127,7 @@ const config = {
           alt: 'Meta Open Source Logo',
           // This default includes a positive & negative version, allowing for
           // appropriate use depending on your site's style.
-          src: '/img/meta_opensource_logo_negative.svg',
+          src: 'CP4M/img/meta_opensource_logo_negative.svg',
           href: 'https://opensource.fb.com',
         },
         // Please do not remove the credits, help to publicize Docusaurus :)
