@@ -1,0 +1,8 @@
+{
+  "label": "LLM Connections",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Learn how to connect CP4M with your LLM service provider."
+  }
+}

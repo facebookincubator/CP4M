@@ -88,6 +88,7 @@ store = "memory_test"
 handler = "messenger_test"
 ```
 
+For help finding tokens & secrets for your app in the handlers section, please go to the relevant messaging page in [Messaging Integrations](./messaging-integrations/connecting-to-messenger.md)
 
 ### Build and Run CP4M via Docker
 
