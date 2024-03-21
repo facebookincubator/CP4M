@@ -21,28 +21,25 @@ const features = [
     imageUrl: 'CP4M/img/undraw_docusaurus_mountain.svg',
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Integrate your existing LLM bot to multiple popular messaging platforms without digging through pages of API documentation.
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
+    title: 'Data Security by Design',
     imageUrl: 'CP4M/img/undraw_docusaurus_tree.svg',
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        Data never leaves your own infrastructure, so you don't need to worry about leakage risks.
       </>
     ),
   },
   {
-    title: 'Powered by React',
+    title: 'Free and Open Source',
     imageUrl: 'CP4M/img/undraw_docusaurus_react.svg',
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        You can read through all of the code on our <a href="https://github.com/facebookincubator/CP4M">GitHub</a>, and we welcome contributors to help improve the platform for all.
       </>
     ),
   },
