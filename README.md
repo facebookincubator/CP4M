@@ -6,7 +6,7 @@ owned infra.
 
 # Details
 
-CP4M acts as a bridge between existing Messenger and Whatsapp APIs and existing LLM APIs (OpenAI, LLaMa, etc.)  
+CP4M acts as a bridge between existing Messenger and Whatsapp APIs and existing LLM APIs (OpenAI, LLaMa, etc.)
 ![cp4m_diagram](https://github.com/facebookincubator/CP4M/assets/6844618/601433ff-c77d-4d52-a6f8-4f3b0ff45aae)
 
 ## Quickstart
@@ -43,14 +43,14 @@ storage_duration_hours = 1
 storage_capacity_mbs = 1
 
 [[handlers]]
-type = "whatsapp"
 name = "whatsapp_test"
+type = "whatsapp"
 verify_token = "<your verification token here>"
 app_secret = "<your verification app secret here>"
 access_token = "<you access token here>"
 
 [[services]]
-webhook_path = "/whatsapp"
+webhook_path = "/<webhook-pathname>"
 plugin = "openai_test"
 store = "memory_test"
 handler = "whatsapp_test"
@@ -82,8 +82,8 @@ app_secret = "<your verification app secret here>"
 page_access_token = "<your page access token here>"
 
 [[services]]
-webhook_path = "/messenger"
-plugin = "openai_test"
+webhook_path = "/<webhook-pathname>"
+plugin = "hf_test"
 store = "memory_test"
 handler = "messenger_test"
 ```
