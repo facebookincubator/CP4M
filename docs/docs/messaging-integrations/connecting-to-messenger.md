@@ -6,8 +6,8 @@ sidebar_position: 1
 
 To connect CP4M to Facebook Messenger, you will need:
 1. A Facebook account registered as a Meta developer
-1. A Meta app to integrate with Meta APIs
-2. A Facebook Page for users to interact with over Messenger
+2. A Meta app to integrate with Meta APIs
+3. A Facebook Page for users to interact with over Messenger
 
 ## Getting Meta developer access
 To register as a Meta developer, you can follow the steps [here](https://developers.facebook.com/docs/development/register).

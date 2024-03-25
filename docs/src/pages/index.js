@@ -35,7 +35,7 @@ const features = [
     ),
   },
   {
-    title: 'Free and Open Source',
+    title: 'Welcoming Collaborators',
     imageUrl: 'CP4M/img/undraw_docusaurus_react.svg',
     description: (
       <>
