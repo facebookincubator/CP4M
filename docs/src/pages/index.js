@@ -18,7 +18,7 @@ import styles from './styles.module.css';
 const features = [
   {
     title: 'Easy to Use',
-    imageUrl: 'CP4M/img/undraw_docusaurus_mountain.svg',
+    imageUrl: 'CP4M/img/piece_of_cake.jpeg',
     description: (
       <>
         Integrate your existing LLM bot to multiple popular messaging platforms without digging through pages of API documentation.
@@ -27,7 +27,7 @@ const features = [
   },
   {
     title: 'Data Security by Design',
-    imageUrl: 'CP4M/img/undraw_docusaurus_tree.svg',
+    imageUrl: 'CP4M/img/data-security.jpeg',
     description: (
       <>
         Data never leaves your own infrastructure, so you don't need to worry about leakage risks.
@@ -36,7 +36,7 @@ const features = [
   },
   {
     title: 'Welcoming Collaborators',
-    imageUrl: 'CP4M/img/undraw_docusaurus_react.svg',
+    imageUrl: 'CP4M/img/building-together.jpeg',
     description: (
       <>
         You can read through all of the code on our <a href="https://github.com/facebookincubator/CP4M">GitHub</a>, and we welcome contributors to help improve the platform for all.
