@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
@@ -97,7 +96,11 @@ public class FBMessageHandlerTest {
     FBMessageHandler messageHandler = (FBMessageHandler) service.messageHandler();
 
     URI uri =
-        URIBuilder.localhost().setScheme("http").setPort(runner.port()).appendPath(path).build();
+        URIBuilder.loopbackAddress()
+            .setScheme("http")
+            .setPort(runner.port())
+            .appendPath(path)
+            .build();
 
     Request request =
         Request.post(uri)
@@ -306,8 +309,8 @@ public class FBMessageHandlerTest {
     return p -> {
       Preconditions.checkArgument(p.equals(pageId));
       try {
-        return URIBuilder.localhost().setScheme("http").setPort(app.port()).build();
-      } catch (URISyntaxException | UnknownHostException e) {
+        return URIBuilder.loopbackAddress().setScheme("http").setPort(app.port()).build();
+      } catch (URISyntaxException e) {
         fail("failed building url");
         throw new RuntimeException(e);
       }
