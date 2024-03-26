@@ -18,7 +18,6 @@ import com.meta.cp4m.store.ChatStore;
 import com.meta.cp4m.store.MemoryStoreConfig;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.net.URIBuilder;
@@ -75,12 +74,12 @@ public class ServiceTestHarness<T extends Message> {
 
   public URI webserverURI() {
     try {
-      return URIBuilder.localhost()
+      return URIBuilder.loopbackAddress()
           .appendPath(WEBSERVER_PATH)
           .setScheme("http")
           .setPort(webserverPort())
           .build();
-    } catch (URISyntaxException | UnknownHostException e) {
+    } catch (URISyntaxException e) {
       // this should be impossible
       throw new RuntimeException(e);
     }
@@ -88,12 +87,12 @@ public class ServiceTestHarness<T extends Message> {
 
   public URI serviceURI() {
     try {
-      return URIBuilder.localhost()
+      return URIBuilder.loopbackAddress()
           .appendPath(SERVICE_PATH)
           .setScheme("http")
           .setPort(servicePort())
           .build();
-    } catch (URISyntaxException | UnknownHostException e) {
+    } catch (URISyntaxException e) {
       // this should be impossible
       throw new RuntimeException(e);
     }

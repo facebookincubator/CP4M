@@ -101,7 +101,7 @@ public class OpenAIPluginTest {
     app.post(PATH, ctx -> ctx.result(MAPPER.writeValueAsString(SAMPLE_RESPONSE)));
     app.start(0);
     endpoint =
-        URIBuilder.localhost().setScheme("http").appendPath(PATH).setPort(app.port()).build();
+        URIBuilder.loopbackAddress().setScheme("http").appendPath(PATH).setPort(app.port()).build();
   }
 
   @ParameterizedTest
@@ -230,7 +230,11 @@ public class OpenAIPluginTest {
     BlockingQueue<OutboundRequest> metaRequests = new LinkedBlockingDeque<>();
     String metaPath = "/meta";
     URI messageReceiver =
-        URIBuilder.localhost().appendPath(metaPath).setScheme("http").setPort(app.port()).build();
+        URIBuilder.loopbackAddress()
+            .appendPath(metaPath)
+            .setScheme("http")
+            .setPort(app.port())
+            .build();
     app.post(
         metaPath,
         ctx ->
