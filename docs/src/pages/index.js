@@ -26,11 +26,11 @@ const features = [
     ),
   },
   {
-    title: 'Data Security by Design',
-    imageUrl: 'CP4M/img/data-security.jpeg',
+    title: 'Data Control',
+    imageUrl: 'CP4M/img/data-control.jpeg',
     description: (
       <>
-        Data never leaves your own infrastructure, so you don't need to worry about leakage risks.
+        You control your data in your own network, only interact with the services you approve.
       </>
     ),
   },
