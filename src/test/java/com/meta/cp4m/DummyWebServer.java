@@ -24,7 +24,7 @@ public class DummyWebServer implements AutoCloseable {
   private DummyWebServer() {
     this.javalin =
         Javalin.create()
-            .addHandler(
+            .addHttpHandler(
                 HandlerType.GET,
                 "/<path>",
                 ctx ->
@@ -35,7 +35,7 @@ public class DummyWebServer implements AutoCloseable {
                             ctx.contentType(),
                             ctx.headerMap(),
                             ctx.queryParamMap())))
-            .addHandler(
+            .addHttpHandler(
                 HandlerType.POST,
                 "/<path>",
                 ctx ->
@@ -75,7 +75,7 @@ public class DummyWebServer implements AutoCloseable {
 
   @Override
   public void close() {
-    javalin.close();
+    javalin.stop();
   }
 
   public record ReceivedRequest(

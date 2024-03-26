@@ -81,7 +81,7 @@ public class ServicesRunner implements AutoCloseable {
     }
     routeGroups.forEach(
         (routeGroup, routes) ->
-            app.addHandler(
+            app.addHttpHandler(
                 routeGroup.handlerType(),
                 routeGroup.path(),
                 ctx -> this.routeSelectorAndHandler(ctx, routes)));
@@ -125,6 +125,6 @@ public class ServicesRunner implements AutoCloseable {
 
   @Override
   public void close() {
-    app.close();
+    app.stop();
   }
 }

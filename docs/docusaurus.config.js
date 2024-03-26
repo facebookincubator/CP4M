@@ -11,20 +11,20 @@
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'My Site',
-  tagline: 'The tagline of my site',
-  favicon: 'img/favicon.ico',
+  title: 'Conversational Platform for Marketing (CP4M)',
+  tagline: 'Integrate your LLM bot with Whatsapp, Messenger, and IG Direct in under an hour!',
+  favicon: 'CP4M/img/cp4m_logo.png',
 
   // Set the production url of your site here
-  url: 'https://your-docusaurus-test-site.com',
+  url: 'https://facebookincubator.github.io/',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/',
+  baseUrl: '/CP4M/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
+  organizationName: 'facebookincubator', // Usually your GitHub org/user name.
+  projectName: 'CP4M', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -39,14 +39,14 @@ const config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+            'https://facebookincubator.github.io/CP4M/docs/intro/',
         },
         blog: {
           showReadingTime: true,
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+            'https://facebookincubator.github.io/CP4M/blog/',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -58,24 +58,24 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      image: 'img/docusaurus-social-card.jpg',
+      image: 'CP4M/img/cp4m_logo.png',
       navbar: {
-        title: 'My Meta Project',
+        title: 'CP4M',
         logo: {
-          alt: 'My Meta Project Logo',
-          src: 'img/logo.svg',
+          alt: 'CP4M Logo',
+          src: 'CP4M/img/cp4m_logo.png',
         },
         items: [
           {
             type: 'docSidebar',
             sidebarId: 'tutorialSidebar',
             position: 'left',
-            label: 'Tutorial',
+            label: 'Get Started',
           },
           {to: 'blog', label: 'Blog', position: 'left'},
           // Please keep GitHub link to the right for consistency.
           {
-            href: 'https://github.com/facebook/docusaurus',
+            href: 'https://github.com/facebookincubator/CP4M',
             label: 'GitHub',
             position: 'right',
           },
@@ -86,33 +86,6 @@ const config = {
         links: [
           {
             title: 'Learn',
-            items: [
-              {
-                label: 'Style Guide',
-                to: 'docs/',
-              },
-              {
-                label: 'Second Doc',
-                to: 'docs/doc2',
-              },
-            ],
-          },
-          {
-            title: 'Community',
-            items: [
-              {
-                label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-              },
-              {
-                label: 'Twitter',
-                href: 'https://twitter.com/docusaurus',
-              },
-              {
-                label: 'Discord',
-                href: 'https://discordapp.com/invite/docusaurus',
-              },
-            ],
           },
           {
             title: 'More',
@@ -123,7 +96,7 @@ const config = {
               },
               {
                 label: 'GitHub',
-                href: 'https://github.com/facebook/docusaurus',
+                href: 'https://github.com/facebookincubator/CP4M',
               },
             ],
           },
@@ -154,7 +127,7 @@ const config = {
           alt: 'Meta Open Source Logo',
           // This default includes a positive & negative version, allowing for
           // appropriate use depending on your site's style.
-          src: '/img/meta_opensource_logo_negative.svg',
+          src: 'CP4M/img/meta_opensource_logo_negative.svg',
           href: 'https://opensource.fb.com',
         },
         // Please do not remove the credits, help to publicize Docusaurus :)

@@ -72,7 +72,8 @@ public class ConfigParamTestSpec<T> {
     return required;
   }
 
-  public @NewInstance <H> ConfigParamTestSpec<T> validValues(H... validValues) {
+  @SafeVarargs
+  public final @NewInstance <H> ConfigParamTestSpec<T> validValues(final H... validValues) {
     Collection<JsonNode> newValidValues = new ArrayList<>(this.invalidValues);
     Arrays.stream(validValues).map(ConfigParamTestSpec::toJsonNode).forEach(newValidValues::add);
     return new ConfigParamTestSpec<>(
@@ -83,7 +84,8 @@ public class ConfigParamTestSpec<T> {
     return validValues;
   }
 
-  public @NewInstance <H> ConfigParamTestSpec<T> invalidValues(H... invalidValues) {
+  @SafeVarargs
+  public final @NewInstance <H> ConfigParamTestSpec<T> invalidValues(final H... invalidValues) {
     Collection<JsonNode> newInvalidValues = new ArrayList<>(this.invalidValues);
     Arrays.stream(invalidValues)
         .map(ConfigParamTestSpec::toJsonNode)
