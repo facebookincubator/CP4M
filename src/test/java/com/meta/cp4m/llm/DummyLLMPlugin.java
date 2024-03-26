@@ -44,8 +44,9 @@ public class DummyLLMPlugin<T extends Message> implements LLMPlugin<T> {
   }
 
   @Override
-  public T handle(ThreadState<T> threadState) {
+  public ThreadState<T> handle(ThreadState<T> threadState) {
     receivedThreadStates.add(threadState);
-    return threadState.newMessageFromBot(Instant.now(), dummyLLMResponse);
+    T message = threadState.newMessageFromBot(Instant.now(), dummyLLMResponse);
+    return threadState.with(message);
   }
 }

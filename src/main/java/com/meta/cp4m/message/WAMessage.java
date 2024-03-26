@@ -9,8 +9,6 @@
 package com.meta.cp4m.message;
 
 import com.meta.cp4m.Identifier;
-import org.checkerframework.checker.lock.qual.NewObject;
-
 import java.time.Instant;
 
 public record WAMessage(

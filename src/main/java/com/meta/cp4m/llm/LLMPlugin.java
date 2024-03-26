@@ -14,5 +14,5 @@ import java.io.IOException;
 
 public interface LLMPlugin<T extends Message> {
 
-  T handle(ThreadState<T> threadState) throws IOException;
+  ThreadState<T> handle(ThreadState<T> threadState) throws IOException;
 }

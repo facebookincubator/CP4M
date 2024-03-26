@@ -37,7 +37,7 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
   }
 
   @Override
-  public T handle(ThreadState<T> threadState) throws IOException {
+  public ThreadState<T> handle(ThreadState<T> threadState) throws IOException {
     ObjectNode body = MAPPER.createObjectNode();
     ObjectNode params = MAPPER.createObjectNode();
 
@@ -49,7 +49,7 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
 
     Optional<String> prompt = promptCreator.createPrompt(threadState);
     if (prompt.isEmpty()) {
-      return threadState.newMessageFromBot(
+      return threadState.withNewMessageFromBot(
           Instant.now(), "I'm sorry but that request was too long for me.");
     }
 
@@ -72,6 +72,6 @@ public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
     String llmResponse = allGeneratedText.strip().replace(prompt.get().strip(), "");
     Instant timestamp = Instant.now();
 
-    return threadState.newMessageFromBot(timestamp, llmResponse);
+    return threadState.withNewMessageFromBot(timestamp, llmResponse);
   }
 }

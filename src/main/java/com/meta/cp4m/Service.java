@@ -70,16 +70,16 @@ public class Service<T extends Message> {
   }
 
   private void execute(ThreadState<T> thread) {
-    T llmResponse;
+    ThreadState<T> updatedThread;
     try {
-      llmResponse = llmPlugin.handle(thread);
+      updatedThread = llmPlugin.handle(thread);
     } catch (IOException e) {
       LOGGER.error("failed to communicate with LLM", e);
       return;
     }
-    store.add(thread,llmResponse);
+    store.add(updatedThread);
     try {
-      handler.respond(llmResponse);
+      handler.respond(updatedThread.tail());
     } catch (Exception e) {
       // we log in the handler where we have the body context
       // TODO: create transactional store add

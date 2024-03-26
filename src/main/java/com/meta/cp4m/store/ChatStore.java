@@ -8,7 +8,6 @@
 
 package com.meta.cp4m.store;
 
-import com.meta.cp4m.Identifier;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.ThreadState;
 import java.util.List;
@@ -26,7 +25,7 @@ public interface ChatStore<T extends Message> {
 
   ThreadState<T> add(T message);
 
-  ThreadState<T> add(ThreadState<T> thread,T message);
+  ThreadState<T> add(ThreadState<T> thread);
 
   long size();
 

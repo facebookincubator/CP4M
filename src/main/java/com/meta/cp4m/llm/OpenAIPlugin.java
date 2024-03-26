@@ -126,7 +126,7 @@ public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
   }
 
   @Override
-  public T handle(ThreadState<T> threadState) throws IOException {
+  public ThreadState<T> handle(ThreadState<T> threadState) throws IOException {
     T fromUser = threadState.tail();
 
     ObjectNode body = MAPPER.createObjectNode();
@@ -161,7 +161,7 @@ public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
 
     Optional<ArrayNode> prunedMessages = pruneMessages(messages, null);
     if (prunedMessages.isEmpty()) {
-      return threadState.newMessageFromBot(
+      return threadState.withNewMessageFromBot(
           Instant.now(), "I'm sorry but that request was too long for me.");
     }
     body.set("messages", prunedMessages.get());
@@ -182,6 +182,6 @@ public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
     Instant timestamp = Instant.ofEpochSecond(responseBody.get("created").longValue());
     JsonNode choice = responseBody.get("choices").get(0);
     String messageContent = choice.get("message").get("content").textValue();
-    return threadState.newMessageFromBot(timestamp, messageContent);
+    return threadState.withNewMessageFromBot(timestamp, messageContent);
   }
 }
