@@ -104,7 +104,7 @@ handler = "whatsapp_test"
 
 
 
-For help finding tokens & secrets for your app in the handlers section, please go to the relevant messaging page in [Messaging Integrations](./category/messaging-integrations). For help finding the api_key for your LLM plugin, please go to the relevant LLM page in [LLM Connections](./category/connecting-your-llm).
+For help finding tokens & secrets for your app in the handlers section, please go to the relevant messaging page in [Messaging Integrations](./category/messaging-integrations). For help finding the api_key for your LLM plugin, please go to the relevant LLM page in [LLM Connections](./category/llm-connections).
 
 If there is another LLM plugin not listed above that you would like to use, please contact cp4m@meta.com.
 
