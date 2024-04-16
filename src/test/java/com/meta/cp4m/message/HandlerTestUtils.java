@@ -14,7 +14,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meta.cp4m.Identifier;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.util.function.Function;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
@@ -31,20 +30,23 @@ public final class HandlerTestUtils {
   public static Function<Identifier, URI> baseURLFactory(String path, int port) {
     return identifier -> {
       try {
-        return URIBuilder.localhost().setPort(port).appendPath(path).setScheme("http").build();
-      } catch (UnknownHostException | URISyntaxException e) {
+        return URIBuilder.loopbackAddress()
+            .setPort(port)
+            .appendPath(path)
+            .setScheme("http")
+            .build();
+      } catch (URISyntaxException e) {
         throw new RuntimeException(e);
       }
     };
   }
 
   public static Function<JsonNode, Request> MessageRequestFactory(
-      Method method, String path, String appSecret, int port)
-      throws UnknownHostException, URISyntaxException {
+      Method method, String path, String appSecret, int port) throws URISyntaxException {
     Request request =
         Request.create(
             method,
-            URIBuilder.localhost().setScheme("http").appendPath(path).setPort(port).build());
+            URIBuilder.loopbackAddress().setScheme("http").appendPath(path).setPort(port).build());
     return jn -> {
       try {
         String body = MAPPER.writeValueAsString(jn);
