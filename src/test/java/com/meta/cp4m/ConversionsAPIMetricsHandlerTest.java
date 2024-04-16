@@ -23,7 +23,7 @@ import uk.org.webcompere.systemstubs.jupiter.SystemStub;
 import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
 @ExtendWith(SystemStubsExtension.class)
-class MainTest {
+class ConversionsAPIMetricsHandlerTest {
   private static final TomlMapper TOML_MAPPER = ConfigurationUtils.tomlMapper();
   private static final JsonMapper JSON_MAPPER = ConfigurationUtils.jsonMapper();
   private static final String TOML =
