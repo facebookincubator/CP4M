@@ -12,9 +12,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.toml.TomlMapper;
 import com.meta.cp4m.configuration.ConfigurationUtils;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
@@ -22,8 +19,12 @@ import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import uk.org.webcompere.systemstubs.jupiter.SystemStub;
 import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 @ExtendWith(SystemStubsExtension.class)
-class ConversionsAPIMetricsHandlerTest {
+class MainTest {
   private static final TomlMapper TOML_MAPPER = ConfigurationUtils.tomlMapper();
   private static final JsonMapper JSON_MAPPER = ConfigurationUtils.jsonMapper();
   private static final String TOML =
