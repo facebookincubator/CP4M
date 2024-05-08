@@ -30,7 +30,7 @@ public class ServiceConfiguration {
         "webhook_path must be present and it must start with a forward slash (/)");
     this.webhookPath = webhookPath;
     this.handler = Objects.requireNonNull(handler, "handler must be present");
-    this.store = Objects.requireNonNull(store, "store must be present");
+    this.store = store;
     this.plugin = Objects.requireNonNull(plugin, "plugin must be present");
   }
 
