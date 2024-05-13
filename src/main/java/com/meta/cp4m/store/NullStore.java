@@ -19,7 +19,7 @@ public class NullStore<T extends Message> implements ChatStore<T> {
 
     @Override
     public ThreadState<T> add(T message) {
-        return null;
+        return ThreadState.of(message);
     }
 
     @Override

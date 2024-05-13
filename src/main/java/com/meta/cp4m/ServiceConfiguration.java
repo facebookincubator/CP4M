@@ -11,19 +11,20 @@ package com.meta.cp4m;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.Objects;
 
 public class ServiceConfiguration {
   private final String webhookPath;
   private final String handler;
-  private final String store;
+  private final @Nullable String store;
   private final String plugin;
 
   @JsonCreator
   ServiceConfiguration(
       @JsonProperty("webhook_path") String webhookPath,
       @JsonProperty("handler") String handler,
-      @JsonProperty("store") String store,
+      @JsonProperty("store") @Nullable String store,
       @JsonProperty("plugin") String plugin) {
     Preconditions.checkArgument(
         webhookPath != null && webhookPath.startsWith("/"),
@@ -42,6 +43,7 @@ public class ServiceConfiguration {
     return handler;
   }
 
+  @Nullable
   public String store() {
     return store;
   }

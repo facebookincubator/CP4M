@@ -77,6 +77,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   }
 
   private List<WAMessage> post(Context ctx, WebhookPayload payload) {
+    System.out.println("Alert:: messages exchanged");
     List<WAMessage> waMessages = new ArrayList<>();
     payload.entry().stream()
         .flatMap(e -> e.changes().stream())

@@ -20,17 +20,16 @@ import com.meta.cp4m.message.HandlerConfig;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.MessageHandler;
 import com.meta.cp4m.store.ChatStore;
+import com.meta.cp4m.store.NullStore;
 import com.meta.cp4m.store.StoreConfig;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class RootConfiguration {
   private final Map<String, LLMConfig> plugins;
-  private final Map<String, StoreConfig> stores;
+  private final @Nullable Map<String, StoreConfig> stores;
   private final Map<String, HandlerConfig> handlers;
   private final Collection<ServiceConfiguration> services;
 
@@ -39,7 +38,7 @@ public class RootConfiguration {
   @JsonCreator
   RootConfiguration(
       @JsonProperty("plugins") Collection<LLMConfig> plugins,
-      @JsonProperty("stores") Collection<StoreConfig> stores,
+      @JsonProperty("stores") @Nullable Collection<StoreConfig> stores,
       @JsonProperty("handlers") Collection<HandlerConfig> handlers,
       @JsonProperty("services") Collection<ServiceConfiguration> services,
       @JsonProperty("port") @Nullable Integer port) {
@@ -49,8 +48,8 @@ public class RootConfiguration {
 
     Preconditions.checkArgument(
         plugins != null && !plugins.isEmpty(), "At least one plugin must defined");
-//    Preconditions.checkArgument(
-//        stores != null && !stores.isEmpty(), "at least one store must be defined");
+    Preconditions.checkArgument(
+        stores != null && !stores.isEmpty(), "at least one store must be defined");
     Preconditions.checkArgument(
         handlers != null && !handlers.isEmpty(), "at least one handler must be defined");
     Preconditions.checkArgument(
@@ -64,21 +63,15 @@ public class RootConfiguration {
         plugins.stream()
             .collect(Collectors.toUnmodifiableMap(LLMConfig::name, Function.identity()));
 
-//    Preconditions.checkArgument(
-//        stores.size()
-//            == stores.stream()
-//                .map(StoreConfig::name)
-//                .collect(Collectors.toUnmodifiableSet())
-//                .size(),
-//        "all store names must be unique");
-    if (stores == null) {
-      this.stores = null;
-    } else {
-      this.stores =
-              stores.stream()
-                      .collect(Collectors.toUnmodifiableMap(StoreConfig::name, Function.identity()));
-    }
 
+    Preconditions.checkArgument(stores.size() == stores.stream()
+                    .map(StoreConfig::name)
+                    .collect(Collectors.toUnmodifiableSet())
+                    .size(),
+            "all store names must be unique");
+    this.stores =
+            stores.stream()
+                    .collect(Collectors.toUnmodifiableMap(StoreConfig::name, Function.identity()));
 
     Preconditions.checkArgument(
         handlers.size()
@@ -94,8 +87,8 @@ public class RootConfiguration {
     for (ServiceConfiguration s : services) {
       Preconditions.checkArgument(
           this.plugins.containsKey(s.plugin()), s.plugin() + " must be the name of a plugin");
-//      Preconditions.checkArgument(
-//          this.stores.containsKey(s.store()), s.store() + " must be the name of a store");
+      Preconditions.checkArgument(
+          s.store() == null || this.stores.containsKey(s.store()), s.store() + " must be the name of a store");
       Preconditions.checkArgument(
           this.handlers.containsKey(s.handler()), s.handler() + " must be the name of a handler");
     }
@@ -125,9 +118,12 @@ public class RootConfiguration {
   private <T extends Message> Service<T> createService(
       MessageHandler<T> handler, ServiceConfiguration serviceConfig) {
     LLMPlugin<T> plugin = plugins.get(serviceConfig.plugin()).toPlugin();
-    ChatStore<T> store = null;
-    if(stores != null){
+
+    ChatStore<T> store;
+    if(serviceConfig.store() != null){
       store = stores.get(serviceConfig.store()).toStore();
+    } else {
+      store = new NullStore<T>();
     }
     return new Service<>(store, handler, plugin, serviceConfig.webhookPath());
   }

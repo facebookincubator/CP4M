@@ -37,7 +37,7 @@ public class Service<T extends Message> {
   public Service(
       ChatStore<T> store, MessageHandler<T> handler, LLMPlugin<T> llmPlugin, String path) {
     this.handler = Objects.requireNonNull(handler);
-    this.store = store;
+    this.store = Objects.requireNonNull(store);
     this.llmPlugin = llmPlugin;
     this.path = path;
   }
