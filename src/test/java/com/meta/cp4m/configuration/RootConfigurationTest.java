@@ -91,6 +91,36 @@ store = "memory_test"
 handler = "whatsapp_test"
 """;
 
+  private static final String TOML_WA_NULL_STORE =
+          """
+    port = 8081
+    
+    [[plugins]]
+    name = "openai_test"
+    type = "openai"
+    model = "gpt-3.5-turbo"
+    api_key = "abc123"
+    
+    [[stores]]
+    name = "memory_test"
+    type = "memory"
+    storage_duration_hours = 1
+    storage_capacity_mbs = 1
+    
+    [[handlers]]
+    type = "whatsapp"
+    name = "whatsapp_test"
+    verify_token = "imgibberish"
+    app_secret = "imnotasecret"
+    access_token = "imnotasecreteither"
+    
+    [[services]]
+    webhook_path = "/whatsapp"
+    plugin = "openai_test"
+    handler = "whatsapp_test"
+    """;
+
+
   private static final String TOML_M_HF =
       """
 port = 8081
@@ -222,6 +252,26 @@ handler = "messenger_test"
     ServiceConfiguration serviceConfiguration = config.services().stream().findAny().orElseThrow();
     assertThat(serviceConfiguration.webhookPath()).isEqualTo("/whatsapp");
     assertThat(serviceConfiguration.store()).isEqualTo("memory_test");
+    assertThat(serviceConfiguration.plugin()).isEqualTo("openai_test");
+    assertThat(serviceConfiguration.handler()).isEqualTo("whatsapp_test");
+
+    assertThat(config.port()).isEqualTo(8081);
+    config.toServicesRunner();
+  }
+
+  @Test
+  void validWA_null_store(@TempDir Path dir) throws IOException {
+    Path configFile = dir.resolve("config.toml");
+    Files.writeString(configFile, TOML_WA_NULL_STORE);
+    RootConfiguration config =
+            ConfigurationUtils.tomlMapper().readValue(configFile.toFile(), RootConfiguration.class);
+
+    assertThat(config.services())
+            .hasSize(1)
+            .allSatisfy(s -> assertThat(s).isInstanceOf(ServiceConfiguration.class));
+    ServiceConfiguration serviceConfiguration = config.services().stream().findAny().orElseThrow();
+    assertThat(serviceConfiguration.webhookPath()).isEqualTo("/whatsapp");
+    assertThat(serviceConfiguration.store()).isNull();
     assertThat(serviceConfiguration.plugin()).isEqualTo("openai_test");
     assertThat(serviceConfiguration.handler()).isEqualTo("whatsapp_test");
 
