@@ -66,9 +66,9 @@ public class RootConfiguration {
             .collect(Collectors.toUnmodifiableMap(LLMConfig::name, Function.identity()));
 
     Preconditions.checkArgument(stores.size() == stores.stream()
-                .map(StoreConfig::name)
-                .collect(Collectors.toUnmodifiableSet())
-                .size(),
+        .map(StoreConfig::name)
+        .collect(Collectors.toUnmodifiableSet())
+        .size(),
         "all store names must be unique");
     this.stores =
             stores.stream()
@@ -89,7 +89,7 @@ public class RootConfiguration {
       Preconditions.checkArgument(
           this.plugins.containsKey(s.plugin()), s.plugin() + " must be the name of a plugin");
       Preconditions.checkArgument( s.store() == null || this.stores.containsKey(s.store()),
-              s.store() + " must be the name of a store");
+            s.store() + " must be the name of a store");
       Preconditions.checkArgument(
           this.handlers.containsKey(s.handler()), s.handler() + " must be the name of a handler");
     }
