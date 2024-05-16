@@ -53,6 +53,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   private final String appSecret;
   private final String verifyToken;
   private final String accessToken;
+  private final String appSecretProof;
 
   private Function<Identifier, URI> baseURLFactory =
       phoneNumberId -> {
@@ -74,6 +75,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     this.verifyToken = config.verifyToken();
     this.accessToken = config.accessToken();
     this.appSecret = config.appSecret();
+    this.appSecretProof = MetaHandlerUtils.hmac(accessToken, appSecret);
   }
 
   private List<WAMessage> post(Context ctx, WebhookPayload payload) {
@@ -136,6 +138,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     bodyString = MAPPER.writeValueAsString(body);
     Request.post(baseURLFactory.apply(sender))
         .setHeader("Authorization", "Bearer " + accessToken)
+        .setHeader("appsecret_proof", appSecretProof)
         .bodyString(bodyString, ContentType.APPLICATION_JSON)
         .execute();
   }
@@ -183,6 +186,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     try {
       Request.post(baseURLFactory.apply(phoneNumberId))
           .setHeader("Authorization", "Bearer " + accessToken)
+          .setHeader("appsecret_proof", appSecretProof)
           .bodyString(bodyString, ContentType.APPLICATION_JSON)
           .execute();
     } catch (IOException e) {
