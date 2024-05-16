@@ -44,6 +44,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
   private final String appSecret;
 
   private final String accessToken;
+  private final String appSecretProof;
   private final @Nullable String connectedFacebookPageForInstagram;
 
   private final Deduplicator<Identifier> messageDeduplicator = new Deduplicator<>(10_000);
@@ -72,6 +73,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     this.appSecret = appSecret;
     this.accessToken = pageAccessToken;
     this.connectedFacebookPageForInstagram = connectedFacebookPageForInstagram;
+    this.appSecretProof = MetaHandlerUtils.hmac(accessToken, appSecret);
   }
 
   public FBMessageHandler(String verifyToken, String pageAccessToken, String appSecret) {
@@ -79,12 +81,14 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     this.appSecret = appSecret;
     this.accessToken = pageAccessToken;
     this.connectedFacebookPageForInstagram = null;
+    this.appSecretProof = MetaHandlerUtils.hmac(accessToken, appSecret);
   }
 
   FBMessageHandler(FBMessengerConfig config) {
     this.verifyToken = config.verifyToken();
     this.appSecret = config.appSecret();
     this.accessToken = config.pageAccessToken();
+    this.appSecretProof = MetaHandlerUtils.hmac(accessToken, appSecret);
     this.connectedFacebookPageForInstagram =
         config.connectedFacebookPageForInstagram().isPresent()
             ? config.connectedFacebookPageForInstagram().get()
@@ -184,6 +188,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
                           ? sender
                           : Identifier.from(connectedFacebookPageForInstagram)))
               .addParameter("access_token", accessToken)
+              .addParameter("appsecret_proof", appSecretProof)
               .build();
     } catch (JsonProcessingException | URISyntaxException e) {
       // should be impossible
