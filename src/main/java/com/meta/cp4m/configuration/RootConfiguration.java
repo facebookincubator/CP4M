@@ -20,6 +20,7 @@ import com.meta.cp4m.message.HandlerConfig;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.MessageHandler;
 import com.meta.cp4m.store.ChatStore;
+import com.meta.cp4m.store.NullStore;
 import com.meta.cp4m.store.StoreConfig;
 import java.util.Collection;
 import java.util.Collections;
@@ -64,16 +65,14 @@ public class RootConfiguration {
         plugins.stream()
             .collect(Collectors.toUnmodifiableMap(LLMConfig::name, Function.identity()));
 
-    Preconditions.checkArgument(
-        stores.size()
-            == stores.stream()
-                .map(StoreConfig::name)
-                .collect(Collectors.toUnmodifiableSet())
-                .size(),
+    Preconditions.checkArgument(stores.size() == stores.stream()
+        .map(StoreConfig::name)
+        .collect(Collectors.toUnmodifiableSet())
+        .size(),
         "all store names must be unique");
     this.stores =
-        stores.stream()
-            .collect(Collectors.toUnmodifiableMap(StoreConfig::name, Function.identity()));
+            stores.stream()
+                    .collect(Collectors.toUnmodifiableMap(StoreConfig::name, Function.identity()));
 
     Preconditions.checkArgument(
         handlers.size()
@@ -89,8 +88,8 @@ public class RootConfiguration {
     for (ServiceConfiguration s : services) {
       Preconditions.checkArgument(
           this.plugins.containsKey(s.plugin()), s.plugin() + " must be the name of a plugin");
-      Preconditions.checkArgument(
-          this.stores.containsKey(s.store()), s.store() + " must be the name of a store");
+      Preconditions.checkArgument( s.store() == null || this.stores.containsKey(s.store()),
+            s.store() + " must be the name of a store");
       Preconditions.checkArgument(
           this.handlers.containsKey(s.handler()), s.handler() + " must be the name of a handler");
     }
@@ -118,9 +117,14 @@ public class RootConfiguration {
   }
 
   private <T extends Message> Service<T> createService(
-      MessageHandler<T> handler, ServiceConfiguration serviceConfig) {
+          MessageHandler<T> handler, ServiceConfiguration serviceConfig) {
     LLMPlugin<T> plugin = plugins.get(serviceConfig.plugin()).toPlugin();
-    ChatStore<T> store = stores.get(serviceConfig.store()).toStore();
+    ChatStore<T> store;
+    if(serviceConfig.store() != null){
+      store = stores.get(serviceConfig.store()).toStore();
+    } else {
+      store = new NullStore<T>();
+    }
     return new Service<>(store, handler, plugin, serviceConfig.webhookPath());
   }
 
