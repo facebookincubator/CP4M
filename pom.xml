@@ -22,7 +22,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jacksonVersion>2.15.2</jacksonVersion>
         <junit5Version>5.10.0</junit5Version>
-        <log4j2Version>2.20.0</log4j2Version>
+        <log4j2Version>2.23.1</log4j2Version>
         <systemStubsVersion>2.1.1</systemStubsVersion>
         <custom.jarName>${project.artifactId}-${project.version}</custom.jarName>
     </properties>
@@ -132,7 +132,6 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <minimizeJar>true</minimizeJar>
                             <transformers>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
