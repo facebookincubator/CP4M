@@ -8,14 +8,105 @@
 
 package com.meta.cp4m.message;
 
+import com.google.common.base.Preconditions;
 import com.meta.cp4m.Identifier;
+import com.meta.cp4m.message.Payload.Text;
 import java.time.Instant;
+import java.util.Objects;
 
-public record WAMessage(
-    Instant timestamp,
-    Identifier instanceId,
-    Identifier senderId,
-    Identifier recipientId,
-    String message,
-    Role role)
-    implements Message {}
+public final class WAMessage implements Message {
+  private final Instant timestamp;
+  private final Identifier instanceId;
+  private final Identifier senderId;
+  private final Identifier recipientId;
+
+  private final Payload<?> payload;
+  private final Role role;
+
+  public WAMessage(
+      Instant timestamp,
+      Identifier instanceId,
+      Identifier senderId,
+      Identifier recipientId,
+      String message,
+      Role role) {
+    this.timestamp = timestamp;
+    this.instanceId = instanceId;
+    this.senderId = senderId;
+    this.recipientId = recipientId;
+    this.payload = new Text(message);
+    this.role = role;
+  }
+
+  @Override
+  public Instant timestamp() {
+    return timestamp;
+  }
+
+  @Override
+  public Identifier instanceId() {
+    return instanceId;
+  }
+
+  @Override
+  public Identifier senderId() {
+    return senderId;
+  }
+
+  @Override
+  public Identifier recipientId() {
+    return recipientId;
+  }
+
+  @Override
+  public String message() {
+    Preconditions.checkState(payload instanceof Text);
+    return ((Text) payload).value();
+  }
+
+  @Override
+  public Payload<?> payload() {
+    return payload;
+  }
+
+  @Override
+  public Role role() {
+    return role;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    WAMessage waMessage = (WAMessage) o;
+    return Objects.equals(timestamp, waMessage.timestamp)
+        && Objects.equals(instanceId, waMessage.instanceId)
+        && Objects.equals(senderId, waMessage.senderId)
+        && Objects.equals(recipientId, waMessage.recipientId)
+        && Objects.equals(payload, waMessage.payload)
+        && role == waMessage.role;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(timestamp, instanceId, senderId, recipientId, payload, role);
+  }
+
+  @Override
+  public String toString() {
+    return "WAMessage{"
+        + "timestamp="
+        + timestamp
+        + ", instanceId="
+        + instanceId
+        + ", senderId="
+        + senderId
+        + ", recipientId="
+        + recipientId
+        + ", payload="
+        + payload
+        + ", role="
+        + role
+        + '}';
+  }
+}

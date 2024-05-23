@@ -30,6 +30,8 @@ public interface Message {
 
   String message();
 
+  Payload<?> payload();
+
   Role role();
 
   default Identifier threadId() {
