@@ -38,7 +38,6 @@ public interface Message {
 
   enum Role {
     ASSISTANT,
-    USER,
-    SYSTEM
+    USER
   }
 }

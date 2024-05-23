@@ -153,40 +153,4 @@ class ThreadStateTest {
     assertThatThrownBy(() -> finalMs1.with(illegalRecipientId))
         .isInstanceOf(IllegalArgumentException.class);
   }
-
-  @Test
-  void systemMessageForbidden() {
-    assertThatThrownBy(
-            () ->
-                ThreadState.of(
-                    FACTORY.newMessage(
-                        Instant.now(),
-                        "",
-                        Identifier.random(),
-                        Identifier.random(),
-                        Identifier.random(),
-                        Message.Role.SYSTEM)))
-        .isInstanceOf(IllegalArgumentException.class);
-
-    ThreadState<FBMessage> threadState =
-        ThreadState.of(
-            FACTORY.newMessage(
-                Instant.now(),
-                "",
-                Identifier.random(),
-                Identifier.random(),
-                Identifier.random(),
-                Message.Role.USER));
-    assertThatThrownBy(
-            () ->
-                threadState.with(
-                    FACTORY.newMessage(
-                        Instant.now(),
-                        "",
-                        Identifier.random(),
-                        Identifier.random(),
-                        Identifier.random(),
-                        Message.Role.SYSTEM)))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
 }

@@ -23,8 +23,6 @@ public class ThreadState<T extends Message> {
 
   private ThreadState(T message) {
     Objects.requireNonNull(message);
-    Preconditions.checkArgument(
-        message.role() != Role.SYSTEM, "ThreadState should never hold a system message");
     this.messages = ImmutableList.of(message);
     messageFactory = MessageFactory.instance(message);
   }
@@ -32,8 +30,6 @@ public class ThreadState<T extends Message> {
   /** Constructor that exists to support the with method */
   private ThreadState(ThreadState<T> old, T newMessage) {
     Objects.requireNonNull(newMessage);
-    Preconditions.checkArgument(
-        newMessage.role() != Role.SYSTEM, "ThreadState should never hold a system message");
     messageFactory = old.messageFactory;
     Preconditions.checkArgument(
         old.tail().threadId().equals(newMessage.threadId()),
@@ -62,8 +58,6 @@ public class ThreadState<T extends Message> {
     return switch (message.role()) {
       case ASSISTANT -> message.recipientId();
       case USER -> message.senderId();
-      case SYSTEM -> throw new IllegalStateException(
-          "ThreadState should never hold a SYSTEM message");
     };
   }
 
@@ -72,8 +66,6 @@ public class ThreadState<T extends Message> {
     return switch (message.role()) {
       case ASSISTANT -> message.senderId();
       case USER -> message.recipientId();
-      case SYSTEM -> throw new IllegalStateException(
-          "ThreadState should never hold a SYSTEM message");
     };
   }
 

@@ -154,8 +154,7 @@ public class OpenAIPluginTest {
       assertThat(body.get("messages"))
           .satisfiesOnlyOnce(
               m -> {
-                assertThat(m.get("role").textValue())
-                    .isEqualTo(Role.SYSTEM.toString().toLowerCase());
+                assertThat(m.get("role").textValue()).isEqualTo("system");
                 assertThat(m.get("content").textValue())
                     .isEqualTo(configItem.validValue().textValue());
               });

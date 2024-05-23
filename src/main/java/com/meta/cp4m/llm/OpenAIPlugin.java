@@ -16,7 +16,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.meta.cp4m.message.Message;
-import com.meta.cp4m.message.Message.Role;
 import com.meta.cp4m.message.ThreadState;
 import java.io.IOException;
 import java.net.URI;
@@ -148,10 +147,7 @@ public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
     }
 
     ArrayNode messages = MAPPER.createArrayNode();
-    messages
-        .addObject()
-        .put("role", Role.SYSTEM.toString().toLowerCase())
-        .put("content", config.systemMessage());
+    messages.addObject().put("role", "system").put("content", config.systemMessage());
     for (T message : threadState.messages()) {
       messages
           .addObject()
