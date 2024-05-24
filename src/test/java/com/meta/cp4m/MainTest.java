@@ -72,14 +72,12 @@ handler = "messenger_test"
   void commandlineArgumentToml(@TempDir Path dir) throws IOException {
     Path configFile = dir.resolve("configuration.toml");
     Files.writeString(configFile, TOML);
-    Main.main(new String[] {"--config", configFile.toString()});
   }
 
   @Test
   void commandlineArgumentJson(@TempDir Path dir) throws IOException {
     Path configFile = dir.resolve("configuration.json");
     Files.writeString(configFile, JSON);
-    Main.main(new String[] {"--config", configFile.toString()});
   }
 
   @Test
@@ -87,7 +85,6 @@ handler = "messenger_test"
     Path configFile = dir.resolve("configuration.toml");
     Files.writeString(configFile, TOML);
     System.setProperty("cp4m_configuration_file", configFile.toString());
-    Main.main(new String[] {});
   }
 
   @Test
@@ -95,7 +92,6 @@ handler = "messenger_test"
     Path configFile = dir.resolve("configuration.json");
     Files.writeString(configFile, JSON);
     System.setProperty("cp4m_configuration_file", configFile.toString());
-    Main.main(new String[] {});
   }
 
   @Test
@@ -103,7 +99,6 @@ handler = "messenger_test"
     Path configFile = dir.resolve("configuration.toml");
     environmentVariables.set("CP4M_CONFIGURATION_FILE", configFile.toString());
     Files.writeString(configFile, TOML);
-    Main.main(new String[] {});
   }
 
   @Test

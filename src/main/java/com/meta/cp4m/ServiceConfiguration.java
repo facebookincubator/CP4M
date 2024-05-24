@@ -19,13 +19,16 @@ public class ServiceConfiguration {
   private final String handler;
   private final @Nullable String store;
   private final String plugin;
+  private final @Nullable String awsS3;
 
   @JsonCreator
   ServiceConfiguration(
       @JsonProperty("webhook_path") String webhookPath,
       @JsonProperty("handler") String handler,
       @JsonProperty("store") @Nullable String store,
-      @JsonProperty("plugin") String plugin) {
+      @JsonProperty("plugin") String plugin,
+      @JsonProperty("aws_s3") String awsS3)
+  {
     Preconditions.checkArgument(
         webhookPath != null && webhookPath.startsWith("/"),
         "webhook_path must be present and it must start with a forward slash (/)");
@@ -33,6 +36,7 @@ public class ServiceConfiguration {
     this.handler = Objects.requireNonNull(handler, "handler must be present");
     this.store = store;
     this.plugin = Objects.requireNonNull(plugin, "plugin must be present");
+    this.awsS3 = awsS3;
   }
 
   public String webhookPath() {
@@ -51,4 +55,8 @@ public class ServiceConfiguration {
   public String plugin() {
     return plugin;
   }
+
+  // TODO: optional; if we want to add awss3 as a service
+  @Nullable
+  public String awsS3() {return awsS3;}
 }
