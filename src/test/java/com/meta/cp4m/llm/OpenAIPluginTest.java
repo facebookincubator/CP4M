@@ -116,7 +116,7 @@ public class OpenAIPluginTest {
                     Identifier.random(),
                     THREAD.tail().senderId(),
                     THREAD.tail().recipientId(),
-                    new Payload.Image(new byte[0], "image/gif"),
+                    new Payload.Image(new byte[0], "image/jpeg"),
                     Role.USER))
             .with(
                 new FBMessage(
@@ -127,7 +127,7 @@ public class OpenAIPluginTest {
                     new Payload.Document(new byte[0], "application/pdf"),
                     Role.USER));
 
-    FBMessage message = plugin.handle(THREAD);
+    FBMessage message = plugin.handle(thread);
     assertThat(message.message()).isEqualTo(TEST_MESSAGE);
     assertThat(message.role()).isSameAs(Role.ASSISTANT);
     @Nullable OutboundRequest or = openAIRequests.poll(500, TimeUnit.MILLISECONDS);

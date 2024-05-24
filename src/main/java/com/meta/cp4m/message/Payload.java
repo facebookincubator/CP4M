@@ -47,18 +47,12 @@ public interface Payload<T> {
 
   final class Image implements Payload<byte[]> {
     //    mime types and corresponding extensions derived from
-    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
+    // https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media#image
 
     private static final Map<String, String> MIME_TO_EXTENSION =
         ImmutableMap.<String, String>builder()
-            .put("image/apng", "apng")
-            .put("image/avif", "avif")
-            .put("image/bmp", "bmp")
-            .put("image/gif", "gif")
             .put("image/jpeg", "jpeg")
             .put("image/png", "png")
-            .put("image/svg+xml", "svg")
-            .put("image/tiff", "tiff")
             .put("image/webp", "webp")
             .build();
 
@@ -106,14 +100,18 @@ public interface Payload<T> {
   }
 
   final class Document implements Payload<byte[]> {
+    // https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media#document
     private static final Map<String, String> MIME_TO_EXTENSION =
         ImmutableMap.<String, String>builder()
-            .put("application/pdf", "pdf")
             .put("text/plain", "txt")
-            .put("application/octet-stream", "bin")
-            .put("application/gzip", "gzip")
-            .put("application/x-tar", "tar")
-            .put("application/zip", "zip")
+            .put("application/vnd.ms-excel", "xls")
+            .put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx")
+            .put("application/msword", "doc")
+            .put("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx")
+            .put("application/vnd.ms-powerpoint", "ppt")
+            .put(
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation", "pptx")
+            .put("application/pdf", "pdf")
             .build();
 
     private final String mimeType;
