@@ -28,7 +28,6 @@ import io.javalin.Javalin;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -84,7 +83,7 @@ public class HuggingFaceLlamaPluginTest {
   }
 
   @BeforeEach
-  void setUp() throws UnknownHostException, URISyntaxException {
+  void setUp() throws URISyntaxException {
     HuggingFaceLlamaRequests = new LinkedBlockingDeque<>();
     app = Javalin.create();
     app.before(
@@ -114,6 +113,40 @@ public class HuggingFaceLlamaPluginTest {
   }
 
   @Test
+  void nonTextMessage() throws IOException, InterruptedException {
+    String apiKey = UUID.randomUUID().toString();
+    HuggingFaceConfig config =
+        HuggingFaceConfig.builder(apiKey).endpoint(endpoint.toString()).tokenLimit(100).build();
+    HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
+    FBMessage imageMessage =
+        new FBMessage(
+            Instant.now(),
+            Identifier.random(),
+            STACK.tail().senderId(),
+            STACK.tail().recipientId(),
+            new Payload.Image(new byte[0], "image/webp"),
+            Role.USER);
+
+    FBMessage docMessage =
+        new FBMessage(
+            Instant.now(),
+            Identifier.random(),
+            STACK.tail().senderId(),
+            STACK.tail().recipientId(),
+            new Payload.Document(new byte[0], "application/pdf"),
+            Role.USER);
+    FBMessage message = plugin.handle(STACK.with(imageMessage).with(docMessage));
+    assertThat(message.message()).isEqualTo(TEST_MESSAGE);
+    assertThat(message.role()).isSameAs(Role.ASSISTANT);
+    @Nullable OutboundRequest or = HuggingFaceLlamaRequests.poll(500, TimeUnit.MILLISECONDS);
+    assertThat(or).isNotNull();
+    assertThat(or.headerMap().get("Authorization")).isNotNull().isEqualTo("Bearer " + apiKey);
+    assertThat(MAPPER.readTree(or.body).get("inputs").textValue())
+        .isEqualTo(
+            "<s>[INST] <<SYS>>\nYou're a helpful assistant.\n<</SYS>>\n\ntest message [/INST]");
+  }
+
+  @Test
   void createPayload() {
     String apiKey = UUID.randomUUID().toString();
     HuggingFaceConfig config =
@@ -135,7 +168,6 @@ public class HuggingFaceLlamaPluginTest {
             .tokenLimit(100)
             .systemMessage(TEST_SYSTEM_MESSAGE)
             .build();
-    HuggingFaceLlamaPlugin<FBMessage> plugin = new HuggingFaceLlamaPlugin<>(config);
     ThreadState<FBMessage> stack =
         ThreadState.of(
             MessageFactory.instance(FBMessage.class)
