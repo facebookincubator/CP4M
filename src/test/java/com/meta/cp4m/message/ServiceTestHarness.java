@@ -52,7 +52,7 @@ public class ServiceTestHarness<T extends Message> {
     WAMessageHandler handler =
         WAMessengerConfig.of(VERIFY_TOKEN, APP_SECRET, ACCESS_TOKEN).toMessageHandler();
     ServiceTestHarness<WAMessage> harness = new ServiceTestHarness<>(chatStore, handler, llmPlugin);
-    handler.baseUrlFactory(ignored -> harness.webserverURI());
+    handler.baseUrl(harness.webserverURI());
     return harness;
   }
 

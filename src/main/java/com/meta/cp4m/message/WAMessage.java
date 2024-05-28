@@ -38,6 +38,21 @@ public final class WAMessage implements Message {
     this.role = role;
   }
 
+  public WAMessage(
+      Instant timestamp,
+      Identifier instanceId,
+      Identifier senderId,
+      Identifier recipientId,
+      Payload<?> payload,
+      Role role) {
+    this.timestamp = timestamp;
+    this.instanceId = instanceId;
+    this.senderId = senderId;
+    this.recipientId = recipientId;
+    this.payload = payload;
+    this.role = role;
+  }
+
   @Override
   public Instant timestamp() {
     return timestamp;

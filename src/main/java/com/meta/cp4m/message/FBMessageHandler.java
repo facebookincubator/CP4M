@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 public class FBMessageHandler implements MessageHandler<FBMessage> {
 
-  private static final String API_VERSION = "v17.0";
+  private static final String API_VERSION = "v19.0";
   private static final JsonMapper MAPPER = new JsonMapper();
   private static final Logger LOGGER = LoggerFactory.getLogger(FBMessageHandler.class);
   private static final TextChunker CHUNKER = TextChunker.standard(2000);

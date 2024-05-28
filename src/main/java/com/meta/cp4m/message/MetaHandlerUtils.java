@@ -9,8 +9,9 @@
 package com.meta.cp4m.message;
 
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HandlerType;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -23,13 +24,23 @@ import org.apache.hc.client5.http.utils.Hex;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 class MetaHandlerUtils {
-  static void subscriptionVerification(Context ctx, String verifyToken) {
-    ctx.queryParamAsClass("hub.mode", String.class)
-        .check(v -> v.equals("subscribe"), "hub.mode must be subscribe");
-    ctx.queryParamAsClass("hub.verify_token", String.class)
-        .check(v -> v.equals(verifyToken), "verify_token is incorrect");
-    int challenge = ctx.queryParamAsClass("hub.challenge", int.class).get();
-    ctx.result(String.valueOf(challenge));
+
+  /**
+   * ONLY CALL FROM A STATIC CONTEXT
+   *
+   * <p>turns the checked exception into a unchecked runtime exception so this should only be used
+   * in context where the uri string is known to be valid and will not cause an exception
+   *
+   * @param uri valid uri string
+   * @return URI object from the string
+   */
+  static URI staticURI(String uri) {
+    try {
+      return new URI(uri);
+    } catch (URISyntaxException e) {
+      // This should be impossible
+      throw new RuntimeException(e);
+    }
   }
 
   static <T extends Message>
@@ -76,21 +87,6 @@ class MetaHandlerUtils {
    * @param ctx Javalin context corresponding to this post request
    * @param appSecret app secret corresponding to this app
    */
-  static void postHeaderValidator(Context ctx, String appSecret) {
-    ctx.headerAsClass("X-Hub-Signature-256", String.class)
-        .check(
-            h -> {
-              String[] hashParts = h.strip().split("=");
-              if (hashParts.length != 2) {
-                return false;
-              }
-              String calculatedHmac = hmac(ctx.body(), appSecret);
-              return hashParts[1].equals(calculatedHmac);
-            },
-            "X-Hub-Signature-256 could not be validated")
-        .getOrThrow(ignored -> new ForbiddenResponse("X-Hub-Signature-256 could not be validated"));
-  }
-
   static boolean postHeaderValid(Context ctx, String appSecret) {
     @Nullable String sig = ctx.headerMap().get("X-Hub-Signature-256");
     if (sig == null) {
