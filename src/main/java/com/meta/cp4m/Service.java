@@ -54,7 +54,7 @@ public class Service<T extends Message> {
   }
 
   <IN> void handler(Context ctx, IN in, RequestProcessor<IN, T> processor) {
-    List<T> messages;
+    List<T> messages = null;
     try {
       messages = processor.process(ctx, in);
     } catch (Exception e) {
@@ -64,7 +64,7 @@ public class Service<T extends Message> {
           .addKeyValue("headers", ctx.headerMap())
           .setMessage("unable to process request")
           .log();
-      messages = Collections.emptyList();
+//      messages = Collections.emptyList();
     }
     // TODO: once we have a non-volatile store, on startup send stored but not replied to messages
     for (T m : messages) {
