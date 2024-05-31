@@ -12,19 +12,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.cp4m.Identifier;
+import com.meta.cp4m.llm.OpenAIPlugin;
 import com.meta.cp4m.message.webhook.whatsapp.TextWebhookMessage;
 import com.meta.cp4m.message.webhook.whatsapp.Utils;
 import com.meta.cp4m.message.webhook.whatsapp.WebhookMessage;
 import com.meta.cp4m.message.webhook.whatsapp.WebhookPayload;
+import com.meta.cp4m.metrics.CAPIMetricsCollector;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.Function;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.net.URIBuilder;
@@ -33,6 +28,17 @@ import org.checkerframework.common.returnsreceiver.qual.This;
 import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 public class WAMessageHandler implements MessageHandler<WAMessage> {
   private static final String API_VERSION = "v17.0";
@@ -53,6 +59,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   private final String appSecret;
   private final String verifyToken;
   private final String accessToken;
+
+  CAPIMetricsCollector collector = new CAPIMetricsCollector();
 
   private Function<Identifier, URI> baseURLFactory =
       phoneNumberId -> {
@@ -104,6 +112,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                         textMessage.text().body(),
                         Message.Role.USER));
                 readExecutor.execute(() -> markRead(phoneNumberId, textMessage.id().toString()));
+                collector.logMessageReceived("MessageSent", UUID.fromString("123e4567-e89b-12d3-a456-426614174001"), FBMessageHandler.class, OpenAIPlugin.class, "1234", "1234");
+
               }
             });
     return waMessages;
@@ -120,6 +130,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   public void respond(WAMessage message) throws IOException {
     for (String text : CHUNKER.chunks(message.message()).toList()) {
       send(message.recipientId(), message.senderId(), text);
+      collector.logMessageSent("MessageSent", UUID.fromString("123e4567-e89b-12d3-a456-426614174000"), FBMessageHandler.class, OpenAIPlugin.class, "1234", "1234");
     }
   }
 

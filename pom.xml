@@ -27,6 +27,12 @@
         <custom.jarName>${project.artifactId}-${project.version}</custom.jarName>
     </properties>
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.facebook.business.sdk/facebook-java-business-sdk -->
+        <dependency>
+            <groupId>com.facebook.business.sdk</groupId>
+            <artifactId>facebook-java-business-sdk</artifactId>
+            <version>[8.0.3,)</version>
+        </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>

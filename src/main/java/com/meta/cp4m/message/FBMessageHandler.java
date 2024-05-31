@@ -16,12 +16,6 @@ import com.meta.cp4m.Identifier;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.time.Instant;
-import java.util.*;
-import java.util.function.Function;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.client5.http.fluent.Response;
 import org.apache.hc.core5.http.ContentType;
@@ -32,6 +26,13 @@ import org.checkerframework.common.returnsreceiver.qual.This;
 import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.time.Instant;
+import java.util.*;
+import java.util.function.Function;
 
 public class FBMessageHandler implements MessageHandler<FBMessage> {
 
@@ -90,6 +91,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
             ? config.connectedFacebookPageForInstagram().get()
             : null;
   }
+
 
   @TestOnly
   String hmac(String body) {
