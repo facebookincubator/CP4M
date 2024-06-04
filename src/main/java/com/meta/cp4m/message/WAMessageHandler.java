@@ -79,6 +79,14 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                   case TextWebhookMessage m -> {
                     payloadValue = new Payload.Text(m.text().body());
                   }
+                  case DocumentWebhookMessage m -> {
+                    // TODO: download document -> byte[]
+                    payloadValue = new Payload.Document(new byte[0], m.document().mimeType());
+                  }
+                  case ImageWebhookMessage m -> {
+                    // TODO: download image -> byte[]
+                    payloadValue = new Payload.Document(new byte[0], m.image().mimeType());
+                  }
                   default -> {
                     LOGGER.warn(
                         "received message of type '"
