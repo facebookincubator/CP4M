@@ -69,6 +69,14 @@ public class Service<T extends Message> {
     return this.handler;
   }
 
+  public ChatStore<T> store() {
+    return this.store;
+  }
+
+  public LLMPlugin<T> plugin() {
+    return this.llmPlugin;
+  }
+
   private void execute(ThreadState<T> thread) {
     T llmResponse;
     try {
