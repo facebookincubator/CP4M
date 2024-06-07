@@ -102,8 +102,7 @@ class NullStoreTest {
     node.remove("stores");
     ((ObjectNode) node.get("services").get(0)).remove("store");
     RootConfiguration config =
-        ConfigurationUtils.tomlMapper()
-            .convertValue(mapper.readTree(TOML), RootConfiguration.class);
+        ConfigurationUtils.tomlMapper().convertValue(node, RootConfiguration.class);
 
     assertThat(config.toServicesRunner().services())
         .hasSize(1)
