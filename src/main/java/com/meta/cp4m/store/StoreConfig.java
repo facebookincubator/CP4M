@@ -15,6 +15,7 @@ import com.meta.cp4m.message.Message;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(value = MemoryStoreConfig.class, name = "memory"),
+  @JsonSubTypes.Type(value = NullStoreConfig.class, name = "null"),
 })
 public interface StoreConfig {
 
