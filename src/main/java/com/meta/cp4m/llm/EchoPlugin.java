@@ -13,7 +13,7 @@ import com.meta.cp4m.message.ThreadState;
 import java.io.IOException;
 import java.time.Instant;
 
-public class MirrorPlugin<T extends Message> implements LLMPlugin<T> {
+public class EchoPlugin<T extends Message> implements LLMPlugin<T> {
 
   @Override
   public T handle(ThreadState<T> threadState) throws IOException {

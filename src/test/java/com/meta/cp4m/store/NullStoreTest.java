@@ -26,8 +26,8 @@ class NullStoreTest {
   port = 8081
 
   [[plugins]]
-  name = "mirror_test"
-  type = "mirror"
+  name = "echo_test"
+  type = "echo"
 
   [[stores]]
   name = "null_test"
@@ -42,7 +42,7 @@ class NullStoreTest {
 
   [[services]]
   webhook_path = "/messenger"
-  plugin = "mirror_test"
+  plugin = "echo_test"
   store = "null_test"
   handler = "messenger_test"
   """;

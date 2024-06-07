@@ -10,10 +10,10 @@ package com.meta.cp4m.llm;
 
 import com.meta.cp4m.message.Message;
 
-public record MirrorPluginConfig(String name) implements LLMConfig {
+public record EchoPluginConfig(String name) implements LLMConfig {
 
   @Override
   public <T extends Message> LLMPlugin<T> toPlugin() {
-    return new MirrorPlugin<>();
+    return new EchoPlugin<>();
   }
 }

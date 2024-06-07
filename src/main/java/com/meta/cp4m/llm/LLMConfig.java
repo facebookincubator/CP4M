@@ -16,7 +16,7 @@ import com.meta.cp4m.message.Message;
 @JsonSubTypes({
   @JsonSubTypes.Type(value = OpenAIConfig.class, name = "openai"),
   @JsonSubTypes.Type(value = HuggingFaceConfig.class, name = "hugging_face"),
-  @JsonSubTypes.Type(value = MirrorPluginConfig.class, name = "mirror"),
+  @JsonSubTypes.Type(value = EchoPluginConfig.class, name = "echo"),
 })
 public interface LLMConfig {
 

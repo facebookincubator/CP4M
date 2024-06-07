@@ -22,15 +22,15 @@ import java.io.IOException;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
-class MirrorPluginTest {
+class EchoPluginTest {
 
   private static final String TOML =
       """
 port = 8081
 
 [[plugins]]
-name = "mirror_test"
-type = "mirror"
+name = "echo_test"
+type = "echo"
 
 [[stores]]
 name = "memory_test"
@@ -47,14 +47,14 @@ page_access_token = "imnotasecreteither"
 
 [[services]]
 webhook_path = "/messenger"
-plugin = "mirror_test"
+plugin = "echo_test"
 store = "memory_test"
 handler = "messenger_test"
 """;
 
   @Test
   void sanity() throws IOException {
-    MirrorPlugin<FBMessage> plugin = new MirrorPlugin<>();
+    EchoPlugin<FBMessage> plugin = new EchoPlugin<>();
     FBMessage output =
         plugin.handle(
             ThreadState.of(
@@ -77,6 +77,6 @@ handler = "messenger_test"
 
     assertThat(config.toServicesRunner().services())
         .hasSize(1)
-        .allSatisfy(p -> assertThat(p.plugin()).isOfAnyClassIn(MirrorPlugin.class));
+        .allSatisfy(p -> assertThat(p.plugin()).isOfAnyClassIn(EchoPlugin.class));
   }
 }
