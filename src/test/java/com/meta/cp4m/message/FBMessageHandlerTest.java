@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.meta.cp4m.Identifier;
@@ -85,8 +86,7 @@ public class FBMessageHandlerTest {
   }
 
   private static Request createMessageRequest(
-      String body, ServicesRunner runner, boolean calculateHmac)
-      throws IOException, URISyntaxException {
+      String body, ServicesRunner runner, boolean calculateHmac) throws URISyntaxException {
     @SuppressWarnings("unchecked") // for the scope of this test this is guaranteed
     Service<FBMessage> service =
         (Service<FBMessage>) runner.services().stream().findAny().orElseThrow();
@@ -115,7 +115,7 @@ public class FBMessageHandlerTest {
   }
 
   public static Request createMessageRequest(String body, ServicesRunner runner)
-      throws IOException, URISyntaxException {
+      throws URISyntaxException {
     return createMessageRequest(body, runner, true);
   }
 
@@ -317,6 +317,36 @@ public class FBMessageHandlerTest {
     };
   }
 
+  @Test
+  void nonTextPluginResponse() throws IOException, URISyntaxException, InterruptedException {
+    String path = "/testfbmessage";
+    Identifier pageId = Identifier.from(106195825075770L);
+    String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake don't worry
+    String secret = "f74a638462f975e9eadfcbb84e4aa06b"; // it's been rolled don't worry
+
+    FBMessageHandler messageHandler = new FBMessageHandler("0", token, secret);
+    DummyLLMPlugin<FBMessage> llmHandler =
+        new DummyLLMPlugin<>(
+            List.of(new Payload.Document(new byte[0], "application/pdf")),
+            "this is a dummy message");
+    MemoryStore<FBMessage> memoryStore = MemoryStoreConfig.of(1, 1).toStore();
+    Service<FBMessage> service = new Service<>(memoryStore, messageHandler, llmHandler, path);
+    final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
+
+    app.start(0);
+    runner.start();
+    messageHandler.baseURLFactory(testURLFactoryFactory(pageId));
+    createMessageRequest(SAMPLE_MESSAGE, runner).execute();
+    ObjectNode m = (ObjectNode) MAPPER.readTree(SAMPLE_MESSAGE);
+    ObjectNode messageObject =
+        (ObjectNode) m.get("entry").get(0).get("messaging").get(0).get("message");
+    messageObject.put("mid", "notarealmid");
+
+    createMessageRequest(MAPPER.writeValueAsString(m), runner).execute();
+    @Nullable OutboundRequest r = requests.poll(500, TimeUnit.MILLISECONDS);
+    assertThat(r).isNotNull();
+  }
+
   @ParameterizedTest
   @MethodSource("requestFactory")
   void invalidMessage(
@@ -434,11 +464,11 @@ public class FBMessageHandlerTest {
     }
 
     private TestArgument(
-    String name,
+        String name,
         int expectedReturnCode,
         ThrowableFunction<ServicesRunner, Request> requestFactory,
         boolean messageExpected,
-    int timesToSendMessage) {
+        int timesToSendMessage) {
       this(name, expectedReturnCode, requestFactory, messageExpected, timesToSendMessage, false);
     }
 

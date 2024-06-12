@@ -167,6 +167,10 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
 
   @Override
   public void respond(FBMessage message) throws IOException {
+    if (!(message.payload() instanceof Payload.Text)) {
+      throw new UnsupportedOperationException(
+          "Non-text payloads cannot be sent to Messenger client currently");
+    }
     List<String> chunkedText = CHUNKER.chunks(message.message()).toList();
     for (String text : chunkedText) {
       send(text, message.recipientId(), message.senderId());

@@ -9,18 +9,28 @@
 package com.meta.cp4m.llm;
 
 import com.meta.cp4m.message.Message;
+import com.meta.cp4m.message.Payload;
 import com.meta.cp4m.message.ThreadState;
 import java.time.Instant;
+import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.common.returnsreceiver.qual.This;
 
 public class DummyLLMPlugin<T extends Message> implements LLMPlugin<T> {
 
   private final String dummyLLMResponse;
   private final BlockingQueue<ThreadState<T>> receivedThreadStates = new LinkedBlockingDeque<>();
+  private final Queue<Payload<?>> responsesToSend = new ConcurrentLinkedDeque<>();
 
   public DummyLLMPlugin(String dummyLLMResponse) {
     this.dummyLLMResponse = dummyLLMResponse;
+  }
+
+  public DummyLLMPlugin(List<Payload<?>> responses, String defaultDummyLLMResponse) {
+    this.dummyLLMResponse = defaultDummyLLMResponse;
+    responsesToSend.addAll(responses);
   }
 
   public ThreadState<T> take(int waitMs) throws InterruptedException {
@@ -31,8 +41,9 @@ public class DummyLLMPlugin<T extends Message> implements LLMPlugin<T> {
     return value;
   }
 
-  public ThreadState<T> take() throws InterruptedException {
-    return receivedThreadStates.take();
+  public @This DummyLLMPlugin<T> addResponseToSend(Payload<?> payload) {
+    responsesToSend.add(payload);
+    return this;
   }
 
   public @Nullable ThreadState<T> poll() {
@@ -46,6 +57,10 @@ public class DummyLLMPlugin<T extends Message> implements LLMPlugin<T> {
   @Override
   public T handle(ThreadState<T> threadState) {
     receivedThreadStates.add(threadState);
-    return threadState.newMessageFromBot(Instant.now(), dummyLLMResponse);
+    @Nullable Payload<?> response = responsesToSend.poll();
+    if (response == null) {
+      return threadState.newMessageFromBot(Instant.now(), new Payload.Text(dummyLLMResponse));
+    }
+    return threadState.newMessageFromBot(Instant.now(), response);
   }
 }

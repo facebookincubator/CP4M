@@ -61,7 +61,7 @@ public class HuggingFaceLlamaPluginTest {
           MessageFactory.instance(FBMessage.class)
               .newMessage(
                   Instant.now(),
-                  "test message",
+                  new Payload.Text("test message"),
                   Identifier.random(),
                   Identifier.random(),
                   Identifier.random(),
@@ -173,7 +173,7 @@ public class HuggingFaceLlamaPluginTest {
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
-                    TEST_MESSAGE,
+                    new Payload.Text(TEST_MESSAGE),
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
@@ -201,7 +201,10 @@ public class HuggingFaceLlamaPluginTest {
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
-                    Stream.generate(() -> "0123456789").limit(100).collect(Collectors.joining()),
+                    new Payload.Text(
+                        Stream.generate(() -> "0123456789")
+                            .limit(100)
+                            .collect(Collectors.joining())),
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
@@ -225,7 +228,10 @@ public class HuggingFaceLlamaPluginTest {
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
-                    Stream.generate(() -> "0123456789").limit(100).collect(Collectors.joining()),
+                    new Payload.Text(
+                        Stream.generate(() -> "0123456789")
+                            .limit(100)
+                            .collect(Collectors.joining())),
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
@@ -284,7 +290,7 @@ public class HuggingFaceLlamaPluginTest {
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
-                    "1",
+                    new Payload.Text("1"),
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),

@@ -26,7 +26,7 @@ public class MemoryStore<T extends Message> implements ChatStore<T> {
             .maximumWeight((long) (config.storageCapacityMb() * Math.pow(2, 20))) // megabytes
             .<Identifier, ThreadState<T>>weigher(
                 (k, v) ->
-                    v.messages().stream().map(m -> m.message().length()).reduce(0, Integer::sum))
+                    v.messages().stream().map(m -> m.payload().size()).reduce(0, Integer::sum))
             .build();
   }
 

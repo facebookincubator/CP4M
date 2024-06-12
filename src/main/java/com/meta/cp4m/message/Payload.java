@@ -18,6 +18,8 @@ public interface Payload<T> {
 
   T value();
 
+  int size();
+
   final class Text implements Payload<String> {
 
     private final String payload;
@@ -29,6 +31,11 @@ public interface Payload<T> {
     @Override
     public String value() {
       return this.payload;
+    }
+
+    @Override
+    public int size() {
+      return payload.length();
     }
 
     @Override
@@ -71,6 +78,11 @@ public interface Payload<T> {
     @Override
     public byte[] value() {
       return payload;
+    }
+
+    @Override
+    public int size() {
+      return payload.length;
     }
 
     public String extension() {
@@ -128,6 +140,11 @@ public interface Payload<T> {
     @Override
     public byte[] value() {
       return payload;
+    }
+
+    @Override
+    public int size() {
+      return payload.length;
     }
 
     public String extension() {

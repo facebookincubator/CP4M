@@ -26,28 +26,38 @@ class NullStoreStoreTest {
         NullStore<FBMessage> nullStore = new NullStore<>();
 
         assertThat(nullStore.size()).isEqualTo(0);
-        FBMessage message =
-                messageFactory.newMessage(
-                        Instant.now(), "", senderId, recipientId, Identifier.random(), Message.Role.ASSISTANT);
+    FBMessage message =
+        messageFactory.newMessage(
+            Instant.now(),
+            new Payload.Text(""),
+            senderId,
+            recipientId,
+            Identifier.random(),
+            Message.Role.ASSISTANT);
         ThreadState<FBMessage> thread = nullStore.add(message);
         assertThat(nullStore.size()).isEqualTo(0);
         assertThat(thread.messages()).hasSize(1).contains(message);
 
-        FBMessage message2 =
-                messageFactory.newMessage(
-                        Instant.now(), "", recipientId, senderId, Identifier.random(), Message.Role.USER);
+    FBMessage message2 =
+        messageFactory.newMessage(
+            Instant.now(),
+            new Payload.Text(""),
+            recipientId,
+            senderId,
+            Identifier.random(),
+            Message.Role.USER);
         thread = nullStore.add(message2);
         assertThat(nullStore.size()).isEqualTo(0);
         assertThat(thread.messages()).hasSize(1);
 
-        FBMessage message3 =
-                messageFactory.newMessage(
-                        Instant.now(),
-                        "",
-                        Identifier.random(),
-                        Identifier.random(),
-                        Identifier.random(),
-                        Message.Role.USER);
+    FBMessage message3 =
+        messageFactory.newMessage(
+            Instant.now(),
+            new Payload.Text(""),
+            Identifier.random(),
+            Identifier.random(),
+            Identifier.random(),
+            Message.Role.USER);
         thread = nullStore.add(message3);
         assertThat(nullStore.size()).isEqualTo(0);
         assertThat(thread.messages()).hasSize(1).contains(message3);

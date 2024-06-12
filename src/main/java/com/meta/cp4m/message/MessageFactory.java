@@ -42,7 +42,7 @@ public interface MessageFactory<T extends Message> {
 
   T newMessage(
       Instant timestamp,
-      String message,
+      Payload<?> payload,
       Identifier senderId,
       Identifier recipientId,
       Identifier instanceId,

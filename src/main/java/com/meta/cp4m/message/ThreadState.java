@@ -71,11 +71,22 @@ public class ThreadState<T extends Message> {
 
   public T newMessageFromBot(Instant timestamp, String message) {
     return messageFactory.newMessage(
-        timestamp, message, botId(), userId(), Identifier.random(), Role.ASSISTANT);
+        timestamp,
+        new Payload.Text(message),
+        botId(),
+        userId(),
+        Identifier.random(),
+        Role.ASSISTANT);
+  }
+
+  public T newMessageFromBot(Instant timestamp, Payload<?> payload) {
+    return messageFactory.newMessage(
+        timestamp, payload, botId(), userId(), Identifier.random(), Role.ASSISTANT);
   }
 
   public T newMessageFromUser(Instant timestamp, String message, Identifier instanceId) {
-    return messageFactory.newMessage(timestamp, message, userId(), botId(), instanceId, Role.USER);
+    return messageFactory.newMessage(
+        timestamp, new Payload.Text(message), userId(), botId(), instanceId, Role.USER);
   }
 
   public ThreadState<T> with(T message) {
@@ -87,6 +98,6 @@ public class ThreadState<T extends Message> {
   }
 
   public T tail() {
-    return messages.get(messages.size() - 1);
+    return messages.getLast();
   }
 }

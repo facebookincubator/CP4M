@@ -58,7 +58,7 @@ public class OpenAIPluginTest {
           MessageFactory.instance(FBMessage.class)
               .newMessage(
                   Instant.now(),
-                  "test message",
+                  new Payload.Text("test message"),
                   Identifier.random(),
                   Identifier.random(),
                   Identifier.random(),
@@ -224,7 +224,7 @@ public class OpenAIPluginTest {
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
-                    "1",
+                    new Payload.Text("1"),
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),
