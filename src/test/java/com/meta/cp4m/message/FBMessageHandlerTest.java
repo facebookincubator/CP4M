@@ -20,8 +20,8 @@ import com.google.common.collect.ImmutableMap;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.Service;
 import com.meta.cp4m.ServicesRunner;
-import com.meta.cp4m.llm.DummyLLMPlugin;
 import com.meta.cp4m.message.Message.Role;
+import com.meta.cp4m.plugin.DummyPlugin;
 import com.meta.cp4m.store.MemoryStore;
 import com.meta.cp4m.store.MemoryStoreConfig;
 import io.javalin.Javalin;
@@ -284,7 +284,7 @@ public class FBMessageHandlerTest {
         new Service<>(
             MemoryStoreConfig.of(1, 1).toStore(),
             new FBMessageHandler(verifyToken, pageToken, "dummy"),
-            new DummyLLMPlugin<>("this is a dummy message"),
+            new DummyPlugin<>("this is a dummy message"),
             "/testfbmessage");
     final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
     HttpResponse response;
@@ -337,7 +337,7 @@ public class FBMessageHandlerTest {
     } else {
       messageHandler = new FBMessageHandler("0", token, secret);
     }
-    DummyLLMPlugin<FBMessage> llmHandler = new DummyLLMPlugin<>("this is a dummy message");
+    DummyPlugin<FBMessage> llmHandler = new DummyPlugin<>("this is a dummy message");
     MemoryStore<FBMessage> memoryStore = MemoryStoreConfig.of(1, 1).toStore();
     Service<FBMessage> service = new Service<>(memoryStore, messageHandler, llmHandler, path);
     final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);

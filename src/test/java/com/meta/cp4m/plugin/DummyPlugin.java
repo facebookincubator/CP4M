@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.cp4m.llm;
+package com.meta.cp4m.plugin;
 
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.ThreadState;
@@ -14,12 +14,12 @@ import java.time.Instant;
 import java.util.concurrent.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public class DummyLLMPlugin<T extends Message> implements LLMPlugin<T> {
+public class DummyPlugin<T extends Message> implements Plugin<T> {
 
   private final String dummyLLMResponse;
   private final BlockingQueue<ThreadState<T>> receivedThreadStates = new LinkedBlockingDeque<>();
 
-  public DummyLLMPlugin(String dummyLLMResponse) {
+  public DummyPlugin(String dummyLLMResponse) {
     this.dummyLLMResponse = dummyLLMResponse;
   }
 

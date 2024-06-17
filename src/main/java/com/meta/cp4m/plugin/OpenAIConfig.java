@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.cp4m.llm;
+package com.meta.cp4m.plugin;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -18,7 +18,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
 
 @JsonDeserialize(builder = OpenAIConfig.Builder.class)
-public class OpenAIConfig implements LLMConfig {
+public class OpenAIConfig implements PluginConfig {
 
   private final String name;
   private final OpenAIModel model;

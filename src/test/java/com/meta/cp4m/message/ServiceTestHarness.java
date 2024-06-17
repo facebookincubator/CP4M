@@ -12,8 +12,8 @@ import com.meta.cp4m.DummyWebServer;
 import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Service;
 import com.meta.cp4m.ServicesRunner;
-import com.meta.cp4m.llm.DummyLLMPlugin;
-import com.meta.cp4m.llm.LLMPlugin;
+import com.meta.cp4m.plugin.DummyPlugin;
+import com.meta.cp4m.plugin.Plugin;
 import com.meta.cp4m.store.ChatStore;
 import com.meta.cp4m.store.MemoryStoreConfig;
 import java.net.URI;
@@ -32,13 +32,13 @@ public class ServiceTestHarness<T extends Message> {
   private static final String WEBSERVER_PATH = "/testserver";
   private final ChatStore<T> chatStore;
   private final MessageHandler<T> handler;
-  private final LLMPlugin<T> llmPlugin;
+  private final Plugin<T> llmPlugin;
   private final Service<T> service;
   private final ServicesRunner runner;
   private final DummyWebServer dummyWebServer = DummyWebServer.create();
 
   private ServiceTestHarness(
-      ChatStore<T> chatStore, MessageHandler<T> handler, LLMPlugin<T> llmPlugin) {
+      ChatStore<T> chatStore, MessageHandler<T> handler, Plugin<T> llmPlugin) {
     this.chatStore = chatStore;
     this.handler = handler;
     this.llmPlugin = llmPlugin;
@@ -48,7 +48,7 @@ public class ServiceTestHarness<T extends Message> {
 
   public static ServiceTestHarness<WAMessage> newWAServiceTestHarness() {
     ChatStore<WAMessage> chatStore = MemoryStoreConfig.of(1, 1).toStore();
-    DummyLLMPlugin<WAMessage> llmPlugin = new DummyLLMPlugin<>("dummy plugin response text");
+    DummyPlugin<WAMessage> llmPlugin = new DummyPlugin<>("dummy plugin response text");
     WAMessageHandler handler =
         WAMessengerConfig.of(VERIFY_TOKEN, APP_SECRET, ACCESS_TOKEN).toMessageHandler();
     ServiceTestHarness<WAMessage> harness = new ServiceTestHarness<>(chatStore, handler, llmPlugin);
@@ -129,7 +129,7 @@ public class ServiceTestHarness<T extends Message> {
     return handler;
   }
 
-  public LLMPlugin<T> llmPlugin() {
+  public Plugin<T> llmPlugin() {
     return llmPlugin;
   }
 
@@ -138,7 +138,7 @@ public class ServiceTestHarness<T extends Message> {
   }
 
   public String dummyPluginResponseText() {
-    return ((DummyLLMPlugin<T>) llmPlugin).dummyResponse();
+    return ((DummyPlugin<T>) llmPlugin).dummyResponse();
   }
 
   public int servicePort() {

@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.cp4m.llm;
+package com.meta.cp4m.plugin;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

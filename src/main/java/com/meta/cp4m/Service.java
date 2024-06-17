@@ -8,11 +8,11 @@
 
 package com.meta.cp4m;
 
-import com.meta.cp4m.llm.LLMPlugin;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.MessageHandler;
 import com.meta.cp4m.message.RequestProcessor;
 import com.meta.cp4m.message.ThreadState;
+import com.meta.cp4m.plugin.Plugin;
 import com.meta.cp4m.routing.Route;
 import com.meta.cp4m.store.ChatStore;
 import io.javalin.http.Context;
@@ -30,12 +30,11 @@ public class Service<T extends Message> {
   private final ExecutorService executorService = Executors.newCachedThreadPool();
   private final MessageHandler<T> handler;
   private final ChatStore<T> store;
-  private final LLMPlugin<T> llmPlugin;
+  private final Plugin<T> llmPlugin;
 
   private final String path;
 
-  public Service(
-      ChatStore<T> store, MessageHandler<T> handler, LLMPlugin<T> llmPlugin, String path) {
+  public Service(ChatStore<T> store, MessageHandler<T> handler, Plugin<T> llmPlugin, String path) {
     this.handler = Objects.requireNonNull(handler);
     this.store = Objects.requireNonNull(store);
     this.llmPlugin = llmPlugin;

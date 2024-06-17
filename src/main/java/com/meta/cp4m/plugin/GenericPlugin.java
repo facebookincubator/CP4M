@@ -6,13 +6,15 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.cp4m.llm;
+package com.meta.cp4m.plugin;
 
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.ThreadState;
 import java.io.IOException;
 
-public interface LLMPlugin<T extends Message> {
-
-  T handle(ThreadState<T> threadState) throws IOException;
+public class GenericPlugin<T extends Message> implements Plugin<T> {
+  @Override
+  public T handle(ThreadState<T> threadState) throws IOException {
+    return null;
+  }
 }
