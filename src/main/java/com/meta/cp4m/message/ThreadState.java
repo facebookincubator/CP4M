@@ -16,22 +16,33 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.checkerframework.common.reflection.qual.NewInstance;
 
 public class ThreadState<T extends Message> {
   private final List<T> messages;
   private final MessageFactory<T> messageFactory;
 
+  private final UserData userData;
+
   private ThreadState(T message) {
     Objects.requireNonNull(message);
+    userData = UserData.empty();
     Preconditions.checkArgument(
         message.role() != Role.SYSTEM, "ThreadState should never hold a system message");
     this.messages = ImmutableList.of(message);
     messageFactory = MessageFactory.instance(message);
   }
 
+  private ThreadState(ThreadState<T> old, UserData userData) {
+    this.messages = old.messages;
+    this.messageFactory = old.messageFactory;
+    this.userData = userData;
+  }
+
   /** Constructor that exists to support the with method */
   private ThreadState(ThreadState<T> old, T newMessage) {
     Objects.requireNonNull(newMessage);
+    userData = old.userData;
     Preconditions.checkArgument(
         newMessage.role() != Role.SYSTEM, "ThreadState should never hold a system message");
     messageFactory = old.messageFactory;
@@ -62,8 +73,8 @@ public class ThreadState<T extends Message> {
     return switch (message.role()) {
       case ASSISTANT -> message.recipientId();
       case USER -> message.senderId();
-      case SYSTEM -> throw new IllegalStateException(
-          "ThreadState should never hold a SYSTEM message");
+      case SYSTEM ->
+          throw new IllegalStateException("ThreadState should never hold a SYSTEM message");
     };
   }
 
@@ -72,8 +83,8 @@ public class ThreadState<T extends Message> {
     return switch (message.role()) {
       case ASSISTANT -> message.senderId();
       case USER -> message.recipientId();
-      case SYSTEM -> throw new IllegalStateException(
-          "ThreadState should never hold a SYSTEM message");
+      case SYSTEM ->
+          throw new IllegalStateException("ThreadState should never hold a SYSTEM message");
     };
   }
 
@@ -96,5 +107,13 @@ public class ThreadState<T extends Message> {
 
   public T tail() {
     return messages.get(messages.size() - 1);
+  }
+
+  public UserData userData() {
+    return userData;
+  }
+
+  public @NewInstance ThreadState<T> withUserData(UserData userData) {
+    return new ThreadState<>(this, userData);
   }
 }

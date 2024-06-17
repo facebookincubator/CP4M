@@ -11,16 +11,46 @@ package com.meta.cp4m.store;
 import static org.assertj.core.api.Assertions.*;
 
 import com.meta.cp4m.Identifier;
-import com.meta.cp4m.message.FBMessage;
-import com.meta.cp4m.message.Message;
-import com.meta.cp4m.message.MessageFactory;
-import com.meta.cp4m.message.ThreadState;
+import com.meta.cp4m.message.*;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
 class ThreadStateTest {
 
   private static final MessageFactory<FBMessage> FACTORY = MessageFactory.instance(FBMessage.class);
+
+  @Test
+  void userData() {
+    Instant start = Instant.now();
+    FBMessage message1 =
+        FACTORY.newMessage(
+            start,
+            "sample message",
+            Identifier.random(),
+            Identifier.random(),
+            Identifier.random(),
+            Message.Role.USER);
+    ThreadState<FBMessage> ts = ThreadState.of(message1);
+    assertThat(ts.userData())
+        .isNotNull()
+        .satisfies(userData -> assertThat(userData.name()).isEmpty())
+        .satisfies(userData -> assertThat(userData.phoneNumber()).isEmpty());
+
+    assertThat(ts.userData().withName("Fuzzy Bunny"))
+        .satisfies(ud -> assertThat(ud.name().orElseThrow()).isEqualTo("Fuzzy Bunny"));
+    assertThat(ts.userData().withPhoneNumber("+1 555 555 1234"))
+        .satisfies(ud -> assertThat(ud.phoneNumber().orElseThrow()).isEqualTo("+1 555 555 1234"));
+
+    // cannot add blank numbers
+    assertThatThrownBy(() -> ts.userData().withName(" "));
+    assertThatThrownBy(() -> ts.userData().withName(null));
+    assertThatThrownBy(() -> ts.userData().withPhoneNumber(null));
+
+    UserData userdata = ts.userData().withName("FizzBuzz").withPhoneNumber("+1 (555) 555 4321");
+    ThreadState<FBMessage> tsWithUserData = ts.withUserData(userdata);
+    assertThat(tsWithUserData).isNotSameAs(ts);
+    assertThat(tsWithUserData.userData()).isEqualTo(userdata);
+  }
 
   @Test
   void orderPreservation() {
