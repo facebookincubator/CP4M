@@ -40,18 +40,17 @@ public class RootConfiguration {
   @JsonCreator
   RootConfiguration(
       @JsonProperty("plugins") Collection<PluginConfig> plugins,
-      @JsonProperty("stores") Collection<StoreConfig> stores,
+      @JsonProperty("stores") @Nullable Collection<StoreConfig> stores,
       @JsonProperty("handlers") Collection<HandlerConfig> handlers,
       @JsonProperty("services") Collection<ServiceConfiguration> services,
       @JsonProperty("port") @Nullable Integer port) {
     this.port = port == null ? 8080 : port;
+    stores = stores == null ? Collections.emptyList() : stores;
     Preconditions.checkArgument(
         this.port >= 0 && this.port <= 65535, "port must be between 0 and 65535");
 
     Preconditions.checkArgument(
         plugins != null && !plugins.isEmpty(), "At least one plugin must defined");
-    Preconditions.checkArgument(
-        stores != null && !stores.isEmpty(), "at least one store must be defined");
     Preconditions.checkArgument(
         handlers != null && !handlers.isEmpty(), "at least one handler must be defined");
     Preconditions.checkArgument(
@@ -68,14 +67,16 @@ public class RootConfiguration {
         plugins.stream()
             .collect(Collectors.toUnmodifiableMap(PluginConfig::name, Function.identity()));
 
-    Preconditions.checkArgument(stores.size() == stores.stream()
-        .map(StoreConfig::name)
-        .collect(Collectors.toUnmodifiableSet())
-        .size(),
+    Preconditions.checkArgument(
+        stores.size()
+            == stores.stream()
+                .map(StoreConfig::name)
+                .collect(Collectors.toUnmodifiableSet())
+                .size(),
         "all store names must be unique");
     this.stores =
-            stores.stream()
-                    .collect(Collectors.toUnmodifiableMap(StoreConfig::name, Function.identity()));
+        stores.stream()
+            .collect(Collectors.toUnmodifiableMap(StoreConfig::name, Function.identity()));
 
     Preconditions.checkArgument(
         handlers.size()
@@ -91,8 +92,9 @@ public class RootConfiguration {
     for (ServiceConfiguration s : services) {
       Preconditions.checkArgument(
           this.plugins.containsKey(s.plugin()), s.plugin() + " must be the name of a plugin");
-      Preconditions.checkArgument( s.store() == null || this.stores.containsKey(s.store()),
-            s.store() + " must be the name of a store");
+      Preconditions.checkArgument(
+          s.store() == null || this.stores.containsKey(s.store()),
+          s.store() + " must be the name of a store");
       Preconditions.checkArgument(
           this.handlers.containsKey(s.handler()), s.handler() + " must be the name of a handler");
     }
@@ -120,10 +122,10 @@ public class RootConfiguration {
   }
 
   private <T extends Message> Service<T> createService(
-          MessageHandler<T> handler, ServiceConfiguration serviceConfig) {
+      MessageHandler<T> handler, ServiceConfiguration serviceConfig) {
     Plugin<T> plugin = plugins.get(serviceConfig.plugin()).toPlugin();
     ChatStore<T> store;
-    if(serviceConfig.store() != null){
+    if (serviceConfig.store() != null) {
       store = stores.get(serviceConfig.store()).toStore();
     } else {
       store = new NullStore<T>();

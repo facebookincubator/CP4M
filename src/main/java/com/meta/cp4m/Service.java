@@ -30,14 +30,14 @@ public class Service<T extends Message> {
   private final ExecutorService executorService = Executors.newCachedThreadPool();
   private final MessageHandler<T> handler;
   private final ChatStore<T> store;
-  private final Plugin<T> llmPlugin;
+  private final Plugin<T> plugin;
 
   private final String path;
 
-  public Service(ChatStore<T> store, MessageHandler<T> handler, Plugin<T> llmPlugin, String path) {
+  public Service(ChatStore<T> store, MessageHandler<T> handler, Plugin<T> plugin, String path) {
     this.handler = Objects.requireNonNull(handler);
     this.store = Objects.requireNonNull(store);
-    this.llmPlugin = llmPlugin;
+    this.plugin = plugin;
     this.path = path;
   }
 
@@ -68,10 +68,18 @@ public class Service<T extends Message> {
     return this.handler;
   }
 
+  public ChatStore<T> store() {
+    return this.store;
+  }
+
+  public Plugin<T> plugin() {
+    return this.plugin;
+  }
+
   private void execute(ThreadState<T> thread) {
     T llmResponse;
     try {
-      llmResponse = llmPlugin.handle(thread);
+      llmResponse = plugin.handle(thread);
     } catch (IOException e) {
       LOGGER.error("failed to communicate with LLM", e);
       return;
