@@ -27,8 +27,6 @@ public class ThreadState<T extends Message> {
   private ThreadState(T message) {
     Objects.requireNonNull(message);
     userData = UserData.empty();
-    Preconditions.checkArgument(
-        message.role() != Role.SYSTEM, "ThreadState should never hold a system message");
     this.messages = ImmutableList.of(message);
     messageFactory = MessageFactory.instance(message);
   }
@@ -43,8 +41,6 @@ public class ThreadState<T extends Message> {
   private ThreadState(ThreadState<T> old, T newMessage) {
     Objects.requireNonNull(newMessage);
     userData = old.userData;
-    Preconditions.checkArgument(
-        newMessage.role() != Role.SYSTEM, "ThreadState should never hold a system message");
     messageFactory = old.messageFactory;
     Preconditions.checkArgument(
         old.tail().threadId().equals(newMessage.threadId()),
@@ -73,8 +69,6 @@ public class ThreadState<T extends Message> {
     return switch (message.role()) {
       case ASSISTANT -> message.recipientId();
       case USER -> message.senderId();
-      case SYSTEM ->
-          throw new IllegalStateException("ThreadState should never hold a SYSTEM message");
     };
   }
 
@@ -83,18 +77,27 @@ public class ThreadState<T extends Message> {
     return switch (message.role()) {
       case ASSISTANT -> message.senderId();
       case USER -> message.recipientId();
-      case SYSTEM ->
-          throw new IllegalStateException("ThreadState should never hold a SYSTEM message");
     };
   }
 
   public T newMessageFromBot(Instant timestamp, String message) {
     return messageFactory.newMessage(
-        timestamp, message, botId(), userId(), Identifier.random(), Role.ASSISTANT);
+        timestamp,
+        new Payload.Text(message),
+        botId(),
+        userId(),
+        Identifier.random(),
+        Role.ASSISTANT);
+  }
+
+  public T newMessageFromBot(Instant timestamp, Payload<?> payload) {
+    return messageFactory.newMessage(
+        timestamp, payload, botId(), userId(), Identifier.random(), Role.ASSISTANT);
   }
 
   public T newMessageFromUser(Instant timestamp, String message, Identifier instanceId) {
-    return messageFactory.newMessage(timestamp, message, userId(), botId(), instanceId, Role.USER);
+    return messageFactory.newMessage(
+        timestamp, new Payload.Text(message), userId(), botId(), instanceId, Role.USER);
   }
 
   public ThreadState<T> with(T message) {
@@ -106,7 +109,7 @@ public class ThreadState<T extends Message> {
   }
 
   public T tail() {
-    return messages.get(messages.size() - 1);
+    return messages.getLast();
   }
 
   public UserData userData() {

@@ -26,7 +26,7 @@ public class Deduplicator<T> {
   public synchronized boolean addAndGetIsDuplicate(T value) {
     boolean added = set.add(value);
     if (added && set.size() > capacity) {
-      set.remove(set.iterator().next());
+      set.remove(set.getFirst());
     }
     return !added;
   }

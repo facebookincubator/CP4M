@@ -12,10 +12,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.cp4m.Identifier;
-import com.meta.cp4m.message.webhook.whatsapp.TextWebhookMessage;
-import com.meta.cp4m.message.webhook.whatsapp.Utils;
-import com.meta.cp4m.message.webhook.whatsapp.WebhookMessage;
-import com.meta.cp4m.message.webhook.whatsapp.WebhookPayload;
+import com.meta.cp4m.message.webhook.whatsapp.*;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import java.io.IOException;
@@ -24,7 +21,6 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Function;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.net.URIBuilder;
@@ -35,7 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WAMessageHandler implements MessageHandler<WAMessage> {
-  private static final String API_VERSION = "v17.0";
+  private static final String API_VERSION = "v19.0";
   private static final JsonMapper MAPPER = Utils.JSON_MAPPER;
   private static final Logger LOGGER = LoggerFactory.getLogger(WAMessageHandler.class);
 
@@ -46,30 +42,19 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
    */
   private static final int MAX_CHARS_PER_MESSAGE = 4096;
 
+  private static final URI DEFAULT_BASE_URI =
+      MetaHandlerUtils.staticURI("https://graph.facebook.com/" + API_VERSION);
+
   private static final TextChunker CHUNKER = TextChunker.standard(MAX_CHARS_PER_MESSAGE);
 
-  private final ExecutorService readExecutor = Executors.newCachedThreadPool();
+  private final ExecutorService readExecutor = Executors.newVirtualThreadPerTaskExecutor();
   private final Deduplicator<Identifier> messageDeduplicator = new Deduplicator<>(10_000);
   private final String appSecret;
   private final String verifyToken;
   private final String accessToken;
   private final String appSecretProof;
 
-  private Function<Identifier, URI> baseURLFactory =
-      phoneNumberId -> {
-        try {
-          return new URIBuilder()
-              .setScheme("https")
-              .setHost("graph.facebook.com")
-              .appendPath(API_VERSION)
-              .appendPath(phoneNumberId.toString())
-              .appendPath("messages")
-              .build();
-        } catch (URISyntaxException e) {
-          // this should be impossible
-          throw new RuntimeException(e);
-        }
-      };
+  private URI baseURL = DEFAULT_BASE_URI;
 
   public WAMessageHandler(WAMessengerConfig config) {
     this.verifyToken = config.verifyToken();
@@ -82,30 +67,33 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     List<WAMessage> waMessages = new ArrayList<>();
     payload.entry().stream()
         .flatMap(e -> e.changes().stream())
-        .forEach(
+        .forEachOrdered(
             change -> {
               Identifier phoneNumberId = change.value().metadata().phoneNumberId();
               for (WebhookMessage message : change.value().messages()) {
                 if (messageDeduplicator.addAndGetIsDuplicate(message.id())) {
                   continue; // message is a duplicate
                 }
-                if (message.type() != WebhookMessage.WebhookMessageType.TEXT) {
-                  LOGGER.warn(
-                      "received message of type '"
-                          + message.type()
-                          + "', only able to handle text messages at this time");
-                  continue;
+                Payload<?> payloadValue;
+                switch (message) {
+                  case TextWebhookMessage m -> payloadValue = new Payload.Text(m.text().body());
+                  default -> {
+                    LOGGER.warn(
+                        "received message of type '"
+                            + message.type()
+                            + "', only able to handle text at this time");
+                    continue;
+                  }
                 }
-                TextWebhookMessage textMessage = (TextWebhookMessage) message;
                 waMessages.add(
                     new WAMessage(
                         message.timestamp(),
                         message.id(),
                         message.from(),
                         phoneNumberId,
-                        textMessage.text().body(),
+                        payloadValue,
                         Message.Role.USER));
-                readExecutor.execute(() -> markRead(phoneNumberId, textMessage.id().toString()));
+                readExecutor.execute(() -> markRead(phoneNumberId, message.id().toString()));
               }
             });
     return waMessages;
@@ -113,15 +101,31 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
 
   @TestOnly
   @This
-  WAMessageHandler baseUrlFactory(Function<Identifier, URI> baseURLFactory) {
-    this.baseURLFactory = baseURLFactory;
+  WAMessageHandler baseUrl(URI baseURL) {
+    this.baseURL = baseURL;
     return this;
   }
 
   @Override
   public void respond(WAMessage message) throws IOException {
+    if (!(message.payload() instanceof Payload.Text)) {
+      throw new UnsupportedOperationException(
+          "Non-text payloads cannot be sent to Whatsapp client currently");
+    }
     for (String text : CHUNKER.chunks(message.message()).toList()) {
       send(message.recipientId(), message.senderId(), text);
+    }
+  }
+
+  private URI messagesURI(Identifier phoneNumberId) {
+    try {
+      return new URIBuilder(baseURL)
+          .appendPath(phoneNumberId.toString())
+          .appendPath("messages")
+          .build();
+    } catch (URISyntaxException e) {
+      // should be impossible
+      throw new RuntimeException(e);
     }
   }
 
@@ -136,7 +140,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     body.putObject("text").put("body", text);
     String bodyString;
     bodyString = MAPPER.writeValueAsString(body);
-    Request.post(baseURLFactory.apply(sender))
+    Request.post(messagesURI(sender))
         .setHeader("Authorization", "Bearer " + accessToken)
         .setHeader("appsecret_proof", appSecretProof)
         .bodyString(bodyString, ContentType.APPLICATION_JSON)
@@ -184,7 +188,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     }
 
     try {
-      Request.post(baseURLFactory.apply(phoneNumberId))
+      Request.post(messagesURI(phoneNumberId))
           .setHeader("Authorization", "Bearer " + accessToken)
           .setHeader("appsecret_proof", appSecretProof)
           .bodyString(bodyString, ContentType.APPLICATION_JSON)

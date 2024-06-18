@@ -25,7 +25,7 @@ class ThreadStateTest {
     FBMessage message1 =
         FACTORY.newMessage(
             start,
-            "sample message",
+            new Payload.Text("sample message"),
             Identifier.random(),
             Identifier.random(),
             Identifier.random(),
@@ -58,7 +58,7 @@ class ThreadStateTest {
     FBMessage message1 =
         FACTORY.newMessage(
             start,
-            "sample message",
+            new Payload.Text("sample message"),
             Identifier.random(),
             Identifier.random(),
             Identifier.random(),
@@ -85,7 +85,7 @@ class ThreadStateTest {
     FBMessage message2 =
         FACTORY.newMessage(
             start,
-            "sample message",
+            new Payload.Text("sample message"),
             Identifier.random(),
             Identifier.random(),
             Identifier.random(),
@@ -112,7 +112,7 @@ class ThreadStateTest {
     FBMessage message1 =
         FACTORY.newMessage(
             start,
-            "sample message",
+            new Payload.Text("sample message"),
             Identifier.random(),
             Identifier.random(),
             Identifier.random(),
@@ -122,7 +122,7 @@ class ThreadStateTest {
     FBMessage message2 =
         FACTORY.newMessage(
             start,
-            "sample message",
+            new Payload.Text("sample message"),
             message1.recipientId(),
             message1.senderId(),
             Identifier.random(),
@@ -140,7 +140,7 @@ class ThreadStateTest {
     FBMessage mDifferentSenderId =
         FACTORY.newMessage(
             start,
-            "",
+            new Payload.Text(""),
             Identifier.random(),
             message1.recipientId(),
             Identifier.random(),
@@ -153,7 +153,7 @@ class ThreadStateTest {
     FBMessage mDifferentRecipientId =
         FACTORY.newMessage(
             start,
-            "",
+            new Payload.Text(""),
             message1.senderId(),
             Identifier.random(),
             Identifier.random(),
@@ -164,7 +164,7 @@ class ThreadStateTest {
     FBMessage illegalSenderId =
         FACTORY.newMessage(
             start,
-            "",
+            new Payload.Text(""),
             message1.recipientId(),
             message1.senderId(),
             Identifier.random(),
@@ -175,48 +175,12 @@ class ThreadStateTest {
     FBMessage illegalRecipientId =
         FACTORY.newMessage(
             start,
-            "",
+            new Payload.Text(""),
             message1.senderId(),
             message1.recipientId(),
             Identifier.random(),
             Message.Role.ASSISTANT);
     assertThatThrownBy(() -> finalMs1.with(illegalRecipientId))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
-  void systemMessageForbidden() {
-    assertThatThrownBy(
-            () ->
-                ThreadState.of(
-                    FACTORY.newMessage(
-                        Instant.now(),
-                        "",
-                        Identifier.random(),
-                        Identifier.random(),
-                        Identifier.random(),
-                        Message.Role.SYSTEM)))
-        .isInstanceOf(IllegalArgumentException.class);
-
-    ThreadState<FBMessage> threadState =
-        ThreadState.of(
-            FACTORY.newMessage(
-                Instant.now(),
-                "",
-                Identifier.random(),
-                Identifier.random(),
-                Identifier.random(),
-                Message.Role.USER));
-    assertThatThrownBy(
-            () ->
-                threadState.with(
-                    FACTORY.newMessage(
-                        Instant.now(),
-                        "",
-                        Identifier.random(),
-                        Identifier.random(),
-                        Identifier.random(),
-                        Message.Role.SYSTEM)))
         .isInstanceOf(IllegalArgumentException.class);
   }
 }

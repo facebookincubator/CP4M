@@ -15,11 +15,13 @@ import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.message.webhook.whatsapp.Utils;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 import org.apache.hc.client5.http.fluent.Response;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -113,15 +115,14 @@ class WAMessageHandlerTest {
     assertThat(request.returnResponse().getCode()).isEqualTo(200);
 
     Collection<ReceivedRequest> responses =
-        Stream.of(harness.pollWebserver(1000), harness.pollWebserver(1000))
+        Stream.of(harness.pollWebserver(500), harness.pollWebserver(500))
             .filter(Objects::nonNull)
             .toList();
-
     assertThat(responses)
         .hasSize(2)
         .extracting(ReceivedRequest::body)
         .extracting(MAPPER::readTree)
-        .anyMatch(b -> b.findPath("status").asText().equals("read"))
+        .anyMatch(b -> b.findPath("status").asText().equals("read")) // one is a read receipt
         .anySatisfy(
             b ->
                 assertThat(b.findPath("text").findPath("body").textValue())
@@ -146,6 +147,28 @@ class WAMessageHandlerTest {
               assertThat(m.senderId()).isEqualTo(Identifier.from("123456123"));
               assertThat(m.recipientId()).isEqualTo(Identifier.from("16315551181"));
             });
+
+    // repeat and show that it is not processed again because it is a duplicate
+    request = harness.post(VALID).execute();
+    assertThat(request.returnResponse().getCode()).isEqualTo(200);
+    assertThat(harness.pollWebserver(500)).isNull();
+  }
+
+  @Test
+  void doesNotSendNonTextMessages() throws IOException, InterruptedException {
+    harness.plugin().addResponseToSend(new Payload.Image(new byte[0], "image/jpeg"));
+    Response request = harness.post(VALID).execute();
+    assertThat(request.returnResponse().getCode()).isEqualTo(200);
+    List<ReceivedRequest> responses = new ArrayList<>(1);
+    @Nullable ReceivedRequest r = harness.pollWebserver(500);
+    while (r != null) {
+      responses.add(r);
+      r = harness.pollWebserver(500);
+    }
+    // only receive a read receipt, but not message
+    assertThat(responses).hasSize(1);
+    assertThat(MAPPER.readTree(responses.get(0).body()).findPath("status").textValue())
+        .isEqualTo("read");
   }
 
   @Test

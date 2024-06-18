@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.meta.cp4m.message.Message;
-import com.meta.cp4m.message.Message.Role;
+import com.meta.cp4m.message.Payload;
 import com.meta.cp4m.message.ThreadState;
 import java.io.IOException;
 import java.net.URI;
@@ -29,9 +29,12 @@ import org.apache.hc.core5.http.ContentType;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
 import org.jetbrains.annotations.TestOnly;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OpenAIPlugin<T extends Message> implements Plugin<T> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(OpenAIPlugin.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final String ENDPOINT = "https://api.openai.com/v1/chat/completions";
   private final OpenAIConfig config;
@@ -148,15 +151,19 @@ public class OpenAIPlugin<T extends Message> implements Plugin<T> {
     }
 
     ArrayNode messages = MAPPER.createArrayNode();
-    messages
-        .addObject()
-        .put("role", Role.SYSTEM.toString().toLowerCase())
-        .put("content", config.systemMessage());
+    messages.addObject().put("role", "system").put("content", config.systemMessage());
     for (T message : threadState.messages()) {
-      messages
-          .addObject()
-          .put("role", message.role().toString().toLowerCase())
-          .put("content", message.message());
+      if (message.payload() instanceof Payload.Text) {
+        messages
+            .addObject()
+            .put("role", message.role().toString().toLowerCase())
+            .put("content", message.message());
+      } else {
+        LOGGER
+            .atWarn()
+            .setMessage("unable to handle payload type " + message.payload().getClass().getName())
+            .log();
+      }
     }
 
     Optional<ArrayNode> prunedMessages = pruneMessages(messages, null);
