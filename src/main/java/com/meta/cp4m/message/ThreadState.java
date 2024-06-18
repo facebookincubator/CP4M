@@ -26,9 +26,9 @@ public class ThreadState<T extends Message> {
 
   private ThreadState(T message) {
     Objects.requireNonNull(message);
-    userData = UserData.empty();
     this.messages = ImmutableList.of(message);
     messageFactory = MessageFactory.instance(message);
+    userData = UserData.empty();
   }
 
   private ThreadState(ThreadState<T> old, UserData userData) {
