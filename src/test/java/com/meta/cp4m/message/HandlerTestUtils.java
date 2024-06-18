@@ -41,6 +41,14 @@ public final class HandlerTestUtils {
     };
   }
 
+  public static URI baseURL(String path, int port) {
+    try {
+      return URIBuilder.loopbackAddress().setPort(port).appendPath(path).setScheme("http").build();
+    } catch (URISyntaxException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public static Function<JsonNode, Request> MessageRequestFactory(
       Method method, String path, String appSecret, int port) throws URISyntaxException {
     Request request =

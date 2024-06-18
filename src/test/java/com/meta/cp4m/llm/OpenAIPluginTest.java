@@ -27,7 +27,6 @@ import io.javalin.Javalin;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +58,7 @@ public class OpenAIPluginTest {
           MessageFactory.instance(FBMessage.class)
               .newMessage(
                   Instant.now(),
-                  "test message",
+                  new Payload.Text("test message"),
                   Identifier.random(),
                   Identifier.random(),
                   Identifier.random(),
@@ -90,7 +89,7 @@ public class OpenAIPluginTest {
   }
 
   @BeforeEach
-  void setUp() throws UnknownHostException, URISyntaxException {
+  void setUp() throws URISyntaxException {
     openAIRequests = new LinkedBlockingDeque<>();
     app = Javalin.create();
     app.before(
@@ -102,6 +101,38 @@ public class OpenAIPluginTest {
     app.start(0);
     endpoint =
         URIBuilder.loopbackAddress().setScheme("http").appendPath(PATH).setPort(app.port()).build();
+  }
+
+  @Test
+  void nonTextMessage() throws IOException, InterruptedException {
+    String apiKey = UUID.randomUUID().toString();
+    OpenAIConfig config = OpenAIConfig.builder(OpenAIModel.GPT4, apiKey).build();
+    OpenAIPlugin<FBMessage> plugin = new OpenAIPlugin<FBMessage>(config).endpoint(endpoint);
+    ThreadState<FBMessage> thread =
+        THREAD
+            .with(
+                new FBMessage(
+                    Instant.now(),
+                    Identifier.random(),
+                    THREAD.tail().senderId(),
+                    THREAD.tail().recipientId(),
+                    new Payload.Image(new byte[0], "image/jpeg"),
+                    Role.USER))
+            .with(
+                new FBMessage(
+                    Instant.now(),
+                    Identifier.random(),
+                    THREAD.tail().senderId(),
+                    THREAD.tail().recipientId(),
+                    new Payload.Document(new byte[0], "application/pdf"),
+                    Role.USER));
+
+    FBMessage message = plugin.handle(thread);
+    assertThat(message.message()).isEqualTo(TEST_MESSAGE);
+    assertThat(message.role()).isSameAs(Role.ASSISTANT);
+    @Nullable OutboundRequest or = openAIRequests.poll(500, TimeUnit.MILLISECONDS);
+    assertThat(MAPPER.readTree(or.body()).get("messages"))
+        .hasSize(2); // system message + existing text message
   }
 
   @ParameterizedTest
@@ -154,8 +185,7 @@ public class OpenAIPluginTest {
       assertThat(body.get("messages"))
           .satisfiesOnlyOnce(
               m -> {
-                assertThat(m.get("role").textValue())
-                    .isEqualTo(Role.SYSTEM.toString().toLowerCase());
+                assertThat(m.get("role").textValue()).isEqualTo("system");
                 assertThat(m.get("content").textValue())
                     .isEqualTo(configItem.validValue().textValue());
               });
@@ -194,7 +224,7 @@ public class OpenAIPluginTest {
             MessageFactory.instance(FBMessage.class)
                 .newMessage(
                     Instant.now(),
-                    "1",
+                    new Payload.Text("1"),
                     Identifier.random(),
                     Identifier.random(),
                     Identifier.random(),

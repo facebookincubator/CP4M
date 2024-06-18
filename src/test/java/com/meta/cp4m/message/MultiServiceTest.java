@@ -37,6 +37,8 @@ public class MultiServiceTest {
   private final Function<Identifier, URI> baseURLFactory =
       HandlerTestUtils.baseURLFactory(META_PATH, metaWebServer.port());
 
+  private final URI baseURL = HandlerTestUtils.baseURL(META_PATH, metaWebServer.port());
+
   @Test
   void waAndFBTest() throws Exception {
     final String path = "/path";
@@ -71,7 +73,7 @@ public class MultiServiceTest {
     WAMessageHandler wa1Handler =
         WAMessengerConfig.of(wa1VerifyToken, wa1AppSecret, wa1PageAccessToken)
             .toMessageHandler()
-            .baseUrlFactory(baseURLFactory);
+            .baseUrl(baseURL);
     DummyLLMPlugin<WAMessage> wa1Plugin = new DummyLLMPlugin<>("i'm a wa1 dummy");
     Service<WAMessage> wa1Service = new Service<>(wa1Store, wa1Handler, wa1Plugin, path);
 
@@ -82,7 +84,7 @@ public class MultiServiceTest {
     WAMessageHandler wa2Handler =
         WAMessengerConfig.of(wa2VerifyToken, wa2AppSecret, wa2PageAccessToken)
             .toMessageHandler()
-            .baseUrlFactory(baseURLFactory);
+            .baseUrl(baseURL);
     DummyLLMPlugin<WAMessage> wa2Plugin = new DummyLLMPlugin<>("i'm a wa2 dummy");
     Service<WAMessage> wa2Service = new Service<>(wa2Store, wa2Handler, wa2Plugin, path);
 
@@ -116,12 +118,23 @@ public class MultiServiceTest {
     // WA1 test
     Function<JsonNode, Request> wa1RequestFactory =
         HandlerTestUtils.MessageRequestFactory(Method.POST, path, wa1AppSecret, runner.port());
-    wa1RequestFactory.apply(MAPPER.readTree(WAMessageHandlerTest.VALID)).execute();
+    JsonNode validWABody = MAPPER.readTree(WAMessageHandlerTest.VALID);
+    String phoneNumberId =
+        validWABody
+            .get("entry")
+            .get(0)
+            .get("changes")
+            .get(0)
+            .get("value")
+            .get("metadata")
+            .get("phone_number_id")
+            .textValue();
+    wa1RequestFactory.apply(validWABody).execute();
     wa1Plugin.take(500);
     receivedRequest = metaWebServer.take(500);
     ReceivedRequest receivedRequest2 = metaWebServer.take(500);
-    assertThat(receivedRequest.path()).isEqualTo(META_PATH);
-    assertThat(receivedRequest2.path()).isEqualTo(META_PATH);
+    assertThat(receivedRequest.path()).isEqualTo(META_PATH + "/" + phoneNumberId + "/messages");
+    assertThat(receivedRequest2.path()).isEqualTo(META_PATH + "/" + phoneNumberId + "/messages");
     assertThat(List.of(receivedRequest, receivedRequest2))
         .satisfiesOnlyOnce(r -> assertThat(r.body()).contains("i'm a wa1 dummy"));
 
@@ -132,8 +145,8 @@ public class MultiServiceTest {
     wa2Plugin.take(500);
     receivedRequest = metaWebServer.take(500);
     receivedRequest2 = metaWebServer.take(500);
-    assertThat(receivedRequest.path()).isEqualTo(META_PATH);
-    assertThat(receivedRequest2.path()).isEqualTo(META_PATH);
+    assertThat(receivedRequest.path()).isEqualTo(META_PATH + "/" + phoneNumberId + "/messages");
+    assertThat(receivedRequest2.path()).isEqualTo(META_PATH + "/" + phoneNumberId + "/messages");
     assertThat(List.of(receivedRequest, receivedRequest2))
         .satisfiesOnlyOnce(r -> assertThat(r.body()).contains("i'm a wa2 dummy"));
   }

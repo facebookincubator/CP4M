@@ -30,6 +30,8 @@ public interface Message {
 
   String message();
 
+  Payload<?> payload();
+
   Role role();
 
   default Identifier threadId() {
@@ -38,7 +40,6 @@ public interface Message {
 
   enum Role {
     ASSISTANT,
-    USER,
-    SYSTEM
+    USER
   }
 }

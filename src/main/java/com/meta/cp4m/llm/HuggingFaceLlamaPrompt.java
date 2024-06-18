@@ -11,6 +11,7 @@ package com.meta.cp4m.llm;
 import ai.djl.huggingface.tokenizers.Encoding;
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
 import com.meta.cp4m.message.Message;
+import com.meta.cp4m.message.Payload;
 import com.meta.cp4m.message.ThreadState;
 import java.io.IOException;
 import java.net.URI;
@@ -18,8 +19,12 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HuggingFaceLlamaPrompt<T extends Message> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(HuggingFaceLlamaPrompt.class);
 
   private final String systemMessage;
   private final long maxInputTokens;
@@ -52,6 +57,13 @@ public class HuggingFaceLlamaPrompt<T extends Message> {
 
     for (int i = threadState.messages().size() - 1; i >= 0; i--) {
       Message m = threadState.messages().get(i);
+      if (!(m.payload() instanceof Payload.Text)) {
+        LOGGER
+            .atWarn()
+            .setMessage("unable to handle payload of type " + m.payload().getClass().getName())
+            .log();
+        continue;
+      }
       totalTokens += tokenCount(m.message());
       if (totalTokens > maxInputTokens) {
         if (i == threadState.messages().size() - 1) {
