@@ -17,6 +17,7 @@ import com.meta.cp4m.message.Message;
   @JsonSubTypes.Type(value = OpenAIConfig.class, name = "openai"),
   @JsonSubTypes.Type(value = HuggingFaceConfig.class, name = "hugging_face"),
   @JsonSubTypes.Type(value = EchoPluginConfig.class, name = "echo"),
+  @JsonSubTypes.Type(value = GenericPluginConfig.class, name = "generic"),
 })
 public interface PluginConfig {
 

@@ -24,9 +24,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.Objects;
 import org.apache.hc.client5.http.fluent.Request;
-import org.apache.hc.client5.http.fluent.Response;
 import org.apache.hc.core5.http.ContentType;
-import org.apache.hc.core5.http.HttpResponse;
 
 public class GenericPlugin<T extends Message> implements Plugin<T> {
 
@@ -65,24 +63,22 @@ public class GenericPlugin<T extends Message> implements Plugin<T> {
       throw new RuntimeException(e);
     }
 
-    Response response =
-        Request.post(url).bodyString(jsonPostPayload, ContentType.APPLICATION_JSON).execute();
-    int responseCode = response.returnResponse().getCode();
-    HttpResponse returnResponse = response.returnResponse();
-    if (!(responseCode >= 200 && responseCode < 300)) {
-      throw new IOException(returnResponse.getReasonPhrase());
-    }
-    GenericPluginThreadUpdateResponse responseBody =
-        MAPPER.readValue(
-            response.returnContent().asBytes(), GenericPluginThreadUpdateResponse.class);
+    GenericPluginThreadUpdateResponse response =
+        Request.post(url)
+            .bodyString(jsonPostPayload, ContentType.APPLICATION_JSON)
+            .execute()
+            .handleResponse(
+                res ->
+                    MAPPER.readValue(
+                        res.getEntity().getContent(), GenericPluginThreadUpdateResponse.class));
 
-    return threadState.newMessageFromBot(Instant.now(), responseBody.value);
+    return threadState.newMessageFromBot(Instant.now(), response.value);
   }
 
-  public record GenericPluginThreadUpdateResponse(String type, String value) {
+  record GenericPluginThreadUpdateResponse(String type, String value) {
 
     @JsonCreator
-    public GenericPluginThreadUpdateResponse(
+    GenericPluginThreadUpdateResponse(
         @JsonProperty("type") String type, @JsonProperty("value") String value) {
       Preconditions.checkArgument(Objects.equals(type, "text"), "type must be equal to text");
       this.type = type;

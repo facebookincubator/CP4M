@@ -18,6 +18,7 @@ import com.meta.cp4m.store.ChatStore;
 import io.javalin.http.Context;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -37,12 +38,12 @@ public class Service<T extends Message> {
   public Service(ChatStore<T> store, MessageHandler<T> handler, Plugin<T> plugin, String path) {
     this.handler = Objects.requireNonNull(handler);
     this.store = Objects.requireNonNull(store);
-    this.plugin = plugin;
-    this.path = path;
+    this.plugin = Objects.requireNonNull(plugin);
+    this.path = Objects.requireNonNull(path);
   }
 
   <IN> void handler(Context ctx, IN in, RequestProcessor<IN, T> processor) {
-    List<T> messages = null;
+    List<T> messages = Collections.emptyList();
     try {
       messages = processor.process(ctx, in);
     } catch (Exception e) {

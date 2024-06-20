@@ -8,45 +8,62 @@
 
 package com.meta.cp4m;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.javalin.Javalin;
 import io.javalin.http.HandlerType;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.common.returnsreceiver.qual.This;
 
 public class DummyWebServer implements AutoCloseable {
+
+  private static final JsonMapper MAPPER = new JsonMapper();
   private final Javalin javalin;
   private final BlockingQueue<ReceivedRequest> receivedRequests = new LinkedBlockingDeque<>();
+  private final Queue<String> responses = new LinkedBlockingQueue<>();
 
   private DummyWebServer() {
-    this.javalin =
-        Javalin.create()
-            .addHttpHandler(
-                HandlerType.GET,
-                "/<path>",
-                ctx ->
-                    receivedRequests.put(
-                        new ReceivedRequest(
-                            ctx.path(),
-                            ctx.body(),
-                            ctx.contentType(),
-                            ctx.headerMap(),
-                            ctx.queryParamMap())))
-            .addHttpHandler(
-                HandlerType.POST,
-                "/<path>",
-                ctx ->
-                    receivedRequests.put(
-                        new ReceivedRequest(
-                            ctx.path(),
-                            ctx.body(),
-                            ctx.contentType(),
-                            ctx.headerMap(),
-                            ctx.queryParamMap())))
-            .start(0);
+    this.javalin = Javalin.create();
+    javalin.before(
+        ctx ->
+            receivedRequests.put(
+                new ReceivedRequest(
+                    ctx.path(),
+                    ctx.body(),
+                    ctx.contentType(),
+                    ctx.headerMap(),
+                    ctx.queryParamMap())));
+    Arrays.stream(HandlerType.values())
+        .forEach(
+            ht ->
+                this.javalin.addHttpHandler(
+                    ht,
+                    "/<path>",
+                    ctx -> {
+                      @Nullable String body = responses.poll();
+                      if (body != null) {
+                        ctx.result(body);
+                      }
+                    }));
+    javalin.start(0);
+  }
+
+  public @This DummyWebServer response(JsonNode body) throws JsonProcessingException {
+    return response(MAPPER.writeValueAsString(body));
+  }
+
+  public @This DummyWebServer response(String body) {
+    responses.add(body);
+    return this;
   }
 
   public static DummyWebServer create() {
