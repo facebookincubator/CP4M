@@ -24,6 +24,8 @@ public class ServicesRunner implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServicesRunner.class);
   private final Javalin app = Javalin.create();
   private final Set<Service<?>> services = new LinkedHashSet<>();
+
+  private String heartbeatPath = "/heartbeat";
   private boolean started = false;
   private int port = 8080;
 
@@ -68,6 +70,11 @@ public class ServicesRunner implements AutoCloseable {
   }
 
   public @This ServicesRunner start() {
+    if (started) {
+      return this;
+    }
+
+    app.addHttpHandler(HandlerType.GET, heartbeatPath, ctx -> {});
     record RouteGroup(String path, HandlerType handlerType) {}
     Map<RouteGroup, List<Route<?>>> routeGroups = new HashMap<>();
     for (Service<?> s : services) { // this is not a stream because order matters here
@@ -97,6 +104,12 @@ public class ServicesRunner implements AutoCloseable {
     Preconditions.checkState(!started, "cannot add service, server already started");
 
     services.add(service);
+    return this;
+  }
+
+  public @This ServicesRunner heartbeatPath(String path) {
+    Preconditions.checkState(!started, "cannot add heartbeat path, server already started");
+    this.heartbeatPath = path;
     return this;
   }
 
