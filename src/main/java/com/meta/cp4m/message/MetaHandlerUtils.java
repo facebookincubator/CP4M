@@ -88,7 +88,7 @@ class MetaHandlerUtils {
    * @param appSecret app secret corresponding to this app
    */
   static boolean postHeaderValid(Context ctx, String appSecret) {
-    @Nullable String sig = ctx.headerMap().get("X-Hub-Signature-256");
+    @Nullable String sig = ctx.header("X-Hub-Signature-256");
     if (sig == null) {
       return false;
     }
