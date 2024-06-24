@@ -137,6 +137,13 @@ public class FBMessageHandlerTest {
                         .addHeader("X-Hub-Signature-256", SAMPLE_MESSAGE_HMAC),
                 true),
             new TestArgument(
+                "valid sample w/ lower case signature header",
+                200,
+                r ->
+                    createMessageRequest(SAMPLE_MESSAGE, r, false)
+                        .addHeader("x-hub-signature-256", SAMPLE_MESSAGE_HMAC),
+                true),
+            new TestArgument(
                 // if this fails the test hmac calculator is flawed
                 "valid sample with hmac calculation",
                 200,
