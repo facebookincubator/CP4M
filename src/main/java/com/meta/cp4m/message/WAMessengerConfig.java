@@ -10,7 +10,9 @@ package com.meta.cp4m.message;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import java.util.Optional;
 import java.util.UUID;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class WAMessengerConfig implements HandlerConfig {
 
@@ -18,12 +20,15 @@ public class WAMessengerConfig implements HandlerConfig {
   private final String verifyToken;
   private final String appSecret;
   private final String accessToken;
+  private final @Nullable String welcomeMessage;
 
   private WAMessengerConfig(
       @JsonProperty("name") String name,
       @JsonProperty("verify_token") String verifyToken,
       @JsonProperty("app_secret") String appSecret,
-      @JsonProperty("access_token") String accessToken) {
+      @JsonProperty("access_token") String accessToken,
+      @Nullable @JsonProperty("welcome_message") String welcomeMessage) {
+    this.welcomeMessage = welcomeMessage;
 
     Preconditions.checkArgument(name != null && !name.isBlank(), "name cannot be blank");
     Preconditions.checkArgument(
@@ -41,7 +46,15 @@ public class WAMessengerConfig implements HandlerConfig {
 
   public static WAMessengerConfig of(String verifyToken, String appSecret, String accessToken) {
     // human readability of the name only matters when it's coming from a config
-    return new WAMessengerConfig(UUID.randomUUID().toString(), verifyToken, appSecret, accessToken);
+    return new WAMessengerConfig(
+        UUID.randomUUID().toString(), verifyToken, appSecret, accessToken, null);
+  }
+
+  public static WAMessengerConfig of(
+      String verifyToken, String appSecret, String accessToken, @Nullable String welcomeMessage) {
+    // human readability of the name only matters when it's coming from a config
+    return new WAMessengerConfig(
+        UUID.randomUUID().toString(), verifyToken, appSecret, accessToken, welcomeMessage);
   }
 
   @Override
@@ -64,5 +77,9 @@ public class WAMessengerConfig implements HandlerConfig {
 
   public String accessToken() {
     return accessToken;
+  }
+
+  public Optional<String> welcomeMessage() {
+    return Optional.ofNullable(welcomeMessage);
   }
 }

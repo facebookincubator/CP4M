@@ -11,6 +11,7 @@ package com.meta.cp4m.message;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.message.webhook.whatsapp.Utils;
@@ -22,8 +23,10 @@ import java.util.Objects;
 import java.util.stream.Stream;
 import org.apache.hc.client5.http.fluent.Response;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class WAMessageHandlerTest {
 
@@ -104,13 +107,51 @@ class WAMessageHandlerTest {
   private final ServiceTestHarness<WAMessage> harness =
       ServiceTestHarness.newWAServiceTestHarness();
 
-  @BeforeEach
-  void setUp() {
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(strings = {"Hello Worldy!!", ""})
+  void welcomeMessage(final @Nullable String welcomeMessage)
+      throws IOException, InterruptedException {
+    ServiceTestHarness<WAMessage> harness =
+        this.harness.withHandler(
+            WAMessengerConfig.of(
+                    this.harness.verifyToken(),
+                    this.harness.appSecret(),
+                    this.harness.accessToken(),
+                    welcomeMessage)
+                .toMessageHandler());
     harness.start();
+    ObjectNode webhookPayload = (ObjectNode) MAPPER.readTree(VALID);
+    ObjectNode msg =
+        (ObjectNode)
+            webhookPayload
+                .get("entry")
+                .get(0)
+                .get("changes")
+                .get(0)
+                .get("value")
+                .get("messages")
+                .get(0);
+    msg.remove("text");
+    msg.put("type", "request_welcome");
+    harness.post(MAPPER.writeValueAsString(webhookPayload)).execute();
+    @Nullable ReceivedRequest res = harness.pollWebserver(200);
+    if (welcomeMessage == null) {
+      assertThat(res).isNull();
+    } else {
+      assertThat(res).isNotNull();
+      assertThat(MAPPER.readTree(res.body()))
+          .isEqualTo(
+              MAPPER.readTree(
+                  "{\"recipient_type\":\"individual\",\"messaging_product\":\"whatsapp\",\"type\":\"text\",\"to\":\"123456123\",\"text\":{\"body\":\""
+                      + welcomeMessage
+                      + "\"}}"));
+    }
   }
 
   @Test
   void valid() throws IOException, InterruptedException {
+    harness.start();
     Response request = harness.post(VALID).execute();
     assertThat(request.returnResponse().getCode()).isEqualTo(200);
 
@@ -156,6 +197,7 @@ class WAMessageHandlerTest {
 
   @Test
   void doesNotSendNonTextMessages() throws IOException, InterruptedException {
+    harness.start();
     harness.llmPlugin().addResponseToSend(new Payload.Image(new byte[0], "image/jpeg"));
     Response request = harness.post(VALID).execute();
     assertThat(request.returnResponse().getCode()).isEqualTo(200);
@@ -173,6 +215,7 @@ class WAMessageHandlerTest {
 
   @Test
   void noMessages() throws IOException, InterruptedException {
+    harness.start();
     Response request = harness.post(NO_MESSAGES).execute();
     assertThat(request.returnResponse().getCode()).isEqualTo(200);
     assertThat(harness.pollWebserver(250)).isNull();
