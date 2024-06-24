@@ -21,6 +21,7 @@ import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.net.URIBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.common.reflection.qual.NewInstance;
 import org.checkerframework.common.returnsreceiver.qual.This;
 
 public class ServiceTestHarness<T extends Message> {
@@ -48,10 +49,22 @@ public class ServiceTestHarness<T extends Message> {
   public static ServiceTestHarness<WAMessage> newWAServiceTestHarness() {
     ChatStore<WAMessage> chatStore = MemoryStoreConfig.of(1, 1).toStore();
     DummyLLMPlugin<WAMessage> llmPlugin = new DummyLLMPlugin<>("dummy plugin response text");
-    WAMessageHandler handler =
-        WAMessengerConfig.of(VERIFY_TOKEN, APP_SECRET, ACCESS_TOKEN).toMessageHandler();
+    WAMessengerConfig config = WAMessengerConfig.of(VERIFY_TOKEN, APP_SECRET, ACCESS_TOKEN);
+    WAMessageHandler handler = config.toMessageHandler();
     ServiceTestHarness<WAMessage> harness = new ServiceTestHarness<>(chatStore, handler, llmPlugin);
     handler.baseUrl(harness.webserverURI());
+    return harness;
+  }
+
+  public @NewInstance ServiceTestHarness<T> withHandler(MessageHandler<T> handler) {
+    this.stop();
+    ServiceTestHarness<T> harness =
+        new ServiceTestHarness<>(this.chatStore, handler, this.llmPlugin);
+    switch (handler) {
+      case WAMessageHandler w -> w.baseUrl(harness.webserverURI());
+      case FBMessageHandler fb -> fb.baseURLFactory(ignored -> harness.webserverURI());
+      default -> {}
+    }
     return harness;
   }
 

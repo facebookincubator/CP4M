@@ -33,6 +33,7 @@ import java.util.Optional;
   @JsonSubTypes.Type(value = StickerWebhookMessage.class, name = "sticker"),
   @JsonSubTypes.Type(value = UnknownWebhookMessage.class, name = "unknown"),
   @JsonSubTypes.Type(value = VideoWebhookMessage.class, name = "video"),
+  @JsonSubTypes.Type(value = WelcomeWebhookMessage.class, name = "request_welcome"),
 })
 public interface WebhookMessage {
 
@@ -100,6 +101,7 @@ public interface WebhookMessage {
     STICKER,
     SYSTEM,
     VIDEO,
+    REQUEST_WELCOME,
     UNKNOWN;
 
     @Override
