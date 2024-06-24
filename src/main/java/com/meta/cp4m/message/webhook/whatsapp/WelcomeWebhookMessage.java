@@ -18,6 +18,13 @@ import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+/**
+ * Represents a WhatsApp welcome message.
+ *
+ * <p>See <a href="
+ * https://developers.facebook.com/docs/whatsapp/cloud-api/phone-numbers/conversational-components/#welcome-messages#message-welcome">WhatsApp
+ * Conversational Components</a>.
+ */
 public class WelcomeWebhookMessage implements ReferableWebhookMessage {
   private final @Nullable Referral referral;
   private final @Nullable WebhookMessageContext context;
