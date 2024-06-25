@@ -188,6 +188,22 @@ class WAMessageHandlerTest {
               assertThat(m.senderId()).isEqualTo(Identifier.from("123456123"));
               assertThat(m.recipientId()).isEqualTo(Identifier.from("16315551181"));
             });
+    String testUserName =
+        MAPPER
+            .readTree(VALID)
+            .get("entry")
+            .get(0)
+            .get("changes")
+            .get(0)
+            .get("value")
+            .get("contacts")
+            .get(0)
+            .get("profile")
+            .get("name")
+            .textValue();
+    assertThat(thread.userData())
+        .satisfies(u -> assertThat(u.name()).get().isEqualTo(testUserName))
+        .satisfies(u -> assertThat(u.phoneNumber()).isEmpty());
 
     // repeat and show that it is not processed again because it is a duplicate
     request = harness.post(VALID).execute();

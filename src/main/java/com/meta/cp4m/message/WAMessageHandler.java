@@ -65,7 +65,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   }
 
   private List<ThreadState<WAMessage>> post(Context ctx, WebhookPayload payload) {
-    List<WAMessage> waMessages = new ArrayList<>();
+    List<ThreadState<WAMessage>> threadStates = new ArrayList<>();
     payload.entry().stream()
         .flatMap(e -> e.changes().stream())
         .forEachOrdered(
@@ -87,7 +87,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                               message.from(),
                               phoneNumberId,
                               welcomeMessage,
-                              Message.Role.USER);
+                              Message.Role.ASSISTANT);
                       asyncExecutor.submit(
                           () -> {
                             try {
@@ -107,18 +107,26 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                     continue;
                   }
                 }
-                waMessages.add(
-                    new WAMessage(
-                        message.timestamp(),
-                        message.id(),
-                        message.from(),
-                        phoneNumberId,
-                        payloadValue,
-                        Message.Role.USER));
+                ThreadState<WAMessage> ts =
+                    ThreadState.of(
+                        new WAMessage(
+                            message.timestamp(),
+                            message.id(),
+                            message.from(),
+                            phoneNumberId,
+                            payloadValue,
+                            Message.Role.USER));
+                UserData userData =
+                    change.value().contacts().stream() // should only ever be one contact
+                        .map(Contact::profile)
+                        .map(p -> ts.userData().withName(p.name()))
+                        .findAny()
+                        .orElse(ts.userData());
+                threadStates.add(ts.withUserData(userData));
                 asyncExecutor.execute(() -> markRead(phoneNumberId, message.id().toString()));
               }
             });
-    return waMessages.stream().map(ThreadState::of).toList();
+    return threadStates;
   }
 
   @TestOnly
