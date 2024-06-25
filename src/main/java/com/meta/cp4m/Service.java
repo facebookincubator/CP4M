@@ -42,9 +42,9 @@ public class Service<T extends Message> {
   }
 
   <IN> void handler(Context ctx, IN in, RequestProcessor<IN, T> processor) {
-    List<T> messages;
+    List<ThreadState<T>> threads;
     try {
-      messages = processor.process(ctx, in);
+      threads = processor.process(ctx, in);
     } catch (RuntimeException e) {
       LOGGER
           .atError()
@@ -56,9 +56,9 @@ public class Service<T extends Message> {
       throw e;
     }
     // TODO: once we have a non-volatile store, on startup send stored but not replied to messages
-    for (T m : messages) {
-      ThreadState<T> thread = store.add(m);
-      executorService.submit(() -> execute(thread));
+    for (ThreadState<T> threadState : threads) {
+      ThreadState<T> fullThreadState = store.update(threadState);
+      executorService.submit(() -> execute(fullThreadState));
     }
   }
 

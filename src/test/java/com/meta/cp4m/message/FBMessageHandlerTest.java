@@ -15,7 +15,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.meta.cp4m.Identifier;
@@ -363,7 +362,7 @@ public class FBMessageHandlerTest {
     if (!messageExpected) {
       assertThat(llmHandler.poll())
           .isNull(); // make sure the message wasn't processed and send to the llm handler
-      assertThat(memoryStore.size())
+      assertThat(memoryStore.list().size())
           .isEqualTo(0); // make sure the message wasn't processed and stored
       assertThat(requests).hasSize(0);
     } else {

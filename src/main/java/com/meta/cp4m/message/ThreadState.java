@@ -141,6 +141,10 @@ public class ThreadState<T extends Message> {
     return merge(this, other);
   }
 
+  public Identifier threadId() {
+    return tail().threadId();
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;

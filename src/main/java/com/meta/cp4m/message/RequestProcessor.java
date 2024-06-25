@@ -14,5 +14,5 @@ import java.util.List;
 @FunctionalInterface
 public interface RequestProcessor<IN, OUT extends Message> {
 
-  List<OUT> process(Context ctx, IN in);
+  List<ThreadState<OUT>> process(Context ctx, IN in);
 }

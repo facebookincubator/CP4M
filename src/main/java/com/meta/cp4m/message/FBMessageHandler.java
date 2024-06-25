@@ -101,7 +101,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
     return MetaHandlerUtils.hmac(body, appSecret);
   }
 
-  private List<FBMessage> postHandler(Context ctx, JsonNode body) {
+  private List<ThreadState<FBMessage>> postHandler(Context ctx, JsonNode body) {
     JsonNode entries = body.get("entry");
     ArrayList<FBMessage> output = new ArrayList<>();
     for (JsonNode entry : entries) {
@@ -156,7 +156,7 @@ public class FBMessageHandler implements MessageHandler<FBMessage> {
       }
     }
 
-    return output;
+    return output.stream().map(ThreadState::of).toList();
   }
 
   @TestOnly

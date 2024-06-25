@@ -64,7 +64,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     this.appSecretProof = MetaHandlerUtils.hmac(accessToken, appSecret);
   }
 
-  private List<WAMessage> post(Context ctx, WebhookPayload payload) {
+  private List<ThreadState<WAMessage>> post(Context ctx, WebhookPayload payload) {
     List<WAMessage> waMessages = new ArrayList<>();
     payload.entry().stream()
         .flatMap(e -> e.changes().stream())
@@ -118,7 +118,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                 asyncExecutor.execute(() -> markRead(phoneNumberId, message.id().toString()));
               }
             });
-    return waMessages;
+    return waMessages.stream().map(ThreadState::of).toList();
   }
 
   @TestOnly

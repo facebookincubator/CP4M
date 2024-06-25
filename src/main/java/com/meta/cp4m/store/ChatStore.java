@@ -25,7 +25,7 @@ public interface ChatStore<T extends Message> {
 
   ThreadState<T> add(T message);
 
-  long size();
+  ThreadState<T> update(ThreadState<T> threadState);
 
   List<ThreadState<T>> list();
 }
