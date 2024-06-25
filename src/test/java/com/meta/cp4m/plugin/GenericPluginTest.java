@@ -79,7 +79,7 @@ handler = "messenger_test"
     GenericPlugin.GenericPluginThreadUpdateResponse res =
         new GenericPlugin.GenericPluginThreadUpdateResponse("text", "hello from the plugin!");
     JsonNode programmedResponse = MAPPER.valueToTree(res);
-    webServer.response(programmedResponse);
+    webServer.response(ignored -> true, programmedResponse);
     final String path = "/generic";
     final URI url =
         URIBuilder.loopbackAddress()
@@ -127,7 +127,7 @@ handler = "messenger_test"
       strings = {"{}", "{\ninvalidjson:\"", "{\"type\": \"invalidtype\", \"value\": \"\"}", ""})
   void invalidPayloadFormat(String programmedResponse)
       throws URISyntaxException, InterruptedException {
-    webServer.response(programmedResponse);
+    webServer.response(ignored -> true, programmedResponse);
     final String path = "/generic";
     final URI url =
         URIBuilder.loopbackAddress()

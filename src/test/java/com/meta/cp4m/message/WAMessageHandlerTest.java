@@ -151,6 +151,24 @@ class WAMessageHandlerTest {
 
   @Test
   void valid() throws IOException, InterruptedException {
+    final String sendResponse =
+        """
+{
+      "messaging_product": "whatsapp",
+      "contacts": [
+        {
+          "input": "16315551181",
+          "wa_id": "16315551181"
+        }
+      ],
+      "messages": [
+        {
+          "id": "wamid.HBgLMTY1MDUwNzY1MjAVAgARGBI5QTNDQTVCM0Q0Q0Q2RTY3RTcA",
+          "message_status": "accepted"
+        }
+      ]
+    }""";
+    harness.dummyWebServer().response(ctx -> ctx.body().contains("\"type\""), sendResponse);
     harness.start();
     Response request = harness.post(VALID).execute();
     assertThat(request.returnResponse().getCode()).isEqualTo(200);
@@ -203,7 +221,7 @@ class WAMessageHandlerTest {
             .textValue();
     assertThat(thread.userData())
         .satisfies(u -> assertThat(u.name()).get().isEqualTo(testUserName))
-        .satisfies(u -> assertThat(u.phoneNumber()).isEmpty());
+        .satisfies(u -> assertThat(u.phoneNumber()).get().isEqualTo("16315551181"));
 
     // repeat and show that it is not processed again because it is a duplicate
     request = harness.post(VALID).execute();

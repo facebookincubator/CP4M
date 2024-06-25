@@ -58,8 +58,7 @@ public class ServiceTestHarness<T extends Message> {
 
   public @NewInstance ServiceTestHarness<T> withHandler(MessageHandler<T> handler) {
     this.stop();
-    ServiceTestHarness<T> harness =
-        new ServiceTestHarness<>(this.chatStore, handler, this.plugin);
+    ServiceTestHarness<T> harness = new ServiceTestHarness<>(this.chatStore, handler, this.plugin);
     switch (handler) {
       case WAMessageHandler w -> w.baseUrl(harness.webserverURI());
       case FBMessageHandler fb -> fb.baseURLFactory(ignored -> harness.webserverURI());
@@ -150,7 +149,7 @@ public class ServiceTestHarness<T extends Message> {
   }
 
   public String dummyPluginResponseText() {
-    return ((DummyPlugin<T>) plugin).dummyResponse();
+    return plugin.dummyResponse();
   }
 
   public int servicePort() {
@@ -163,5 +162,9 @@ public class ServiceTestHarness<T extends Message> {
 
   public @Nullable ReceivedRequest pollWebserver(long milliseconds) throws InterruptedException {
     return dummyWebServer.poll(milliseconds);
+  }
+
+  public DummyWebServer dummyWebServer() {
+    return dummyWebServer;
   }
 }
