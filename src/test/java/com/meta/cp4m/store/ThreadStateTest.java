@@ -227,4 +227,33 @@ class ThreadStateTest {
     assertThat(merged.userData().phoneNumber()).get().isEqualTo("+1 555 555 1234");
     assertThat(merged.userData().name()).get().isEqualTo("name");
   }
+
+  @ParameterizedTest
+  @MethodSource("factories")
+  <T extends Message> void duplicatesRemovedForWith(MessageFactory<T> factory) {
+    Instant ts = Instant.now();
+    Identifier senderId = Identifier.random();
+    Identifier recipientId = Identifier.random();
+    Identifier instanceId = Identifier.random();
+    T msg =
+        factory.newMessage(
+            ts,
+            new Payload.Text("sample message 1"),
+            senderId,
+            recipientId,
+            instanceId,
+            Message.Role.USER);
+    ThreadState<T> ts1 =
+        ThreadState.of(msg)
+            .with(msg)
+            .with(
+                factory.newMessage(
+                    ts,
+                    new Payload.Text("sample message 1"),
+                    senderId,
+                    recipientId,
+                    instanceId,
+                    Message.Role.USER));
+    assertThat(ts1.messages()).hasSize(1).allSatisfy(m -> assertThat(m).isEqualTo(msg));
+  }
 }

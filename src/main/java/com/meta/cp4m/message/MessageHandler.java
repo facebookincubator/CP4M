@@ -22,7 +22,7 @@ public interface MessageHandler<T extends Message> {
    *
    * @param message the response
    */
-  void respond(T message) throws IOException;
+  ThreadState<T> respond(T message) throws IOException;
 
   List<RouteDetails<?, T>> routeDetails();
 }

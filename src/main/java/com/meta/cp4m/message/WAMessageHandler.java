@@ -137,7 +137,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   }
 
   @Override
-  public void respond(WAMessage message) throws IOException {
+  public ThreadState<WAMessage> respond(WAMessage message) throws IOException {
     if (!(message.payload() instanceof Payload.Text)) {
       throw new UnsupportedOperationException(
           "Non-text payloads cannot be sent to Whatsapp client currently");
@@ -145,6 +145,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     for (String text : CHUNKER.chunks(message.message()).toList()) {
       send(message.recipientId(), message.senderId(), text);
     }
+    return ThreadState.of(message);
   }
 
   private URI messagesURI(Identifier phoneNumberId) {

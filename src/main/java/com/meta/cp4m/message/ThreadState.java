@@ -52,13 +52,14 @@ public class ThreadState<T extends Message> {
         old.tail().threadId().equals(newMessage.threadId()),
         "all messages in a thread must have the same thread id");
     List<T> messages = old.messages;
-    if (newMessage.timestamp().isBefore(old.tail().timestamp())) {
+    if (newMessage.timestamp().isAfter(old.tail().timestamp())) {
+      this.messages = ImmutableList.<T>builder().addAll(messages).add(newMessage).build();
+    } else {
       this.messages =
           Stream.concat(messages.stream(), Stream.of(newMessage))
               .sorted(Comparator.comparing(Message::timestamp))
+              .distinct()
               .collect(Collectors.toUnmodifiableList());
-    } else {
-      this.messages = ImmutableList.<T>builder().addAll(messages).add(newMessage).build();
     }
 
     Preconditions.checkArgument(

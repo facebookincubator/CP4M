@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,13 +88,17 @@ public class Service<T extends Message> {
       return;
     }
     store.add(pluginResponse);
+    @Nullable ThreadState<T> updatedThreadState = null;
     try {
-      handler.respond(pluginResponse);
+      updatedThreadState = handler.respond(pluginResponse);
     } catch (Exception e) {
       // we log in the handler where we have the body context
       // TODO: create transactional store add
       // TODO: implement retry with exponential backoff
       LOGGER.error("an error occurred while attempting to respond", e);
+    }
+    if (updatedThreadState != null) {
+      store.update(updatedThreadState);
     }
   }
 
