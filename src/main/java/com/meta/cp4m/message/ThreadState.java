@@ -28,7 +28,13 @@ public class ThreadState<T extends Message> {
     Objects.requireNonNull(message);
     this.messages = ImmutableList.of(message);
     messageFactory = MessageFactory.instance(message);
-    userData = UserData.empty();
+    userData = UserData.create(this.userId());
+  }
+
+  public ThreadState(List<T> messages, MessageFactory<T> messageFactory, UserData userData) {
+    this.messages = messages;
+    this.messageFactory = messageFactory;
+    this.userData = userData;
   }
 
   private ThreadState(ThreadState<T> old, UserData userData) {
@@ -118,5 +124,33 @@ public class ThreadState<T extends Message> {
 
   public @NewInstance ThreadState<T> withUserData(UserData userData) {
     return new ThreadState<>(this, userData);
+  }
+
+  public static <T extends Message> ThreadState<T> merge(ThreadState<T> t1, ThreadState<T> t2) {
+    Preconditions.checkArgument(t1.userId().equals(t2.userId()));
+    Preconditions.checkArgument(t1.botId().equals(t2.botId()));
+    List<T> messages =
+        Stream.concat(t1.messages.stream(), t2.messages.stream())
+            .sorted(Comparator.comparing(Message::timestamp))
+            .distinct()
+            .collect(Collectors.toUnmodifiableList());
+    return new ThreadState<>(messages, t1.messageFactory, UserData.merge(t1.userData, t2.userData));
+  }
+
+  public @NewInstance ThreadState<T> merge(ThreadState<T> other) {
+    return merge(this, other);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    ThreadState<?> that = (ThreadState<?>) o;
+    return Objects.equals(messages, that.messages) && Objects.equals(userData, that.userData);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(messages, userData);
   }
 }

@@ -10,7 +10,6 @@ package com.meta.cp4m.plugin;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -125,7 +124,7 @@ handler = "messenger_test"
 
   @ParameterizedTest
   @ValueSource(
-      strings = {"{}", "{\ninvalidjson:\"", "{\"type\": \"invalidtype\", \"value\": \"\"}"})
+      strings = {"{}", "{\ninvalidjson:\"", "{\"type\": \"invalidtype\", \"value\": \"\"}", ""})
   void invalidPayloadFormat(String programmedResponse)
       throws URISyntaxException, InterruptedException {
     webServer.response(programmedResponse);

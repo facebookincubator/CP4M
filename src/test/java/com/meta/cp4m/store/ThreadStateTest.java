@@ -13,24 +13,31 @@ import static org.assertj.core.api.Assertions.*;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.message.*;
 import java.time.Instant;
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class ThreadStateTest {
 
   private static final MessageFactory<FBMessage> FACTORY = MessageFactory.instance(FBMessage.class);
 
-  @Test
-  void userData() {
+  static Stream<MessageFactory<?>> factories() {
+    return MessageFactory.FACTORY_MAP.values().stream();
+  }
+
+  @ParameterizedTest
+  @MethodSource("factories")
+  void userData(MessageFactory<?> factory) {
     Instant start = Instant.now();
-    FBMessage message1 =
-        FACTORY.newMessage(
+    Message message1 =
+        factory.newMessage(
             start,
             new Payload.Text("sample message"),
             Identifier.random(),
             Identifier.random(),
             Identifier.random(),
             Message.Role.USER);
-    ThreadState<FBMessage> ts = ThreadState.of(message1);
+    ThreadState<?> ts = ThreadState.of(message1);
     assertThat(ts.userData())
         .isNotNull()
         .satisfies(userData -> assertThat(userData.name()).isEmpty())
@@ -47,16 +54,17 @@ class ThreadStateTest {
     assertThatThrownBy(() -> ts.userData().withPhoneNumber(null));
 
     UserData userdata = ts.userData().withName("FizzBuzz").withPhoneNumber("+1 (555) 555 4321");
-    ThreadState<FBMessage> tsWithUserData = ts.withUserData(userdata);
+    ThreadState<?> tsWithUserData = ts.withUserData(userdata);
     assertThat(tsWithUserData).isNotSameAs(ts);
     assertThat(tsWithUserData.userData()).isEqualTo(userdata);
   }
 
-  @Test
-  void orderPreservation() {
+  @ParameterizedTest
+  @MethodSource("factories")
+  <T extends Message> void orderPreservation(MessageFactory<T> factory) {
     Instant start = Instant.now();
-    FBMessage message1 =
-        FACTORY.newMessage(
+    T message1 =
+        factory.newMessage(
             start,
             new Payload.Text("sample message"),
             Identifier.random(),
@@ -64,8 +72,8 @@ class ThreadStateTest {
             Identifier.random(),
             Message.Role.USER);
 
-    ThreadState<FBMessage> ms = ThreadState.of(message1);
-    FBMessage message2 = ms.newMessageFromBot(start.plusSeconds(1), "other sample message");
+    ThreadState<T> ms = ThreadState.of(message1);
+    T message2 = ms.newMessageFromBot(start.plusSeconds(1), "other sample message");
     ms = ms.with(message2);
     assertThat(ms.messages()).hasSize(2);
     assertThat(ms.messages().get(0)).isSameAs(message1);
@@ -79,20 +87,21 @@ class ThreadStateTest {
     assertThat(ms.messages().get(1)).isSameAs(message2);
   }
 
-  @Test
-  void orderCorrection() {
+  @ParameterizedTest
+  @MethodSource("factories")
+  <T extends Message> void orderCorrection(MessageFactory<T> factory) {
     Instant start = Instant.now();
-    FBMessage message2 =
-        FACTORY.newMessage(
+    T message2 =
+        factory.newMessage(
             start,
             new Payload.Text("sample message"),
             Identifier.random(),
             Identifier.random(),
             Identifier.random(),
             Message.Role.USER);
-    ThreadState<FBMessage> ms = ThreadState.of(message2);
+    ThreadState<T> ms = ThreadState.of(message2);
 
-    FBMessage message1 = ms.newMessageFromBot(start.minusSeconds(1), "other sample message");
+    T message1 = ms.newMessageFromBot(start.minusSeconds(1), "other sample message");
 
     ms = ms.with(message1);
     assertThat(ms.messages().get(0)).isSameAs(message1);
@@ -106,11 +115,12 @@ class ThreadStateTest {
     assertThat(ms.messages().get(1)).isSameAs(message2);
   }
 
-  @Test
-  void botAndUserId() {
+  @ParameterizedTest
+  @MethodSource("factories")
+  <T extends Message> void botAndUserId(MessageFactory<T> factory) {
     Instant start = Instant.now();
-    FBMessage message1 =
-        FACTORY.newMessage(
+    T message1 =
+        factory.newMessage(
             start,
             new Payload.Text("sample message"),
             Identifier.random(),
@@ -118,9 +128,9 @@ class ThreadStateTest {
             Identifier.random(),
             Message.Role.USER);
 
-    ThreadState<FBMessage> ms = ThreadState.of(message1);
-    FBMessage message2 =
-        FACTORY.newMessage(
+    ThreadState<T> ms = ThreadState.of(message1);
+    T message2 =
+        factory.newMessage(
             start,
             new Payload.Text("sample message"),
             message1.recipientId(),
@@ -128,7 +138,7 @@ class ThreadStateTest {
             Identifier.random(),
             Message.Role.ASSISTANT);
 
-    final ThreadState<FBMessage> finalMs = ms;
+    final ThreadState<T> finalMs = ms;
     assertThatCode(() -> finalMs.with(message2)).doesNotThrowAnyException();
     assertThatCode(() -> finalMs.with(finalMs.newMessageFromBot(start, "")))
         .doesNotThrowAnyException();
@@ -137,8 +147,8 @@ class ThreadStateTest {
     ms = ms.with(message2);
     assertThat(ms.userId()).isEqualTo(message1.senderId());
     assertThat(ms.botId()).isEqualTo(message1.recipientId());
-    FBMessage mDifferentSenderId =
-        FACTORY.newMessage(
+    T mDifferentSenderId =
+        factory.newMessage(
             start,
             new Payload.Text(""),
             Identifier.random(),
@@ -146,12 +156,12 @@ class ThreadStateTest {
             Identifier.random(),
             Message.Role.USER);
 
-    ThreadState<FBMessage> finalMs1 = ms;
+    ThreadState<T> finalMs1 = ms;
     assertThatThrownBy(() -> finalMs1.with(mDifferentSenderId))
         .isInstanceOf(IllegalArgumentException.class);
 
-    FBMessage mDifferentRecipientId =
-        FACTORY.newMessage(
+    T mDifferentRecipientId =
+        factory.newMessage(
             start,
             new Payload.Text(""),
             message1.senderId(),
@@ -161,8 +171,8 @@ class ThreadStateTest {
     assertThatThrownBy(() -> finalMs1.with(mDifferentRecipientId))
         .isInstanceOf(IllegalArgumentException.class);
 
-    FBMessage illegalSenderId =
-        FACTORY.newMessage(
+    T illegalSenderId =
+        factory.newMessage(
             start,
             new Payload.Text(""),
             message1.recipientId(),
@@ -172,8 +182,8 @@ class ThreadStateTest {
     assertThatThrownBy(() -> finalMs1.with(illegalSenderId))
         .isInstanceOf(IllegalArgumentException.class);
 
-    FBMessage illegalRecipientId =
-        FACTORY.newMessage(
+    T illegalRecipientId =
+        factory.newMessage(
             start,
             new Payload.Text(""),
             message1.senderId(),
@@ -182,5 +192,39 @@ class ThreadStateTest {
             Message.Role.ASSISTANT);
     assertThatThrownBy(() -> finalMs1.with(illegalRecipientId))
         .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @ParameterizedTest
+  @MethodSource("factories")
+  <T extends Message> void merge(MessageFactory<T> factory) {
+
+    ThreadState<T> ts1 =
+        ThreadState.of(
+            factory.newMessage(
+                Instant.now(),
+                new Payload.Text("sample message 1"),
+                Identifier.random(),
+                Identifier.random(),
+                Identifier.random(),
+                Message.Role.USER));
+    ThreadState<T> ts2 =
+        ts1.with(ts1.newMessageFromBot(Instant.now(), "sample message 2"))
+            .withUserData(ts1.userData().withPhoneNumber("+1 555 555 1234"));
+    ts1 =
+        ts1.with(ts1.newMessageFromBot(Instant.now(), "sample message 3"))
+            .withUserData(ts1.userData().withName("name"));
+    assertThat(ts1.messages()).hasSize(2);
+    assertThat(ts2.messages()).hasSize(2);
+    assertThat(ts1).isNotEqualTo(ts2);
+    ThreadState<T> merged = ThreadState.merge(ts1, ts2);
+    assertThat(merged)
+        .isEqualTo(ThreadState.merge(ts2, ts1))
+        .isEqualTo(ts1.merge(ts2))
+        .isEqualTo(ts2.merge(ts1));
+    assertThat(merged.messages()).hasSize(3);
+    assertThat(merged.tail()).isSameAs(ts1.messages().getLast());
+    assertThat(merged.messages().getFirst()).isSameAs(ts1.messages().getFirst());
+    assertThat(merged.userData().phoneNumber()).get().isEqualTo("+1 555 555 1234");
+    assertThat(merged.userData().name()).get().isEqualTo("name");
   }
 }
