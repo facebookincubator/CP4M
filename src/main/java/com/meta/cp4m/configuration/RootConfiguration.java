@@ -36,6 +36,7 @@ public class RootConfiguration {
   private final Collection<ServiceConfiguration> services;
 
   private final int port;
+  private final String heartbeatPath;
 
   @JsonCreator
   RootConfiguration(
@@ -43,8 +44,10 @@ public class RootConfiguration {
       @JsonProperty("stores") @Nullable Collection<StoreConfig> stores,
       @JsonProperty("handlers") Collection<HandlerConfig> handlers,
       @JsonProperty("services") Collection<ServiceConfiguration> services,
-      @JsonProperty("port") @Nullable Integer port) {
+      @JsonProperty("port") @Nullable Integer port,
+      @JsonProperty("heartbeat_path") @Nullable String heartbeatPath) {
     this.port = port == null ? 8080 : port;
+    this.heartbeatPath = heartbeatPath == null ? "/heartbeat" : heartbeatPath;
     stores = stores == null ? Collections.emptyList() : stores;
     Preconditions.checkArgument(
         this.port >= 0 && this.port <= 65535, "port must be between 0 and 65535");
@@ -121,6 +124,10 @@ public class RootConfiguration {
     return port;
   }
 
+  public String heartbeatPath() {
+    return heartbeatPath;
+  }
+
   private <T extends Message> Service<T> createService(
       MessageHandler<T> handler, ServiceConfiguration serviceConfig) {
     Plugin<T> plugin = plugins.get(serviceConfig.plugin()).toPlugin();
@@ -134,7 +141,7 @@ public class RootConfiguration {
   }
 
   public ServicesRunner toServicesRunner() {
-    ServicesRunner runner = ServicesRunner.newInstance().port(port);
+    ServicesRunner runner = ServicesRunner.newInstance().port(port).heartbeatPath(heartbeatPath);
     for (ServiceConfiguration service : services) {
       MessageHandler<?> handler = handlers.get(service.handler()).toMessageHandler();
       runner.service(createService(handler, service));

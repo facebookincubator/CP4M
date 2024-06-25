@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.toml.TomlMapper;
 import com.meta.cp4m.ServiceConfiguration;
+import com.meta.cp4m.ServicesRunner;
 import com.meta.cp4m.message.FBMessengerConfig;
 import com.meta.cp4m.message.WAMessengerConfig;
 import com.meta.cp4m.plugin.HuggingFaceConfig;
@@ -23,8 +24,12 @@ import com.meta.cp4m.plugin.OpenAIModel;
 import com.meta.cp4m.store.MemoryStoreConfig;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.apache.hc.client5.http.fluent.Request;
+import org.apache.hc.core5.net.URIBuilder;
+import org.checkerframework.common.returnsreceiver.qual.This;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -119,8 +124,6 @@ webhook_path = "/whatsapp"
 plugin = "openai_test"
 handler = "whatsapp_test"
 """;
-
-
 
   private static final String TOML_M_HF =
       """
@@ -260,17 +263,16 @@ handler = "messenger_test"
     config.toServicesRunner();
   }
 
-
   @Test
   void validWANullStore(@TempDir Path dir) throws IOException {
     Path configFile = dir.resolve("config.toml");
     Files.writeString(configFile, TOML_WA_NULL_STORE);
     RootConfiguration config =
-            ConfigurationUtils.tomlMapper().readValue(configFile.toFile(), RootConfiguration.class);
+        ConfigurationUtils.tomlMapper().readValue(configFile.toFile(), RootConfiguration.class);
 
     assertThat(config.services())
-            .hasSize(1)
-            .allSatisfy(s -> assertThat(s).isInstanceOf(ServiceConfiguration.class));
+        .hasSize(1)
+        .allSatisfy(s -> assertThat(s).isInstanceOf(ServiceConfiguration.class));
     ServiceConfiguration serviceConfiguration = config.services().stream().findAny().orElseThrow();
     assertThat(serviceConfiguration.webhookPath()).isEqualTo("/whatsapp");
     assertThat(serviceConfiguration.store()).isNull();
@@ -281,7 +283,6 @@ handler = "messenger_test"
     config.toServicesRunner();
   }
 
-
   @Test
   void portDefaults8080() throws JsonProcessingException {
     TomlMapper mapper = ConfigurationUtils.tomlMapper();
@@ -289,6 +290,18 @@ handler = "messenger_test"
     node.remove("port");
     RootConfiguration config = mapper.convertValue(node, RootConfiguration.class);
     assertThat(config.port()).isEqualTo(8080);
+  }
+
+  @Test
+  void heartbeatPathDefaultsToHeartbeat() throws IOException, URISyntaxException {
+    TomlMapper mapper = ConfigurationUtils.tomlMapper();
+    ObjectNode node = (ObjectNode) mapper.readTree(TOML);
+    node.remove("heartbeat_path");
+    RootConfiguration config = mapper.convertValue(node, RootConfiguration.class);
+    assertThat(config.heartbeatPath()).isEqualTo("/heartbeat");
+    @This ServicesRunner runner = config.toServicesRunner().port(0).start();
+    URI url = URIBuilder.loopbackAddress().setPort(runner.port()).appendPath("/heartbeat").setScheme("http").build();
+    Request.get(url).execute().handleResponse(h -> assertThat(h.getCode()).isEqualTo(200));
   }
 
   @ParameterizedTest

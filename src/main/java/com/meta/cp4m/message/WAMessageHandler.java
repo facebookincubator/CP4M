@@ -47,19 +47,20 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
 
   private static final TextChunker CHUNKER = TextChunker.standard(MAX_CHARS_PER_MESSAGE);
 
-  private final ExecutorService readExecutor = Executors.newVirtualThreadPerTaskExecutor();
+  private final ExecutorService asyncExecutor = Executors.newVirtualThreadPerTaskExecutor();
   private final Deduplicator<Identifier> messageDeduplicator = new Deduplicator<>(10_000);
   private final String appSecret;
   private final String verifyToken;
   private final String accessToken;
   private final String appSecretProof;
-
+  private final @Nullable String welcomeMessage;
   private URI baseURL = DEFAULT_BASE_URI;
 
   public WAMessageHandler(WAMessengerConfig config) {
     this.verifyToken = config.verifyToken();
     this.accessToken = config.accessToken();
     this.appSecret = config.appSecret();
+    this.welcomeMessage = config.welcomeMessage().orElse(null);
     this.appSecretProof = MetaHandlerUtils.hmac(accessToken, appSecret);
   }
 
@@ -77,6 +78,27 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                 Payload<?> payloadValue;
                 switch (message) {
                   case TextWebhookMessage m -> payloadValue = new Payload.Text(m.text().body());
+                  case WelcomeWebhookMessage ignored -> {
+                    if (welcomeMessage != null) {
+                      WAMessage welcome =
+                          new WAMessage(
+                              message.timestamp(),
+                              message.id(),
+                              message.from(),
+                              phoneNumberId,
+                              welcomeMessage,
+                              Message.Role.USER);
+                      asyncExecutor.submit(
+                          () -> {
+                            try {
+                              respond(welcome);
+                            } catch (IOException e) {
+                              LOGGER.error("unable to send welcome message");
+                            }
+                          });
+                    }
+                    continue;
+                  }
                   default -> {
                     LOGGER.warn(
                         "received message of type '"
@@ -93,7 +115,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                         phoneNumberId,
                         payloadValue,
                         Message.Role.USER));
-                readExecutor.execute(() -> markRead(phoneNumberId, message.id().toString()));
+                asyncExecutor.execute(() -> markRead(phoneNumberId, message.id().toString()));
               }
             });
     return waMessages;
@@ -144,7 +166,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
         .setHeader("Authorization", "Bearer " + accessToken)
         .setHeader("appsecret_proof", appSecretProof)
         .bodyString(bodyString, ContentType.APPLICATION_JSON)
-        .execute();
+        .execute()
+        .discardContent();
   }
 
   @Override
@@ -192,7 +215,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
           .setHeader("Authorization", "Bearer " + accessToken)
           .setHeader("appsecret_proof", appSecretProof)
           .bodyString(bodyString, ContentType.APPLICATION_JSON)
-          .execute();
+          .execute()
+          .discardContent();
     } catch (IOException e) {
       // nothing we can do here, marking later messages as read will mark all previous messages read
       // so this is not a fatal issue
