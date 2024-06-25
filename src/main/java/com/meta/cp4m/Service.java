@@ -18,7 +18,6 @@ import com.meta.cp4m.store.ChatStore;
 import io.javalin.http.Context;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -43,16 +42,18 @@ public class Service<T extends Message> {
   }
 
   <IN> void handler(Context ctx, IN in, RequestProcessor<IN, T> processor) {
-    List<T> messages = Collections.emptyList();
+    List<T> messages;
     try {
       messages = processor.process(ctx, in);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       LOGGER
           .atError()
           .addKeyValue("body", ctx.body())
           .addKeyValue("headers", ctx.headerMap())
           .setMessage("unable to process request")
+          .setCause(e)
           .log();
+      throw e;
     }
     // TODO: once we have a non-volatile store, on startup send stored but not replied to messages
     for (T m : messages) {
