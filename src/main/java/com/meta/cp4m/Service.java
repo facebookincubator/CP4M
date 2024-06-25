@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,8 +32,8 @@ public class Service<T extends Message> {
   private final MessageHandler<T> handler;
   private final ChatStore<T> store;
   private final LLMPlugin<T> llmPlugin;
-
   private final String path;
+  private final List <PreProcessor<T>> preProcessors;
 
   public Service(
       ChatStore<T> store, MessageHandler<T> handler, LLMPlugin<T> llmPlugin, String path) {
@@ -40,6 +41,16 @@ public class Service<T extends Message> {
     this.store = Objects.requireNonNull(store);
     this.llmPlugin = llmPlugin;
     this.path = path;
+    this.preProcessors = Collections.emptyList();
+  }
+
+  public Service(
+          ChatStore<T> store, MessageHandler<T> handler, LLMPlugin<T> llmPlugin, List<PreProcessor<T>> preProcessors, String path) {
+    this.handler = Objects.requireNonNull(handler);
+    this.store = Objects.requireNonNull(store);
+    this.llmPlugin = llmPlugin;
+    this.path = path;
+    this.preProcessors = Collections.unmodifiableList(preProcessors);
   }
 
   <IN> void handler(Context ctx, IN in, RequestProcessor<IN, T> processor) {
@@ -53,6 +64,7 @@ public class Service<T extends Message> {
           .addKeyValue("headers", ctx.headerMap())
           .setMessage("unable to process request")
           .log();
+//      messages = Collections.emptyList();
     }
     // TODO: once we have a non-volatile store, on startup send stored but not replied to messages
     for (T m : messages) {
@@ -78,6 +90,11 @@ public class Service<T extends Message> {
   }
 
   private void execute(ThreadState<T> thread) {
+    ThreadState<T> preproccessed = thread;
+    for (PreProcessor<T> preProcessor : preProcessors) {
+      preproccessed = preProcessor.run(preproccessed);
+    }
+
     T llmResponse;
     try {
       llmResponse = llmPlugin.handle(thread);
