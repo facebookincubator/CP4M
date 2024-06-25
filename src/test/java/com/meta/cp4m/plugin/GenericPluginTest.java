@@ -29,11 +29,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
+import java.util.stream.Stream;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.net.URIBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class GenericPluginTest {
@@ -74,20 +76,7 @@ handler = "messenger_test"
         .allSatisfy(p -> assertThat(p.plugin()).isOfAnyClassIn(GenericPlugin.class));
   }
 
-  @Test
-  void sanity() throws URISyntaxException, IOException, InterruptedException {
-    GenericPlugin.GenericPluginThreadUpdateResponse res =
-        new GenericPlugin.GenericPluginThreadUpdateResponse("text", "hello from the plugin!");
-    JsonNode programmedResponse = MAPPER.valueToTree(res);
-    webServer.response(ignored -> true, programmedResponse);
-    final String path = "/generic";
-    final URI url =
-        URIBuilder.loopbackAddress()
-            .appendPath(path)
-            .setScheme("http")
-            .setPort(webServer.port())
-            .build();
-    GenericPlugin<WAMessage> plugin = new GenericPlugin<>(url);
+  static Stream<ThreadState<WAMessage>> statesWithUserData() {
     Identifier businessId = Identifier.random();
     Identifier userId = Identifier.random();
     Instant messageTime = Instant.now();
@@ -100,6 +89,30 @@ handler = "messenger_test"
                 businessId,
                 new Payload.Text("hello world!"),
                 Message.Role.USER));
+    return Stream.of(
+        ts,
+        ts.withUserData(ts.userData().withName("test name")),
+        ts.withUserData(ts.userData().withPhoneNumber("1234567890")),
+        ts.withUserData(ts.userData().withPhoneNumber("1234567899")),
+        ts.withUserData(ts.userData().withName("test name").withPhoneNumber("1234567899")));
+  }
+
+  @ParameterizedTest
+  @MethodSource("statesWithUserData")
+  void sanity(ThreadState<WAMessage> ts)
+      throws URISyntaxException, IOException, InterruptedException {
+    GenericPlugin.GenericPluginThreadUpdateResponse res =
+        new GenericPlugin.GenericPluginThreadUpdateResponse("text", "hello from the plugin!");
+    JsonNode programmedResponse = MAPPER.valueToTree(res);
+    webServer.response(ignored -> true, programmedResponse);
+    final String path = "/generic";
+    final URI url =
+        URIBuilder.loopbackAddress()
+            .appendPath(path)
+            .setScheme("http")
+            .setPort(webServer.port())
+            .build();
+    GenericPlugin<WAMessage> plugin = new GenericPlugin<>(url);
     WAMessage response = plugin.handle(ts);
     ReceivedRequest received = webServer.take(500);
     assertThat(received)
@@ -107,14 +120,31 @@ handler = "messenger_test"
             r -> assertThat(r.contentType()).isEqualTo(ContentType.APPLICATION_JSON.toString()))
         .satisfies(r -> assertThat(r.path()).isEqualTo(path));
     ObjectNode body = (ObjectNode) MAPPER.readTree(received.body());
-    assertThat(body.get("user").get("id").textValue()).isEqualTo(ts.userId().toString());
-    assertThat(body.get("timestamp")).isNotNull();
+    ObjectNode user = (ObjectNode) body.get("user");
+    assertThat(user.get("id").textValue()).isEqualTo(ts.userId().toString());
+    if (ts.userData().phoneNumber().isPresent()) {
+      assertThat(user.get("phone_number").textValue()).isEqualTo(ts.userData().phoneNumber().get());
+    } else {
+      assertThat(user.get("phone_number")).isNull();
+    }
+    if (ts.userData().name().isPresent()) {
+      assertThat(user.get("name").textValue()).isEqualTo(ts.userData().name().get());
+    } else {
+      assertThat(user.get("name")).isNull();
+    }
+    assertThat(body.get("timestamp").textValue()).isNotNull();
     assertThat(body.get("messages"))
         .hasSize(1)
         .allSatisfy(m -> assertThat(m.get("type").textValue()).isEqualTo("text"))
         .allSatisfy(m -> assertThat(m.get("value").textValue()).isEqualTo("hello world!"))
         .allSatisfy(
-            m -> assertThat(m.get("timestamp").textValue()).isEqualTo(messageTime.toString()));
+            m ->
+                assertThat(m.get("timestamp").textValue())
+                    .isEqualTo(ts.tail().timestamp().toString()))
+        .allSatisfy(
+            m ->
+                assertThat(m.get("timestamp").textValue())
+                    .isEqualTo(ts.tail().timestamp().toString()));
     assertThat(response)
         .satisfies(r -> assertThat(r.recipientId()).isEqualTo(ts.tail().senderId()))
         .satisfies(r -> assertThat(r.senderId()).isEqualTo(ts.tail().recipientId()))
