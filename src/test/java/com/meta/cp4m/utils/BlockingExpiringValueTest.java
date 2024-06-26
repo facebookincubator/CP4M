@@ -37,7 +37,7 @@ class BlockingExpiringValueTest {
     assertThat(v.isDone()).isFalse();
     value.update(clock.instant().plusSeconds(1), "valid");
     assertThat(v)
-        .satisfies(f -> assertThat(f.isDone()).isTrue())
+        .satisfies(f -> assertThat(f).succeedsWithin(300, TimeUnit.MILLISECONDS))
         .satisfies(f -> assertThat(f.get()).isEqualTo("valid"));
     value.clock(Clock.offset(clock, Duration.ofSeconds(2)));
     v = executor.submit(value::get);
