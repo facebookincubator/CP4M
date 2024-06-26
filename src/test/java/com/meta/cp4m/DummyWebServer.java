@@ -67,6 +67,12 @@ public class DummyWebServer implements AutoCloseable {
     return this;
   }
 
+  public @This DummyWebServer response(
+      Function<Context, Boolean> applies, Function<Context, String> body) {
+    responses.add(new ResponseRule(applies, body));
+    return this;
+  }
+
   private record ResponseRule(
       Function<Context, Boolean> applies, Function<Context, String> response) {}
 
@@ -84,6 +90,13 @@ public class DummyWebServer implements AutoCloseable {
 
   public ReceivedRequest take(long milliseconds) throws InterruptedException {
     return Objects.requireNonNull(receivedRequests.poll(milliseconds, TimeUnit.MILLISECONDS));
+  }
+
+  public List<ReceivedRequest> takeAll(long milliseconds) throws InterruptedException {
+    ArrayList<ReceivedRequest> out = new ArrayList<>(receivedRequests.size());
+    out.add(take(milliseconds));
+    receivedRequests.drainTo(out);
+    return out;
   }
 
   public int port() {

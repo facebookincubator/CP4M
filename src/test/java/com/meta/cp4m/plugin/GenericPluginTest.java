@@ -62,6 +62,35 @@ plugin = "test_plugin"
 handler = "messenger_test"
 """;
 
+  private static final String TOML_W_OAUTH =
+      """
+port = 8081
+
+[[plugins]]
+name = "test_plugin"
+type = "generic"
+url = "http://example.com"
+
+[plugins.authentication]
+type = "oauth2"
+tenant_url = "http://example.com/oauth"
+client_id = "test_client_id"
+client_secret = "test_client_secret"
+audience = "audience"
+
+[[handlers]]
+type = "messenger"
+name = "messenger_test"
+verify_token = "imgibberish"
+app_secret = "imnotasecret"
+page_access_token = "imnotasecreteither"
+
+[[services]]
+webhook_path = "/messenger"
+plugin = "test_plugin"
+handler = "messenger_test"
+""";
+
   private final DummyWebServer webServer = DummyWebServer.create();
 
   @Test
@@ -70,6 +99,18 @@ handler = "messenger_test"
     RootConfiguration config =
         ConfigurationUtils.tomlMapper()
             .convertValue(mapper.readTree(TOML), RootConfiguration.class);
+
+    assertThat(config.toServicesRunner().services())
+        .hasSize(1)
+        .allSatisfy(p -> assertThat(p.plugin()).isOfAnyClassIn(GenericPlugin.class));
+  }
+
+  @Test
+  void configWAuth() throws JsonProcessingException {
+    TomlMapper mapper = ConfigurationUtils.tomlMapper();
+    JsonNode tree = mapper.readTree(TOML_W_OAUTH);
+    RootConfiguration config =
+        ConfigurationUtils.tomlMapper().convertValue(tree, RootConfiguration.class);
 
     assertThat(config.toServicesRunner().services())
         .hasSize(1)

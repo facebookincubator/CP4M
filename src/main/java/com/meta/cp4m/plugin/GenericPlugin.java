@@ -23,16 +23,21 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Objects;
-import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
 
 public class GenericPlugin<T extends Message> implements Plugin<T> {
 
   private static final JsonMapper MAPPER = new JsonMapper();
   private final URI url;
+  private final AuthRequest authRequest;
+
+  public GenericPlugin(URI url, AuthRequest authRequest) {
+    this.url = url;
+    this.authRequest = authRequest;
+  }
 
   public GenericPlugin(URI url) {
-    this.url = url;
+    this(url, new AuthRequest.NoAuthRequest());
   }
 
   @Override
@@ -64,7 +69,8 @@ public class GenericPlugin<T extends Message> implements Plugin<T> {
     }
 
     GenericPluginThreadUpdateResponse response =
-        Request.post(url)
+        authRequest
+            .post(url)
             .bodyString(jsonPostPayload, ContentType.APPLICATION_JSON)
             .execute()
             .handleResponse(

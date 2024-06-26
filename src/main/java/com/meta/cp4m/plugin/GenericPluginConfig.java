@@ -13,15 +13,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.meta.cp4m.message.Message;
 import java.net.URI;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class GenericPluginConfig implements PluginConfig {
   private final String name;
   private final URI url;
+  private final AuthRequest authRequest;
 
   @JsonCreator
-  public GenericPluginConfig(@JsonProperty("name") String name, @JsonProperty("url") String url) {
+  public GenericPluginConfig(
+      @JsonProperty("name") String name,
+      @JsonProperty("url") String url,
+      @JsonProperty("authentication") @Nullable AuthRequest authRequest) {
     this.name = Objects.requireNonNull(name, "name is a required parameter");
     this.url = URI.create(Objects.requireNonNull(url, "url is a required parameter"));
+    this.authRequest = authRequest == null ? new AuthRequest.NoAuthRequest() : authRequest;
   }
 
   public URI url() {
@@ -35,6 +41,6 @@ public class GenericPluginConfig implements PluginConfig {
 
   @Override
   public <T extends Message> Plugin<T> toPlugin() {
-    return new GenericPlugin<>(url);
+    return new GenericPlugin<>(url, authRequest);
   }
 }
