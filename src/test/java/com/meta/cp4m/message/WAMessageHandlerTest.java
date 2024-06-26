@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.base.Stopwatch;
 import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.message.webhook.whatsapp.Utils;
@@ -23,6 +24,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 import org.apache.hc.client5.http.fluent.Response;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
@@ -104,8 +106,12 @@ class WAMessageHandlerTest {
 }
 """;
   private static final JsonMapper MAPPER = Utils.JSON_MAPPER;
-  private final ServiceTestHarness<WAMessage> harness =
-      ServiceTestHarness.newWAServiceTestHarness();
+  private ServiceTestHarness<WAMessage> harness = ServiceTestHarness.newWAServiceTestHarness();
+
+  @BeforeEach
+  void setUp() {
+    harness = ServiceTestHarness.newWAServiceTestHarness();
+  }
 
   @ParameterizedTest
   @NullSource
@@ -219,6 +225,13 @@ class WAMessageHandlerTest {
             .get("profile")
             .get("name")
             .textValue();
+    Stopwatch stopwatch = Stopwatch.createStarted();
+    // sometimes we need to wait for the phone number
+    while (!harness.chatStore().list().getFirst().userData().phoneNumber().isPresent()
+        && stopwatch.elapsed().minusMillis(500).isNegative()) {
+      Thread.sleep(10);
+    }
+    thread = harness.chatStore().list().getFirst();
     assertThat(thread.userData())
         .satisfies(u -> assertThat(u.name()).get().isEqualTo(testUserName))
         .satisfies(u -> assertThat(u.phoneNumber()).get().isEqualTo("16315551181"));
