@@ -49,6 +49,9 @@ class AuthRequestTest {
             "audience");
     DummyWebServer.ReceivedRequest request = webserver.take(300);
     String params = URLDecoder.decode(request.body(), StandardCharsets.UTF_8);
+    assertThat(request.contentType())
+        .isEqualTo(
+            ContentType.APPLICATION_FORM_URLENCODED.withCharset(StandardCharsets.UTF_8).toString());
     assertThat(params)
         .contains("client_id=client_id")
         .contains("client_secret=client_secret")

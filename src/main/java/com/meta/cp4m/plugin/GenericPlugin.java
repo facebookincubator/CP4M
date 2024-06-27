@@ -15,10 +15,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Preconditions;
-import com.meta.cp4m.message.Message;
-import com.meta.cp4m.message.Payload;
-import com.meta.cp4m.message.ThreadState;
-import com.meta.cp4m.message.UserData;
+import com.meta.cp4m.message.*;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
@@ -43,6 +40,11 @@ public class GenericPlugin<T extends Message> implements Plugin<T> {
   @Override
   public T handle(ThreadState<T> threadState) throws IOException {
     ObjectNode postPayload = MAPPER.createObjectNode();
+    switch (threadState.tail()) {
+      case WAMessage ignored -> postPayload.put("source_client", "whatsapp");
+      case FBMessage ignored -> postPayload.put("source_client", "messenger");
+      default -> postPayload.put("source_client", "unknown");
+    }
     postPayload.put("timestamp", Instant.now().toString());
     ObjectNode userObj = postPayload.putObject("user");
     userObj.put("id", threadState.userId().toString());

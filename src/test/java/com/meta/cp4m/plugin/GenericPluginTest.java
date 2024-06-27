@@ -8,8 +8,8 @@
 
 package com.meta.cp4m.plugin;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static com.meta.cp4m.message.MessageFactory.FACTORY_MAP;
+import static org.assertj.core.api.Assertions.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -21,10 +21,7 @@ import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.configuration.ConfigurationUtils;
 import com.meta.cp4m.configuration.RootConfiguration;
-import com.meta.cp4m.message.Message;
-import com.meta.cp4m.message.Payload;
-import com.meta.cp4m.message.ThreadState;
-import com.meta.cp4m.message.WAMessage;
+import com.meta.cp4m.message.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -117,30 +114,35 @@ handler = "messenger_test"
         .allSatisfy(p -> assertThat(p.plugin()).isOfAnyClassIn(GenericPlugin.class));
   }
 
-  static Stream<ThreadState<WAMessage>> statesWithUserData() {
+  static Stream<ThreadState<?>> statesWithUserData() {
     Identifier businessId = Identifier.random();
     Identifier userId = Identifier.random();
     Instant messageTime = Instant.now();
-    ThreadState<WAMessage> ts =
-        ThreadState.of(
-            new WAMessage(
-                messageTime,
-                Identifier.random(),
-                userId,
-                businessId,
-                new Payload.Text("hello world!"),
-                Message.Role.USER));
-    return Stream.of(
-        ts,
-        ts.withUserData(ts.userData().withName("test name")),
-        ts.withUserData(ts.userData().withPhoneNumber("1234567890")),
-        ts.withUserData(ts.userData().withPhoneNumber("1234567899")),
-        ts.withUserData(ts.userData().withName("test name").withPhoneNumber("1234567899")));
+    return FACTORY_MAP.values().stream()
+        .map(
+            f ->
+                ThreadState.of(
+                    f.newMessage(
+                        messageTime,
+                        new Payload.Text("hello world!"),
+                        userId,
+                        businessId,
+                        Identifier.random(),
+                        Message.Role.USER)))
+        .flatMap(
+            ts ->
+                Stream.of(
+                    ts,
+                    ts.withUserData(ts.userData().withName("test name")),
+                    ts.withUserData(ts.userData().withPhoneNumber("1234567890")),
+                    ts.withUserData(ts.userData().withPhoneNumber("1234567899")),
+                    ts.withUserData(
+                        ts.userData().withName("test name").withPhoneNumber("1234567899"))));
   }
 
   @ParameterizedTest
   @MethodSource("statesWithUserData")
-  void sanity(ThreadState<WAMessage> ts)
+  <T extends Message> void sanity(ThreadState<T> ts)
       throws URISyntaxException, IOException, InterruptedException {
     GenericPlugin.GenericPluginThreadUpdateResponse res =
         new GenericPlugin.GenericPluginThreadUpdateResponse("text", "hello from the plugin!");
@@ -153,14 +155,21 @@ handler = "messenger_test"
             .setScheme("http")
             .setPort(webServer.port())
             .build();
-    GenericPlugin<WAMessage> plugin = new GenericPlugin<>(url);
-    WAMessage response = plugin.handle(ts);
+    GenericPlugin<T> plugin = new GenericPlugin<>(url);
+    T response = plugin.handle(ts);
     ReceivedRequest received = webServer.take(500);
     assertThat(received)
         .satisfies(
             r -> assertThat(r.contentType()).isEqualTo(ContentType.APPLICATION_JSON.toString()))
         .satisfies(r -> assertThat(r.path()).isEqualTo(path));
     ObjectNode body = (ObjectNode) MAPPER.readTree(received.body());
+    switch (ts.tail()) {
+      case WAMessage ignored ->
+          assertThat(body.get("source_client").textValue()).isEqualTo("whatsapp");
+      case FBMessage ignored ->
+          assertThat(body.get("source_client").textValue()).isEqualTo("messenger");
+      default -> fail("all cases should be covered");
+    }
     ObjectNode user = (ObjectNode) body.get("user");
     assertThat(user.get("id").textValue()).isEqualTo(ts.userId().toString());
     if (ts.userData().phoneNumber().isPresent()) {
