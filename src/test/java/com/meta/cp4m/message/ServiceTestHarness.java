@@ -12,7 +12,7 @@ import com.meta.cp4m.DummyWebServer;
 import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Service;
 import com.meta.cp4m.ServicesRunner;
-import com.meta.cp4m.llm.DummyLLMPlugin;
+import com.meta.cp4m.plugin.DummyPlugin;
 import com.meta.cp4m.store.ChatStore;
 import com.meta.cp4m.store.MemoryStoreConfig;
 import java.net.URI;
@@ -32,23 +32,23 @@ public class ServiceTestHarness<T extends Message> {
   private static final String WEBSERVER_PATH = "/testserver";
   private final ChatStore<T> chatStore;
   private final MessageHandler<T> handler;
-  private final DummyLLMPlugin<T> llmPlugin;
+  private final DummyPlugin<T> plugin;
   private final Service<T> service;
   private final ServicesRunner runner;
   private final DummyWebServer dummyWebServer = DummyWebServer.create();
 
   private ServiceTestHarness(
-      ChatStore<T> chatStore, MessageHandler<T> handler, DummyLLMPlugin<T> llmPlugin) {
+      ChatStore<T> chatStore, MessageHandler<T> handler, DummyPlugin<T> plugin) {
     this.chatStore = chatStore;
     this.handler = handler;
-    this.llmPlugin = llmPlugin;
-    this.service = new Service<>(chatStore, handler, llmPlugin, SERVICE_PATH);
+    this.plugin = plugin;
+    this.service = new Service<>(chatStore, handler, plugin, SERVICE_PATH);
     this.runner = ServicesRunner.newInstance().service(service);
   }
 
   public static ServiceTestHarness<WAMessage> newWAServiceTestHarness() {
     ChatStore<WAMessage> chatStore = MemoryStoreConfig.of(1, 1).toStore();
-    DummyLLMPlugin<WAMessage> llmPlugin = new DummyLLMPlugin<>("dummy plugin response text");
+    DummyPlugin<WAMessage> llmPlugin = new DummyPlugin<>("dummy plugin response text");
     WAMessengerConfig config = WAMessengerConfig.of(VERIFY_TOKEN, APP_SECRET, ACCESS_TOKEN);
     WAMessageHandler handler = config.toMessageHandler();
     ServiceTestHarness<WAMessage> harness = new ServiceTestHarness<>(chatStore, handler, llmPlugin);
@@ -58,8 +58,7 @@ public class ServiceTestHarness<T extends Message> {
 
   public @NewInstance ServiceTestHarness<T> withHandler(MessageHandler<T> handler) {
     this.stop();
-    ServiceTestHarness<T> harness =
-        new ServiceTestHarness<>(this.chatStore, handler, this.llmPlugin);
+    ServiceTestHarness<T> harness = new ServiceTestHarness<>(this.chatStore, handler, this.plugin);
     switch (handler) {
       case WAMessageHandler w -> w.baseUrl(harness.webserverURI());
       case FBMessageHandler fb -> fb.baseURLFactory(ignored -> harness.webserverURI());
@@ -141,8 +140,8 @@ public class ServiceTestHarness<T extends Message> {
     return handler;
   }
 
-  public DummyLLMPlugin<T> llmPlugin() {
-    return llmPlugin;
+  public DummyPlugin<T> plugin() {
+    return plugin;
   }
 
   public String servicePath() {
@@ -150,7 +149,7 @@ public class ServiceTestHarness<T extends Message> {
   }
 
   public String dummyPluginResponseText() {
-    return ((DummyLLMPlugin<T>) llmPlugin).dummyResponse();
+    return plugin.dummyResponse();
   }
 
   public int servicePort() {
@@ -163,5 +162,9 @@ public class ServiceTestHarness<T extends Message> {
 
   public @Nullable ReceivedRequest pollWebserver(long milliseconds) throws InterruptedException {
     return dummyWebServer.poll(milliseconds);
+  }
+
+  public DummyWebServer dummyWebServer() {
+    return dummyWebServer;
   }
 }

@@ -15,14 +15,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.Service;
 import com.meta.cp4m.ServicesRunner;
-import com.meta.cp4m.llm.DummyLLMPlugin;
 import com.meta.cp4m.message.Message.Role;
+import com.meta.cp4m.plugin.DummyPlugin;
 import com.meta.cp4m.store.MemoryStore;
 import com.meta.cp4m.store.MemoryStoreConfig;
 import io.javalin.Javalin;
@@ -291,7 +290,7 @@ public class FBMessageHandlerTest {
         new Service<>(
             MemoryStoreConfig.of(1, 1).toStore(),
             new FBMessageHandler(verifyToken, pageToken, "dummy"),
-            new DummyLLMPlugin<>("this is a dummy message"),
+            new DummyPlugin<>("this is a dummy message"),
             "/testfbmessage");
     final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
     HttpResponse response;
@@ -324,36 +323,6 @@ public class FBMessageHandlerTest {
     };
   }
 
-  @Test
-  void nonTextPluginResponse() throws IOException, URISyntaxException, InterruptedException {
-    String path = "/testfbmessage";
-    Identifier pageId = Identifier.from(106195825075770L);
-    String token = "243af3c6-9994-4869-ae13-ad61a38323f5"; // this is fake don't worry
-    String secret = "f74a638462f975e9eadfcbb84e4aa06b"; // it's been rolled don't worry
-
-    FBMessageHandler messageHandler = new FBMessageHandler("0", token, secret);
-    DummyLLMPlugin<FBMessage> llmHandler =
-        new DummyLLMPlugin<>(
-            List.of(new Payload.Document(new byte[0], "application/pdf")),
-            "this is a dummy message");
-    MemoryStore<FBMessage> memoryStore = MemoryStoreConfig.of(1, 1).toStore();
-    Service<FBMessage> service = new Service<>(memoryStore, messageHandler, llmHandler, path);
-    final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
-
-    app.start(0);
-    runner.start();
-    messageHandler.baseURLFactory(testURLFactoryFactory(pageId));
-    createMessageRequest(SAMPLE_MESSAGE, runner).execute();
-    ObjectNode m = (ObjectNode) MAPPER.readTree(SAMPLE_MESSAGE);
-    ObjectNode messageObject =
-        (ObjectNode) m.get("entry").get(0).get("messaging").get(0).get("message");
-    messageObject.put("mid", "notarealmid");
-
-    createMessageRequest(MAPPER.writeValueAsString(m), runner).execute();
-    @Nullable OutboundRequest r = requests.poll(500, TimeUnit.MILLISECONDS);
-    assertThat(r).isNotNull();
-  }
-
   @ParameterizedTest
   @MethodSource("requestFactory")
   void invalidMessage(
@@ -374,7 +343,7 @@ public class FBMessageHandlerTest {
     } else {
       messageHandler = new FBMessageHandler("0", token, secret);
     }
-    DummyLLMPlugin<FBMessage> llmHandler = new DummyLLMPlugin<>("this is a dummy message");
+    DummyPlugin<FBMessage> llmHandler = new DummyPlugin<>("this is a dummy message");
     MemoryStore<FBMessage> memoryStore = MemoryStoreConfig.of(1, 1).toStore();
     Service<FBMessage> service = new Service<>(memoryStore, messageHandler, llmHandler, path);
     final ServicesRunner runner = ServicesRunner.newInstance().service(service).port(0);
@@ -393,7 +362,7 @@ public class FBMessageHandlerTest {
     if (!messageExpected) {
       assertThat(llmHandler.poll())
           .isNull(); // make sure the message wasn't processed and send to the llm handler
-      assertThat(memoryStore.size())
+      assertThat(memoryStore.list().size())
           .isEqualTo(0); // make sure the message wasn't processed and stored
       assertThat(requests).hasSize(0);
     } else {

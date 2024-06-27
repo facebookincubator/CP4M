@@ -14,11 +14,11 @@ import com.google.common.base.Preconditions;
 import com.meta.cp4m.Service;
 import com.meta.cp4m.ServiceConfiguration;
 import com.meta.cp4m.ServicesRunner;
-import com.meta.cp4m.llm.LLMConfig;
-import com.meta.cp4m.llm.LLMPlugin;
 import com.meta.cp4m.message.HandlerConfig;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.MessageHandler;
+import com.meta.cp4m.plugin.Plugin;
+import com.meta.cp4m.plugin.PluginConfig;
 import com.meta.cp4m.store.ChatStore;
 import com.meta.cp4m.store.NullStore;
 import com.meta.cp4m.store.StoreConfig;
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class RootConfiguration {
-  private final Map<String, LLMConfig> plugins;
+  private final Map<String, PluginConfig> plugins;
   private final Map<String, StoreConfig> stores;
   private final Map<String, HandlerConfig> handlers;
   private final Collection<ServiceConfiguration> services;
@@ -40,7 +40,7 @@ public class RootConfiguration {
 
   @JsonCreator
   RootConfiguration(
-      @JsonProperty("plugins") Collection<LLMConfig> plugins,
+      @JsonProperty("plugins") Collection<PluginConfig> plugins,
       @JsonProperty("stores") @Nullable Collection<StoreConfig> stores,
       @JsonProperty("handlers") Collection<HandlerConfig> handlers,
       @JsonProperty("services") Collection<ServiceConfiguration> services,
@@ -61,11 +61,14 @@ public class RootConfiguration {
 
     Preconditions.checkArgument(
         plugins.size()
-            == plugins.stream().map(LLMConfig::name).collect(Collectors.toUnmodifiableSet()).size(),
+            == plugins.stream()
+                .map(PluginConfig::name)
+                .collect(Collectors.toUnmodifiableSet())
+                .size(),
         "all plugin names must be unique");
     this.plugins =
         plugins.stream()
-            .collect(Collectors.toUnmodifiableMap(LLMConfig::name, Function.identity()));
+            .collect(Collectors.toUnmodifiableMap(PluginConfig::name, Function.identity()));
 
     Preconditions.checkArgument(
         stores.size()
@@ -101,7 +104,7 @@ public class RootConfiguration {
     this.services = services;
   }
 
-  Collection<LLMConfig> plugins() {
+  Collection<PluginConfig> plugins() {
     return Collections.unmodifiableCollection(plugins.values());
   }
 
@@ -127,7 +130,7 @@ public class RootConfiguration {
 
   private <T extends Message> Service<T> createService(
       MessageHandler<T> handler, ServiceConfiguration serviceConfig) {
-    LLMPlugin<T> plugin = plugins.get(serviceConfig.plugin()).toPlugin();
+    Plugin<T> plugin = plugins.get(serviceConfig.plugin()).toPlugin();
     ChatStore<T> store;
     if (serviceConfig.store() != null) {
       store = stores.get(serviceConfig.store()).toStore();

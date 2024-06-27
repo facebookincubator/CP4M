@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.cp4m.llm;
+package com.meta.cp4m.plugin;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,7 +22,7 @@ import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.client5.http.fluent.Response;
 import org.apache.hc.core5.http.ContentType;
 
-public class HuggingFaceLlamaPlugin<T extends Message> implements LLMPlugin<T> {
+public class HuggingFaceLlamaPlugin<T extends Message> implements Plugin<T> {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private final HuggingFaceConfig config;

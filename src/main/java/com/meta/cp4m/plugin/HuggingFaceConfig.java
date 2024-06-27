@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.cp4m.llm;
+package com.meta.cp4m.plugin;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -19,7 +19,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
 
 @JsonDeserialize(builder = HuggingFaceConfig.Builder.class)
-public class HuggingFaceConfig implements LLMConfig {
+public class HuggingFaceConfig implements PluginConfig {
 
   private final URI endpoint;
   private final String name;

@@ -45,8 +45,17 @@ public class MemoryStore<T extends Message> implements ChatStore<T> {
   }
 
   @Override
-  public long size() {
-    return store.size();
+  public ThreadState<T> update(ThreadState<T> threadState) {
+    return this.store
+        .asMap()
+        .compute(
+            threadState.threadId(),
+            (k, v) -> {
+              if (v == null) {
+                return threadState;
+              }
+              return threadState.merge(v);
+            });
   }
 
   @Override

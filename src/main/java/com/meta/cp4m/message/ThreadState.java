@@ -16,32 +16,50 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.checkerframework.common.reflection.qual.NewInstance;
 
 public class ThreadState<T extends Message> {
   private final List<T> messages;
   private final MessageFactory<T> messageFactory;
 
+  private final UserData userData;
+
   private ThreadState(T message) {
     Objects.requireNonNull(message);
     this.messages = ImmutableList.of(message);
     messageFactory = MessageFactory.instance(message);
+    userData = UserData.create(this.userId());
+  }
+
+  public ThreadState(List<T> messages, MessageFactory<T> messageFactory, UserData userData) {
+    this.messages = messages;
+    this.messageFactory = messageFactory;
+    this.userData = userData;
+  }
+
+  private ThreadState(ThreadState<T> old, UserData userData) {
+    this.messages = old.messages;
+    this.messageFactory = old.messageFactory;
+    this.userData = userData;
   }
 
   /** Constructor that exists to support the with method */
   private ThreadState(ThreadState<T> old, T newMessage) {
     Objects.requireNonNull(newMessage);
+    userData = old.userData;
     messageFactory = old.messageFactory;
     Preconditions.checkArgument(
         old.tail().threadId().equals(newMessage.threadId()),
         "all messages in a thread must have the same thread id");
     List<T> messages = old.messages;
-    if (newMessage.timestamp().isBefore(old.tail().timestamp())) {
+    if (newMessage.timestamp().isAfter(old.tail().timestamp())) {
+      this.messages = ImmutableList.<T>builder().addAll(messages).add(newMessage).build();
+    } else {
       this.messages =
           Stream.concat(messages.stream(), Stream.of(newMessage))
               .sorted(Comparator.comparing(Message::timestamp))
+              .distinct()
               .collect(Collectors.toUnmodifiableList());
-    } else {
-      this.messages = ImmutableList.<T>builder().addAll(messages).add(newMessage).build();
     }
 
     Preconditions.checkArgument(
@@ -99,5 +117,45 @@ public class ThreadState<T extends Message> {
 
   public T tail() {
     return messages.getLast();
+  }
+
+  public UserData userData() {
+    return userData;
+  }
+
+  public @NewInstance ThreadState<T> withUserData(UserData userData) {
+    return new ThreadState<>(this, userData);
+  }
+
+  public static <T extends Message> ThreadState<T> merge(ThreadState<T> t1, ThreadState<T> t2) {
+    Preconditions.checkArgument(t1.userId().equals(t2.userId()));
+    Preconditions.checkArgument(t1.botId().equals(t2.botId()));
+    List<T> messages =
+        Stream.concat(t1.messages.stream(), t2.messages.stream())
+            .sorted(Comparator.comparing(Message::timestamp))
+            .distinct()
+            .collect(Collectors.toUnmodifiableList());
+    return new ThreadState<>(messages, t1.messageFactory, UserData.merge(t1.userData, t2.userData));
+  }
+
+  public @NewInstance ThreadState<T> merge(ThreadState<T> other) {
+    return merge(this, other);
+  }
+
+  public Identifier threadId() {
+    return tail().threadId();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    ThreadState<?> that = (ThreadState<?>) o;
+    return Objects.equals(messages, that.messages) && Objects.equals(userData, that.userData);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(messages, userData);
   }
 }

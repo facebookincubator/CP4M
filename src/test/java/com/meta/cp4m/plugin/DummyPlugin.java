@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.cp4m.llm;
+package com.meta.cp4m.plugin;
 
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.Payload;
@@ -18,17 +18,17 @@ import java.util.concurrent.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
 
-public class DummyLLMPlugin<T extends Message> implements LLMPlugin<T> {
+public class DummyPlugin<T extends Message> implements Plugin<T> {
 
   private final String dummyLLMResponse;
   private final BlockingQueue<ThreadState<T>> receivedThreadStates = new LinkedBlockingDeque<>();
   private final Queue<Payload<?>> responsesToSend = new ConcurrentLinkedDeque<>();
 
-  public DummyLLMPlugin(String dummyLLMResponse) {
+  public DummyPlugin(String dummyLLMResponse) {
     this.dummyLLMResponse = dummyLLMResponse;
   }
 
-  public DummyLLMPlugin(List<Payload<?>> responses, String defaultDummyLLMResponse) {
+  public DummyPlugin(List<Payload<?>> responses, String defaultDummyLLMResponse) {
     this.dummyLLMResponse = defaultDummyLLMResponse;
     responsesToSend.addAll(responses);
   }
@@ -41,7 +41,7 @@ public class DummyLLMPlugin<T extends Message> implements LLMPlugin<T> {
     return value;
   }
 
-  public @This DummyLLMPlugin<T> addResponseToSend(Payload<?> payload) {
+  public @This DummyPlugin<T> addResponseToSend(Payload<?> payload) {
     responsesToSend.add(payload);
     return this;
   }

@@ -8,11 +8,8 @@
 
 package com.meta.cp4m.store;
 
-import com.google.common.cache.Cache;
-import com.meta.cp4m.Identifier;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.ThreadState;
-
 import java.util.List;
 
 /**
@@ -27,9 +24,9 @@ public class NullStore<T extends Message> implements ChatStore<T> {
         return ThreadState.of(message);
     }
 
-    @Override
-    public long size() {
-        return 0;
+  @Override
+  public ThreadState<T> update(ThreadState<T> threadState) {
+    return threadState;
     }
 
     @Override

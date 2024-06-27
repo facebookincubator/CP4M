@@ -55,7 +55,7 @@ class NullStoreTest {
     MessageFactory<FBMessage> messageFactory = MessageFactory.instance(FBMessage.class);
     NullStore<FBMessage> nullStore = new NullStore<>();
 
-    assertThat(nullStore.size()).isEqualTo(0);
+    assertThat(nullStore.list().size()).isEqualTo(0);
     FBMessage message =
         messageFactory.newMessage(
             Instant.now(),
@@ -65,7 +65,7 @@ class NullStoreTest {
             Identifier.random(),
             Message.Role.ASSISTANT);
     ThreadState<FBMessage> thread = nullStore.add(message);
-    assertThat(nullStore.size()).isEqualTo(0);
+    assertThat(nullStore.list().size()).isEqualTo(0);
     assertThat(thread.messages()).hasSize(1).contains(message);
 
     FBMessage message2 =
@@ -77,7 +77,7 @@ class NullStoreTest {
             Identifier.random(),
             Message.Role.USER);
     thread = nullStore.add(message2);
-    assertThat(nullStore.size()).isEqualTo(0);
+    assertThat(nullStore.list().size()).isEqualTo(0);
     assertThat(thread.messages()).hasSize(1);
 
     FBMessage message3 =
@@ -89,7 +89,7 @@ class NullStoreTest {
             Identifier.random(),
             Message.Role.USER);
         thread = nullStore.add(message3);
-        assertThat(nullStore.size()).isEqualTo(0);
+    assertThat(nullStore.list().size()).isEqualTo(0);
         assertThat(thread.messages()).hasSize(1).contains(message3);
     }@Test
   void configLoads() throws JsonProcessingException {

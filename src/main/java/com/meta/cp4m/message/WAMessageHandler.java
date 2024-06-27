@@ -8,6 +8,7 @@
 
 package com.meta.cp4m.message;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -64,8 +65,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     this.appSecretProof = MetaHandlerUtils.hmac(accessToken, appSecret);
   }
 
-  private List<WAMessage> post(Context ctx, WebhookPayload payload) {
-    List<WAMessage> waMessages = new ArrayList<>();
+  private List<ThreadState<WAMessage>> post(Context ctx, WebhookPayload payload) {
+    List<ThreadState<WAMessage>> threadStates = new ArrayList<>();
     payload.entry().stream()
         .flatMap(e -> e.changes().stream())
         .forEachOrdered(
@@ -87,7 +88,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                               message.from(),
                               phoneNumberId,
                               welcomeMessage,
-                              Message.Role.USER);
+                              Message.Role.ASSISTANT);
                       asyncExecutor.submit(
                           () -> {
                             try {
@@ -107,18 +108,26 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                     continue;
                   }
                 }
-                waMessages.add(
-                    new WAMessage(
-                        message.timestamp(),
-                        message.id(),
-                        message.from(),
-                        phoneNumberId,
-                        payloadValue,
-                        Message.Role.USER));
+                ThreadState<WAMessage> ts =
+                    ThreadState.of(
+                        new WAMessage(
+                            message.timestamp(),
+                            message.id(),
+                            message.from(),
+                            phoneNumberId,
+                            payloadValue,
+                            Message.Role.USER));
+                UserData userData =
+                    change.value().contacts().stream() // should only ever be one contact
+                        .map(Contact::profile)
+                        .map(p -> ts.userData().withName(p.name()))
+                        .findAny()
+                        .orElse(ts.userData());
+                threadStates.add(ts.withUserData(userData));
                 asyncExecutor.execute(() -> markRead(phoneNumberId, message.id().toString()));
               }
             });
-    return waMessages;
+    return threadStates;
   }
 
   @TestOnly
@@ -129,14 +138,21 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   }
 
   @Override
-  public void respond(WAMessage message) throws IOException {
+  public ThreadState<WAMessage> respond(WAMessage message) throws IOException {
     if (!(message.payload() instanceof Payload.Text)) {
       throw new UnsupportedOperationException(
           "Non-text payloads cannot be sent to Whatsapp client currently");
     }
+    @Nullable SendResponse response = null;
     for (String text : CHUNKER.chunks(message.message()).toList()) {
-      send(message.recipientId(), message.senderId(), text);
+      response = send(message.recipientId(), message.senderId(), text);
     }
+    ThreadState<WAMessage> ts = ThreadState.of(message);
+    if (response == null) {
+      return ts;
+    }
+    return ts.withUserData(
+        ts.userData().withPhoneNumber(response.contacts().getFirst().phoneNumber()));
   }
 
   private URI messagesURI(Identifier phoneNumberId) {
@@ -151,7 +167,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     }
   }
 
-  private void send(Identifier recipient, Identifier sender, String text) throws IOException {
+  private SendResponse send(Identifier recipient, Identifier sender, String text)
+      throws IOException {
     ObjectNode body =
         MAPPER
             .createObjectNode()
@@ -162,13 +179,30 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     body.putObject("text").put("body", text);
     String bodyString;
     bodyString = MAPPER.writeValueAsString(body);
-    Request.post(messagesURI(sender))
+    return Request.post(messagesURI(sender))
         .setHeader("Authorization", "Bearer " + accessToken)
         .setHeader("appsecret_proof", appSecretProof)
         .bodyString(bodyString, ContentType.APPLICATION_JSON)
         .execute()
-        .discardContent();
+        .handleResponse(
+            response -> {
+              try {
+                return MAPPER.readValue(response.getEntity().getContent(), SendResponse.class);
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            });
   }
+
+  record SendResponseContact(
+      @JsonProperty("input") String phoneNumber, @JsonProperty("wa_id") String phoneNumberId) {}
+
+  record SendResponseMessage(
+      @JsonProperty("id") String messageId, @JsonProperty("pacing_status") String pacingStatus) {}
+
+  record SendResponse(
+      @JsonProperty("messaging_product") String messagingProduct,
+      @JsonProperty List<SendResponseContact> contacts) {}
 
   @Override
   public List<RouteDetails<?, WAMessage>> routeDetails() {

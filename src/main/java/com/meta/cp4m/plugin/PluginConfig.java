@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.cp4m.llm;
+package com.meta.cp4m.plugin;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -17,10 +17,11 @@ import com.meta.cp4m.message.Message;
   @JsonSubTypes.Type(value = OpenAIConfig.class, name = "openai"),
   @JsonSubTypes.Type(value = HuggingFaceConfig.class, name = "hugging_face"),
   @JsonSubTypes.Type(value = EchoPluginConfig.class, name = "echo"),
+  @JsonSubTypes.Type(value = GenericPluginConfig.class, name = "generic"),
 })
-public interface LLMConfig {
+public interface PluginConfig {
 
   String name();
 
-  <T extends Message> LLMPlugin<T> toPlugin();
+  <T extends Message> Plugin<T> toPlugin();
 }

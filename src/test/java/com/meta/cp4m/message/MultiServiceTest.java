@@ -17,7 +17,7 @@ import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.Service;
 import com.meta.cp4m.ServicesRunner;
-import com.meta.cp4m.llm.DummyLLMPlugin;
+import com.meta.cp4m.plugin.DummyPlugin;
 import com.meta.cp4m.store.MemoryStore;
 import com.meta.cp4m.store.MemoryStoreConfig;
 import java.net.URI;
@@ -51,7 +51,7 @@ public class MultiServiceTest {
         FBMessengerConfig.of(fb1VerifyToken, fb1AppSecret, fb1PageAccessToken)
             .toMessageHandler()
             .baseURLFactory(baseURLFactory);
-    DummyLLMPlugin<FBMessage> fb1Plugin = new DummyLLMPlugin<>("i'm a fb1 dummy");
+    DummyPlugin<FBMessage> fb1Plugin = new DummyPlugin<>("i'm a fb1 dummy");
     Service<FBMessage> fb1Service = new Service<>(fb1Store, fb1Handler, fb1Plugin, path);
 
     final String fb2VerifyToken = "fb2VerifyToken";
@@ -63,7 +63,7 @@ public class MultiServiceTest {
         FBMessengerConfig.of(fb2VerifyToken, fb2AppSecret, fb2PageAccessToken)
             .toMessageHandler()
             .baseURLFactory(baseURLFactory);
-    DummyLLMPlugin<FBMessage> fb2Plugin = new DummyLLMPlugin<>("i'm a fb2 dummy");
+    DummyPlugin<FBMessage> fb2Plugin = new DummyPlugin<>("i'm a fb2 dummy");
     Service<FBMessage> fb2Service = new Service<>(fb2Store, fb2Handler, fb2Plugin, path);
 
     final String wa1VerifyToken = "wa1VerifyToken";
@@ -74,7 +74,7 @@ public class MultiServiceTest {
         WAMessengerConfig.of(wa1VerifyToken, wa1AppSecret, wa1PageAccessToken)
             .toMessageHandler()
             .baseUrl(baseURL);
-    DummyLLMPlugin<WAMessage> wa1Plugin = new DummyLLMPlugin<>("i'm a wa1 dummy");
+    DummyPlugin<WAMessage> wa1Plugin = new DummyPlugin<>("i'm a wa1 dummy");
     Service<WAMessage> wa1Service = new Service<>(wa1Store, wa1Handler, wa1Plugin, path);
 
     final String wa2VerifyToken = "wa2VerifyToken";
@@ -85,7 +85,7 @@ public class MultiServiceTest {
         WAMessengerConfig.of(wa2VerifyToken, wa2AppSecret, wa2PageAccessToken)
             .toMessageHandler()
             .baseUrl(baseURL);
-    DummyLLMPlugin<WAMessage> wa2Plugin = new DummyLLMPlugin<>("i'm a wa2 dummy");
+    DummyPlugin<WAMessage> wa2Plugin = new DummyPlugin<>("i'm a wa2 dummy");
     Service<WAMessage> wa2Service = new Service<>(wa2Store, wa2Handler, wa2Plugin, path);
 
     ServicesRunner runner =

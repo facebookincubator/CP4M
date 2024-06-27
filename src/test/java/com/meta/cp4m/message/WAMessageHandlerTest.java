@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.base.Stopwatch;
 import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.message.webhook.whatsapp.Utils;
@@ -23,6 +24,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 import org.apache.hc.client5.http.fluent.Response;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
@@ -104,8 +106,12 @@ class WAMessageHandlerTest {
 }
 """;
   private static final JsonMapper MAPPER = Utils.JSON_MAPPER;
-  private final ServiceTestHarness<WAMessage> harness =
-      ServiceTestHarness.newWAServiceTestHarness();
+  private ServiceTestHarness<WAMessage> harness = ServiceTestHarness.newWAServiceTestHarness();
+
+  @BeforeEach
+  void setUp() {
+    harness = ServiceTestHarness.newWAServiceTestHarness();
+  }
 
   @ParameterizedTest
   @NullSource
@@ -151,6 +157,24 @@ class WAMessageHandlerTest {
 
   @Test
   void valid() throws IOException, InterruptedException {
+    final String sendResponse =
+        """
+{
+      "messaging_product": "whatsapp",
+      "contacts": [
+        {
+          "input": "16315551181",
+          "wa_id": "16315551181"
+        }
+      ],
+      "messages": [
+        {
+          "id": "wamid.HBgLMTY1MDUwNzY1MjAVAgARGBI5QTNDQTVCM0Q0Q0Q2RTY3RTcA",
+          "message_status": "accepted"
+        }
+      ]
+    }""";
+    harness.dummyWebServer().response(ctx -> ctx.body().contains("\"type\""), sendResponse);
     harness.start();
     Response request = harness.post(VALID).execute();
     assertThat(request.returnResponse().getCode()).isEqualTo(200);
@@ -188,6 +212,29 @@ class WAMessageHandlerTest {
               assertThat(m.senderId()).isEqualTo(Identifier.from("123456123"));
               assertThat(m.recipientId()).isEqualTo(Identifier.from("16315551181"));
             });
+    String testUserName =
+        MAPPER
+            .readTree(VALID)
+            .get("entry")
+            .get(0)
+            .get("changes")
+            .get(0)
+            .get("value")
+            .get("contacts")
+            .get(0)
+            .get("profile")
+            .get("name")
+            .textValue();
+    Stopwatch stopwatch = Stopwatch.createStarted();
+    // sometimes we need to wait for the phone number
+    while (!harness.chatStore().list().getFirst().userData().phoneNumber().isPresent()
+        && stopwatch.elapsed().minusMillis(500).isNegative()) {
+      Thread.sleep(10);
+    }
+    thread = harness.chatStore().list().getFirst();
+    assertThat(thread.userData())
+        .satisfies(u -> assertThat(u.name()).get().isEqualTo(testUserName))
+        .satisfies(u -> assertThat(u.phoneNumber()).get().isEqualTo("16315551181"));
 
     // repeat and show that it is not processed again because it is a duplicate
     request = harness.post(VALID).execute();
@@ -198,7 +245,7 @@ class WAMessageHandlerTest {
   @Test
   void doesNotSendNonTextMessages() throws IOException, InterruptedException {
     harness.start();
-    harness.llmPlugin().addResponseToSend(new Payload.Image(new byte[0], "image/jpeg"));
+    harness.plugin().addResponseToSend(new Payload.Image(new byte[0], "image/jpeg"));
     Response request = harness.post(VALID).execute();
     assertThat(request.returnResponse().getCode()).isEqualTo(200);
     List<ReceivedRequest> responses = new ArrayList<>(1);

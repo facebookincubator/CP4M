@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.cp4m.llm;
+package com.meta.cp4m.plugin;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,12 +32,6 @@ port = 8081
 name = "echo_test"
 type = "echo"
 
-[[stores]]
-name = "memory_test"
-type = "memory"
-storage_duration_hours = 1
-storage_capacity_mbs = 1
-
 [[handlers]]
 type = "messenger"
 name = "messenger_test"
@@ -48,7 +42,6 @@ page_access_token = "imnotasecreteither"
 [[services]]
 webhook_path = "/messenger"
 plugin = "echo_test"
-store = "memory_test"
 handler = "messenger_test"
 """;
 

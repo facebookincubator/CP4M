@@ -8,11 +8,11 @@
 
 package com.meta.cp4m;
 
-import com.meta.cp4m.llm.LLMPlugin;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.MessageHandler;
 import com.meta.cp4m.message.RequestProcessor;
 import com.meta.cp4m.message.ThreadState;
+import com.meta.cp4m.plugin.Plugin;
 import com.meta.cp4m.routing.Route;
 import com.meta.cp4m.store.ChatStore;
 import io.javalin.http.Context;
@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,34 +31,35 @@ public class Service<T extends Message> {
   private final ExecutorService executorService = Executors.newCachedThreadPool();
   private final MessageHandler<T> handler;
   private final ChatStore<T> store;
-  private final LLMPlugin<T> llmPlugin;
+  private final Plugin<T> plugin;
 
   private final String path;
 
-  public Service(
-      ChatStore<T> store, MessageHandler<T> handler, LLMPlugin<T> llmPlugin, String path) {
+  public Service(ChatStore<T> store, MessageHandler<T> handler, Plugin<T> plugin, String path) {
     this.handler = Objects.requireNonNull(handler);
     this.store = Objects.requireNonNull(store);
-    this.llmPlugin = llmPlugin;
-    this.path = path;
+    this.plugin = Objects.requireNonNull(plugin);
+    this.path = Objects.requireNonNull(path);
   }
 
   <IN> void handler(Context ctx, IN in, RequestProcessor<IN, T> processor) {
-    List<T> messages = null;
+    List<ThreadState<T>> threads;
     try {
-      messages = processor.process(ctx, in);
-    } catch (Exception e) {
+      threads = processor.process(ctx, in);
+    } catch (RuntimeException e) {
       LOGGER
           .atError()
           .addKeyValue("body", ctx.body())
           .addKeyValue("headers", ctx.headerMap())
           .setMessage("unable to process request")
+          .setCause(e)
           .log();
+      throw e;
     }
     // TODO: once we have a non-volatile store, on startup send stored but not replied to messages
-    for (T m : messages) {
-      ThreadState<T> thread = store.add(m);
-      executorService.submit(() -> execute(thread));
+    for (ThreadState<T> threadState : threads) {
+      ThreadState<T> fullThreadState = store.update(threadState);
+      executorService.submit(() -> execute(fullThreadState));
     }
   }
 
@@ -73,26 +75,30 @@ public class Service<T extends Message> {
     return this.store;
   }
 
-  public LLMPlugin<T> plugin() {
-    return this.llmPlugin;
+  public Plugin<T> plugin() {
+    return this.plugin;
   }
 
   private void execute(ThreadState<T> thread) {
-    T llmResponse;
+    T pluginResponse;
     try {
-      llmResponse = llmPlugin.handle(thread);
+      pluginResponse = plugin.handle(thread);
     } catch (IOException e) {
       LOGGER.error("failed to communicate with LLM", e);
       return;
     }
-    store.add(llmResponse);
+    store.add(pluginResponse);
+    @Nullable ThreadState<T> updatedThreadState = null;
     try {
-      handler.respond(llmResponse);
+      updatedThreadState = handler.respond(pluginResponse);
     } catch (Exception e) {
       // we log in the handler where we have the body context
       // TODO: create transactional store add
       // TODO: implement retry with exponential backoff
       LOGGER.error("an error occurred while attempting to respond", e);
+    }
+    if (updatedThreadState != null) {
+      store.update(updatedThreadState);
     }
   }
 

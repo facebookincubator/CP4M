@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.cp4m.llm;
+package com.meta.cp4m.plugin;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -26,15 +26,22 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class OpenAIConfigTest {
+class HuggingFaceConfigTest {
 
   private static final ObjectMapper MAPPER = ConfigurationUtils.jsonMapper();
   static final Collection<ConfigItem> CONFIG_ITEMS =
       ImmutableList.of(
+          new ConfigItem(
+              "endpoint",
+              true,
+              TextNode.valueOf("www.facebook.com"),
+              List.of(TextNode.valueOf(" "))),
           new ConfigItem("name", true, TextNode.valueOf("a name"), List.of(TextNode.valueOf(" "))),
           new ConfigItem(
-              "type", true, TextNode.valueOf("openai"), List.of(TextNode.valueOf("anything else"))),
-          new ConfigItem("model", true, TextNode.valueOf("gpt-4"), List.of(TextNode.valueOf("n"))),
+              "type",
+              true,
+              TextNode.valueOf("hugging_face"),
+              List.of(TextNode.valueOf("anything else"))),
           new ConfigItem(
               "api_key",
               true,
@@ -50,21 +57,12 @@ class OpenAIConfigTest {
               false,
               DoubleNode.valueOf(0.5),
               List.of(DoubleNode.valueOf(0), DoubleNode.valueOf(1.1))),
-          new ConfigItem(
-              "stop",
-              false,
-              MAPPER.createArrayNode().add("10").add("stop"),
-              List.of(
-                  TextNode.valueOf("I'm a stop"),
-                  DoubleNode.valueOf(10),
-                  MAPPER.createArrayNode().addObject())),
+          new ConfigItem("token_limit", true, LongNode.valueOf(4000), List.of(LongNode.valueOf(0))),
           new ConfigItem(
               "max_output_tokens",
               false,
               LongNode.valueOf(100),
-              List.of(
-                  LongNode.valueOf(0),
-                  LongNode.valueOf(OpenAIModel.GPT4.properties().tokenLimit() + 1))),
+              List.of(LongNode.valueOf(0), LongNode.valueOf(4097))),
           new ConfigItem(
               "presence_penalty",
               false,
@@ -90,7 +88,7 @@ class OpenAIConfigTest {
           new ConfigItem(
               "max_input_tokens",
               false,
-              LongNode.valueOf(4000),
+              LongNode.valueOf(2000),
               List.of(LongNode.valueOf(-1), LongNode.valueOf(100_000))));
   private ObjectNode minimalConfig;
 
@@ -122,8 +120,8 @@ class OpenAIConfigTest {
   void maximalValidConfig() throws JsonProcessingException {
     ObjectNode body = MAPPER.createObjectNode();
     CONFIG_ITEMS.forEach(t -> body.set(t.key(), t.validValue()));
-    OpenAIConfig config = MAPPER.readValue(MAPPER.writeValueAsString(body), OpenAIConfig.class);
-    assertThat(config.model()).isEqualTo(OpenAIModel.GPT4);
+    HuggingFaceConfig config =
+        MAPPER.readValue(MAPPER.writeValueAsString(body), HuggingFaceConfig.class);
     assertThat(config.temperature().isPresent()).isTrue();
     assertThat(config.frequencyPenalty().isPresent()).isTrue();
     assertThat(config.topP().isPresent()).isTrue();
@@ -142,8 +140,8 @@ class OpenAIConfigTest {
             body.set(t.key(), t.validValue());
           }
         });
-    OpenAIConfig config = MAPPER.readValue(MAPPER.writeValueAsString(body), OpenAIConfig.class);
-    assertThat(config.model()).isEqualTo(OpenAIModel.GPT4);
+    HuggingFaceConfig config =
+        MAPPER.readValue(MAPPER.writeValueAsString(body), HuggingFaceConfig.class);
     assertThat(config.temperature().isEmpty()).isTrue();
     assertThat(config.frequencyPenalty().isEmpty()).isTrue();
     assertThat(config.topP().isEmpty()).isTrue();
@@ -158,7 +156,7 @@ class OpenAIConfigTest {
   void nullValues(ConfigItem item) throws JsonProcessingException {
     minimalConfig.putNull(item.key());
     String bodyString = MAPPER.writeValueAsString(minimalConfig);
-    assertThatThrownBy(() -> MAPPER.readValue(bodyString, OpenAIConfig.class))
+    assertThatThrownBy(() -> MAPPER.readValue(bodyString, HuggingFaceConfig.class))
         .isInstanceOf(Exception.class);
   }
 
@@ -167,7 +165,7 @@ class OpenAIConfigTest {
   void invalidValues(String key, JsonNode value) throws JsonProcessingException {
     minimalConfig.set(key, value);
     String bodyString = MAPPER.writeValueAsString(minimalConfig);
-    assertThatThrownBy(() -> MAPPER.readValue(bodyString, OpenAIConfig.class))
+    assertThatThrownBy(() -> MAPPER.readValue(bodyString, HuggingFaceConfig.class))
         .isInstanceOf(Exception.class);
   }
 
@@ -176,7 +174,7 @@ class OpenAIConfigTest {
   void requiredKeysMissing(String key) throws JsonProcessingException {
     minimalConfig.remove(key);
     String bodyString = MAPPER.writeValueAsString(minimalConfig);
-    assertThatThrownBy(() -> MAPPER.readValue(bodyString, OpenAIConfig.class))
+    assertThatThrownBy(() -> MAPPER.readValue(bodyString, HuggingFaceConfig.class))
         .isInstanceOf(Exception.class);
   }
 

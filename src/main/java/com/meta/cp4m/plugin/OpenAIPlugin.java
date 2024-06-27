@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.cp4m.llm;
+package com.meta.cp4m.plugin;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -32,7 +32,7 @@ import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OpenAIPlugin<T extends Message> implements LLMPlugin<T> {
+public class OpenAIPlugin<T extends Message> implements Plugin<T> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OpenAIPlugin.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();

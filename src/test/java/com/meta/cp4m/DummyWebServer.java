@@ -8,46 +8,73 @@
 
 package com.meta.cp4m;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.javalin.Javalin;
+import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.common.returnsreceiver.qual.This;
 
 public class DummyWebServer implements AutoCloseable {
+
+  private static final JsonMapper MAPPER = new JsonMapper();
   private final Javalin javalin;
   private final BlockingQueue<ReceivedRequest> receivedRequests = new LinkedBlockingDeque<>();
+  private final List<ResponseRule> responses = new ArrayList<>();
 
   private DummyWebServer() {
-    this.javalin =
-        Javalin.create()
-            .addHttpHandler(
-                HandlerType.GET,
-                "/<path>",
-                ctx ->
-                    receivedRequests.put(
-                        new ReceivedRequest(
-                            ctx.path(),
-                            ctx.body(),
-                            ctx.contentType(),
-                            ctx.headerMap(),
-                            ctx.queryParamMap())))
-            .addHttpHandler(
-                HandlerType.POST,
-                "/<path>",
-                ctx ->
-                    receivedRequests.put(
-                        new ReceivedRequest(
-                            ctx.path(),
-                            ctx.body(),
-                            ctx.contentType(),
-                            ctx.headerMap(),
-                            ctx.queryParamMap())))
-            .start(0);
+    this.javalin = Javalin.create();
+    javalin.before(
+        ctx ->
+            receivedRequests.put(
+                new ReceivedRequest(
+                    ctx.path(),
+                    ctx.body(),
+                    ctx.contentType(),
+                    ctx.headerMap(),
+                    ctx.queryParamMap())));
+    Arrays.stream(HandlerType.values())
+        .forEach(
+            ht ->
+                this.javalin.addHttpHandler(
+                    ht,
+                    "/<path>",
+                    ctx -> {
+                      for (ResponseRule rr : responses) {
+                        if (rr.applies.apply(ctx)) {
+                          ctx.result(rr.response.apply(ctx));
+                          return;
+                        }
+                      }
+                    }));
+    javalin.start(0);
   }
+
+  public @This DummyWebServer response(Function<Context, Boolean> applies, JsonNode body)
+      throws JsonProcessingException {
+    return response(applies, MAPPER.writeValueAsString(body));
+  }
+
+  public @This DummyWebServer response(Function<Context, Boolean> applies, String body) {
+    responses.add(new ResponseRule(applies, ignored -> body));
+    return this;
+  }
+
+  public @This DummyWebServer response(
+      Function<Context, Boolean> applies, Function<Context, String> body) {
+    responses.add(new ResponseRule(applies, body));
+    return this;
+  }
+
+  private record ResponseRule(
+      Function<Context, Boolean> applies, Function<Context, String> response) {}
 
   public static DummyWebServer create() {
     return new DummyWebServer();
@@ -63,6 +90,13 @@ public class DummyWebServer implements AutoCloseable {
 
   public ReceivedRequest take(long milliseconds) throws InterruptedException {
     return Objects.requireNonNull(receivedRequests.poll(milliseconds, TimeUnit.MILLISECONDS));
+  }
+
+  public List<ReceivedRequest> takeAll(long milliseconds) throws InterruptedException {
+    ArrayList<ReceivedRequest> out = new ArrayList<>(receivedRequests.size());
+    out.add(take(milliseconds));
+    receivedRequests.drainTo(out);
+    return out;
   }
 
   public int port() {
