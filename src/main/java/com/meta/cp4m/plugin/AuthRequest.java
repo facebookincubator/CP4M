@@ -18,6 +18,7 @@ import com.meta.cp4m.message.webhook.whatsapp.Utils;
 import com.meta.cp4m.utils.BlockingExpiringValue;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
@@ -120,10 +121,23 @@ public interface AuthRequest {
 
     private OauthRefreshResponse refreshToken() throws IOException {
       return Request.post(oauthTenantUrl)
-          .bodyForm(refreshParams)
+          .bodyForm(refreshParams, StandardCharsets.UTF_8)
           .execute()
           .handleResponse(
-              r -> MAPPER.readValue(r.getEntity().getContent(), OauthRefreshResponse.class));
+              r -> {
+                String body = new String(r.getEntity().getContent().readAllBytes());
+                try {
+                  return MAPPER.readValue(body, OauthRefreshResponse.class);
+                } catch (Exception e) {
+                  LOGGER
+                      .atError()
+                      .setCause(e)
+                      .setMessage("failed to parse OAuth response")
+                      .addKeyValue("response_body", body)
+                      .log();
+                  throw new RuntimeException(e);
+                }
+              });
     }
 
     private void scheduleRefresh(long timeSeconds) {
