@@ -11,6 +11,7 @@ package com.meta.cp4m.configuration;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import com.meta.cp4m.S3PreProcessor;
 import com.meta.cp4m.Service;
 import com.meta.cp4m.ServiceConfiguration;
 import com.meta.cp4m.ServicesRunner;
@@ -24,6 +25,7 @@ import com.meta.cp4m.store.NullStore;
 import com.meta.cp4m.store.StoreConfig;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -137,7 +139,7 @@ public class RootConfiguration {
     } else {
       store = new NullStore<T>();
     }
-    return new Service<>(store, handler, plugin, serviceConfig.webhookPath());
+    return new Service<>(store, handler, plugin, List.of(new S3PreProcessor<>()), serviceConfig.webhookPath());
   }
 
   public ServicesRunner toServicesRunner() {

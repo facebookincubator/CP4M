@@ -8,6 +8,13 @@
 
 package com.meta.cp4m.message;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.hc.client5.http.fluent.Content;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -72,6 +79,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
         .forEachOrdered(
             change -> {
               Identifier phoneNumberId = change.value().metadata().phoneNumberId();
+              //use phone number from above
               for (WebhookMessage message : change.value().messages()) {
                 if (messageDeduplicator.addAndGetIsDuplicate(message.id())) {
                   continue; // message is a duplicate
@@ -79,6 +87,28 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                 Payload<?> payloadValue;
                 switch (message) {
                   case TextWebhookMessage m -> payloadValue = new Payload.Text(m.text().body());
+                  case ImageWebhookMessage m -> {
+                      try {
+                          String url = this.getUrlFromID(m.image().id());
+                          Content media = this.getMediaFromUrl(url);
+                          System.out.println(media.getType());
+                          payloadValue = new Payload.Image(media.asBytes(), m.image().mimeType());
+                      } catch (IOException e) {
+                          throw new RuntimeException(e);
+                      }
+                  }
+
+                  case DocumentWebhookMessage m -> {
+                    try {
+                      String url = this.getUrlFromID(m.document().id());
+                      Content media = this.getMediaFromUrl(url);
+                      System.out.println(media.getType());
+                      payloadValue = new Payload.Document(media.asBytes(), m.document().mimeType());
+                    } catch (IOException e) {
+                      throw new RuntimeException(e);
+                    }
+                  }
+
                   case WelcomeWebhookMessage ignored -> {
                     if (welcomeMessage != null) {
                       WAMessage welcome =
@@ -255,6 +285,47 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
       // nothing we can do here, marking later messages as read will mark all previous messages read
       // so this is not a fatal issue
       LOGGER.error("unable to mark message as read", e);
+    }
+  }
+
+  private String getUrlFromID(String mediaID) throws IOException {
+     String graphAPI = "https://graph.facebook.com/v20.0/";
+   try {
+
+     Content content = Request.get(graphAPI + mediaID)
+             .setHeader("Authorization", "Bearer " + accessToken)
+             .setHeader("appsecret_proof", appSecretProof)
+             .execute().returnContent();
+
+     String jsonResponse = content.asString();
+
+     // Print the JSON response
+     System.out.println(jsonResponse);
+
+     ObjectMapper objectMapper = new ObjectMapper();
+     JsonNode jsonNode = objectMapper.readTree(jsonResponse);
+
+     System.out.println(jsonNode);
+     System.out.println("Page Name: " + jsonNode.get("url").asText());
+
+     return jsonNode.get("url").asText();
+   } catch (IOException e) {
+     LOGGER.error("Unable to retrieve media URL from ID", e);
+     return "";
+   }
+  }
+
+  private Content getMediaFromUrl(String url) throws IOException {
+    try {
+      Content media = Request.get(url)
+              .setHeader("Authorization", "Bearer " + accessToken)
+              .setHeader("appsecret_proof", appSecretProof)
+              .execute().returnContent();
+      System.out.println(media.getType());
+      return media;
+    } catch (IOException e) {
+      LOGGER.error("Unable to fetch media from URL", e);
+      return new Content(new byte[0], (ContentType) null );
     }
   }
 }

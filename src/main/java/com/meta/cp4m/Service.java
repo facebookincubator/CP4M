@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -34,12 +35,23 @@ public class Service<T extends Message> {
   private final Plugin<T> plugin;
 
   private final String path;
+  private final List <PreProcessor<T>> preProcessors;
 
   public Service(ChatStore<T> store, MessageHandler<T> handler, Plugin<T> plugin, String path) {
     this.handler = Objects.requireNonNull(handler);
     this.store = Objects.requireNonNull(store);
     this.plugin = Objects.requireNonNull(plugin);
     this.path = Objects.requireNonNull(path);
+    this.preProcessors = Collections.emptyList();
+  }
+
+  public Service(
+          ChatStore<T> store, MessageHandler<T> handler, Plugin<T> plugin, List<PreProcessor<T>> preProcessors, String path) {
+    this.handler = Objects.requireNonNull(handler);
+    this.store = Objects.requireNonNull(store);
+    this.plugin = plugin;
+    this.path = path;
+    this.preProcessors = Collections.unmodifiableList(preProcessors);
   }
 
   <IN> void handler(Context ctx, IN in, RequestProcessor<IN, T> processor) {
@@ -54,6 +66,7 @@ public class Service<T extends Message> {
           .setMessage("unable to process request")
           .setCause(e)
           .log();
+      // something like messages = Collections.emptyList(); needs to go here, look at s3 branch on github
       throw e;
     }
     // TODO: once we have a non-volatile store, on startup send stored but not replied to messages
@@ -80,6 +93,11 @@ public class Service<T extends Message> {
   }
 
   private void execute(ThreadState<T> thread) {
+    ThreadState<T> preproccessed = thread;
+    for (PreProcessor<T> preProcessor : preProcessors) {
+      preproccessed = preProcessor.run(preproccessed);
+    }
+
     T pluginResponse;
     try {
       pluginResponse = plugin.handle(thread);
