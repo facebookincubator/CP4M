@@ -61,7 +61,6 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
 
         StaticCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(sessionCredentials);
         this.s3Client = S3Client.builder()
-                // TODO: Add check to make sure the region is in kebab case
                 .region(Region.of(this.region))
                 .credentialsProvider(credentialsProvider)
                 .build();
