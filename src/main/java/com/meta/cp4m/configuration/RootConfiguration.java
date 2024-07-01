@@ -11,10 +11,7 @@ package com.meta.cp4m.configuration;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-import com.meta.cp4m.S3PreProcessor;
-import com.meta.cp4m.Service;
-import com.meta.cp4m.ServiceConfiguration;
-import com.meta.cp4m.ServicesRunner;
+import com.meta.cp4m.*;
 import com.meta.cp4m.message.HandlerConfig;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.MessageHandler;
@@ -35,6 +32,7 @@ public class RootConfiguration {
   private final Map<String, PluginConfig> plugins;
   private final Map<String, StoreConfig> stores;
   private final Map<String, HandlerConfig> handlers;
+  private final Map<String, PreProcessorConfig> preProcessors;
   private final Collection<ServiceConfiguration> services;
 
   private final int port;
@@ -45,12 +43,14 @@ public class RootConfiguration {
       @JsonProperty("plugins") Collection<PluginConfig> plugins,
       @JsonProperty("stores") @Nullable Collection<StoreConfig> stores,
       @JsonProperty("handlers") Collection<HandlerConfig> handlers,
+      @JsonProperty("preProcessors") @Nullable Collection<PreProcessorConfig> preProcessors,
       @JsonProperty("services") Collection<ServiceConfiguration> services,
       @JsonProperty("port") @Nullable Integer port,
       @JsonProperty("heartbeat_path") @Nullable String heartbeatPath) {
     this.port = port == null ? 8080 : port;
     this.heartbeatPath = heartbeatPath == null ? "/heartbeat" : heartbeatPath;
     stores = stores == null ? Collections.emptyList() : stores;
+    preProcessors = preProcessors == null ? Collections.emptyList(): preProcessors;
     Preconditions.checkArgument(
         this.port >= 0 && this.port <= 65535, "port must be between 0 and 65535");
 
@@ -71,6 +71,9 @@ public class RootConfiguration {
     this.plugins =
         plugins.stream()
             .collect(Collectors.toUnmodifiableMap(PluginConfig::name, Function.identity()));
+
+    this.preProcessors = preProcessors.stream()
+            .collect(Collectors.toUnmodifiableMap(PreProcessorConfig::name, Function.identity()));
 
     Preconditions.checkArgument(
         stores.size()
@@ -110,6 +113,10 @@ public class RootConfiguration {
     return Collections.unmodifiableCollection(plugins.values());
   }
 
+  Collection<PreProcessorConfig> preProcessors() {
+    return Collections.unmodifiableCollection(preProcessors.values());
+  }
+
   Collection<StoreConfig> stores() {
     return Collections.unmodifiableCollection(stores.values());
   }
@@ -139,7 +146,15 @@ public class RootConfiguration {
     } else {
       store = new NullStore<T>();
     }
-    return new Service<>(store, handler, plugin, List.of(new S3PreProcessor<>()), serviceConfig.webhookPath());
+
+    PreProcessor<T> preProcessor;
+    if(serviceConfig.preProcessor() != null){
+      preProcessor = preProcessors.get(serviceConfig.preProcessor()).toPreProcessor();
+      return new Service<>(store, handler, plugin, List.of(preProcessor), serviceConfig.webhookPath());
+    } else {
+      // TODO: flow never goes into else. Need to debug why method inherits container annotation
+      return new Service<>(store, handler, plugin, serviceConfig.webhookPath());
+    }
   }
 
   public ServicesRunner toServicesRunner() {

@@ -91,7 +91,6 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                       try {
                           String url = this.getUrlFromID(m.image().id());
                           Content media = this.getMediaFromUrl(url);
-                          System.out.println(media.getType());
                           payloadValue = new Payload.Image(media.asBytes(), m.image().mimeType());
                       } catch (IOException e) {
                           throw new RuntimeException(e);
@@ -102,7 +101,6 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                     try {
                       String url = this.getUrlFromID(m.document().id());
                       Content media = this.getMediaFromUrl(url);
-                      System.out.println(media.getType());
                       payloadValue = new Payload.Document(media.asBytes(), m.document().mimeType());
                     } catch (IOException e) {
                       throw new RuntimeException(e);
@@ -298,16 +296,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
              .execute().returnContent();
 
      String jsonResponse = content.asString();
-
-     // Print the JSON response
-     System.out.println(jsonResponse);
-
      ObjectMapper objectMapper = new ObjectMapper();
      JsonNode jsonNode = objectMapper.readTree(jsonResponse);
-
-     System.out.println(jsonNode);
-     System.out.println("Page Name: " + jsonNode.get("url").asText());
-
      return jsonNode.get("url").asText();
    } catch (IOException e) {
      LOGGER.error("Unable to retrieve media URL from ID", e);
@@ -321,7 +311,6 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
               .setHeader("Authorization", "Bearer " + accessToken)
               .setHeader("appsecret_proof", appSecretProof)
               .execute().returnContent();
-      System.out.println(media.getType());
       return media;
     } catch (IOException e) {
       LOGGER.error("Unable to fetch media from URL", e);
