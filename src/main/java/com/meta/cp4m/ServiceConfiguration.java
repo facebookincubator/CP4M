@@ -19,13 +19,15 @@ public class ServiceConfiguration {
   private final String handler;
   private final @Nullable String store;
   private final String plugin;
+  private final @Nullable String[] preProcessors;
 
   @JsonCreator
   ServiceConfiguration(
       @JsonProperty("webhook_path") String webhookPath,
       @JsonProperty("handler") String handler,
       @JsonProperty("store") @Nullable String store,
-      @JsonProperty("plugin") String plugin) {
+      @JsonProperty("plugin") String plugin,
+      @JsonProperty("pre_processors") @Nullable String[] preProcessors) {
     Preconditions.checkArgument(
         webhookPath != null && webhookPath.startsWith("/"),
         "webhook_path must be present and it must start with a forward slash (/)");
@@ -33,10 +35,15 @@ public class ServiceConfiguration {
     this.handler = Objects.requireNonNull(handler, "handler must be present");
     this.store = store;
     this.plugin = Objects.requireNonNull(plugin, "plugin must be present");
+    this.preProcessors = preProcessors;
   }
 
   public String webhookPath() {
     return webhookPath;
+  }
+
+  public String[] preProcessors() {
+    return preProcessors;
   }
 
   public String handler() {
