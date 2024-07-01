@@ -28,8 +28,6 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
     private final String bucket;
     private static final Logger LOGGER = LoggerFactory.getLogger(S3PreProcessor.class);
 
-
-
     @Override
     public ThreadState<T> run(ThreadState<T> in) {
         if(in.tail().payload().getClass().getName().contains("Image") || in.tail().payload().getClass().getName().contains("Document")) {
@@ -57,7 +55,6 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
                 .credentialsProvider(credentialsProvider)
                 .build();
     }
-
 
     public void sendRequest(byte[] media, String senderID) {
         String key = senderID + "_" + Instant.now().toEpochMilli();

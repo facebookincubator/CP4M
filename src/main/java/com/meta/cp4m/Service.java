@@ -66,7 +66,6 @@ public class Service<T extends Message> {
           .setMessage("unable to process request")
           .setCause(e)
           .log();
-      // something like messages = Collections.emptyList(); needs to go here, look at s3 branch on github
       throw e;
     }
     // TODO: once we have a non-volatile store, on startup send stored but not replied to messages

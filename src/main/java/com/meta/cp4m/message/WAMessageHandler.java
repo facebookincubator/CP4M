@@ -79,7 +79,6 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
         .forEachOrdered(
             change -> {
               Identifier phoneNumberId = change.value().metadata().phoneNumberId();
-              //use phone number from above
               for (WebhookMessage message : change.value().messages()) {
                 if (messageDeduplicator.addAndGetIsDuplicate(message.id())) {
                   continue; // message is a duplicate
