@@ -21,11 +21,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class S3PreProcessorTest {
 
-    //    @Test
+    @Test
     void run() {
-        WAMessageHandler waMessageHandler = WAMessengerConfig.of("verify","", "") //TODO: use credentials from config
+        WAMessageHandler waMessageHandler = WAMessengerConfig.of("verify","SomeSecret", "someToken") //TODO: use credentials from config
                 .toMessageHandler();
-        Service<WAMessage> service = new Service<>(new NullStore<>(), waMessageHandler, new DummyPlugin<>("dummy"), List.of(new S3PreProcessor<>()), "/whatsapp");
+        Service<WAMessage> service = new Service<>(new NullStore<>(), waMessageHandler, new DummyPlugin<>("dummy"), List.of(new S3PreProcessor<>("someAccessKey", "someSecretKey", "someRegion")), "/whatsapp");
         ServicesRunner.newInstance().service(service).port(8080).start();
     }
 }
