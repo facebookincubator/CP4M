@@ -20,10 +20,8 @@ import com.meta.cp4m.plugin.PluginConfig;
 import com.meta.cp4m.store.ChatStore;
 import com.meta.cp4m.store.NullStore;
 import com.meta.cp4m.store.StoreConfig;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -43,7 +41,7 @@ public class RootConfiguration {
       @JsonProperty("plugins") Collection<PluginConfig> plugins,
       @JsonProperty("stores") @Nullable Collection<StoreConfig> stores,
       @JsonProperty("handlers") Collection<HandlerConfig> handlers,
-      @JsonProperty("preProcessors") @Nullable Collection<PreProcessorConfig> preProcessors,
+      @JsonProperty("pre_processors") @Nullable Collection<PreProcessorConfig> preProcessors,
       @JsonProperty("services") Collection<ServiceConfiguration> services,
       @JsonProperty("port") @Nullable Integer port,
       @JsonProperty("heartbeat_path") @Nullable String heartbeatPath) {
@@ -148,9 +146,16 @@ public class RootConfiguration {
     }
 
     PreProcessor<T> preProcessor;
-    if(serviceConfig.preProcessor() != null){
-      preProcessor = preProcessors.get(serviceConfig.preProcessor()).toPreProcessor();
-      return new Service<>(store, handler, plugin, List.of(preProcessor), serviceConfig.webhookPath());
+    List<PreProcessor<T>> preProcessorsList = new ArrayList<>();
+
+    if(serviceConfig.preProcessors() != null){
+      String[] preProcessorNames = serviceConfig.preProcessors();
+      for (String i : preProcessorNames) {
+        preProcessor = preProcessors.get(i).toPreProcessor();
+        preProcessorsList.add(preProcessor);
+      }
+
+      return new Service<>(store, handler, plugin, preProcessorsList, serviceConfig.webhookPath());
     } else {
       // TODO: flow never goes into else. Need to debug why method inherits container annotation
       return new Service<>(store, handler, plugin, serviceConfig.webhookPath());
