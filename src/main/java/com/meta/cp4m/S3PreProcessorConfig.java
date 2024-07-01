@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.meta.cp4m.message.Message;
 import java.util.Objects;
 
-public class S3PreProcessorConfig implements PreProcessorConfig{
+public class S3PreProcessorConfig implements PreProcessorConfig {
     private final String name;
     private final String awsAccessKeyId;
     private final String awsSecretAccessKey;
@@ -26,7 +26,7 @@ public class S3PreProcessorConfig implements PreProcessorConfig{
             @JsonProperty("aws_access_key_id") String awsAccessKeyId,
             @JsonProperty("aws_secret_access_key") String awsSecretAccessKey,
             @JsonProperty("region") String region,
-            @JsonProperty("bucket") String bucket){
+            @JsonProperty("bucket") String bucket) {
         this.name = Objects.requireNonNull(name, "name is a required parameter");
         this.awsAccessKeyId = Objects.requireNonNull(awsAccessKeyId, "aws access key is a required parameter");
         this.awsSecretAccessKey = Objects.requireNonNull(awsSecretAccessKey, "aws secret access key is a required parameter");
@@ -60,4 +60,3 @@ public class S3PreProcessorConfig implements PreProcessorConfig{
         return new S3PreProcessor<>(awsAccessKeyId, awsSecretAccessKey, region, bucket);
     }
 }
-

@@ -8,6 +8,7 @@
 
 package com.meta.cp4m;
 import com.meta.cp4m.message.Message;
+import com.meta.cp4m.message.Payload;
 import com.meta.cp4m.message.ThreadState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,10 +31,20 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
 
     @Override
     public ThreadState<T> run(ThreadState<T> in) {
-        if(in.tail().payload().getClass().getName().contains("Image") || in.tail().payload().getClass().getName().contains("Document")) {
-            this.sendRequest((byte[]) in.tail().payload().value(), in.tail().senderId().toString());
+
+        switch (in.tail().payload()) {
+            case Payload.Image i ->  {
+                this.sendRequest(i.value(), in.userId().toString(), i.extension());
+            }
+            case Payload.Document i -> {
+                this.sendRequest(i.value(), in.userId().toString(), i.extension());
+            }
+            default -> {
+                System.out.println("Here");
+                return  in;
+            }
         }
-        return null;
+        return in; // TODO: remove last message
     }
 
     public S3PreProcessor(String awsAccessKeyID, String awsSecretAccessKey, String region, String bucket) {
@@ -56,13 +67,16 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
                 .build();
     }
 
-    public void sendRequest(byte[] media, String senderID) {
-        String key = senderID + "_" + Instant.now().toEpochMilli();
-        PutObjectResponse res = s3Client.putObject(PutObjectRequest.builder().bucket(this.bucket).key(key).contentType("application/*")
+    public void sendRequest(byte[] media, String senderID, String extension) {
+        String key = senderID +
+                '_' +
+                Instant.now().toEpochMilli() +
+                '.' +
+                extension;
+        PutObjectResponse res = s3Client.putObject(PutObjectRequest.builder().bucket(this.bucket).key(key).contentType("application/" + extension)
                         .build(),
                 RequestBody.fromBytes(media));
         s3Client.close();
         LOGGER.info("Media uploaded to AWS S3");
-
     }
 }
