@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.meta.cp4m.message.Message;
+
 import java.util.Objects;
 
 public record S3PreProcessorConfig(String name, String awsAccessKeyId, String awsSecretAccessKey, String region,

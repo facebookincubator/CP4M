@@ -23,9 +23,11 @@ class S3PreProcessorTest {
 
     @Test
     void run() {
-        WAMessageHandler waMessageHandler = WAMessengerConfig.of("verify","SomeSecret", "someToken") //TODO: use credentials from config
+        WAMessageHandler waMessageHandler = WAMessengerConfig.of("verify", "SomeSecret", "someToken")
                 .toMessageHandler();
-        Service<WAMessage> service = new Service<>(new NullStore<>(), waMessageHandler, new DummyPlugin<>("dummy"), List.of(new S3PreProcessor<>("someAccessKey", "someSecretKey", "someRegion", "someRegion")), "/whatsapp");
+        Service<WAMessage> service = new Service<>(new NullStore<>(), waMessageHandler,
+                new DummyPlugin<>("dummy"),
+                List.of(new S3PreProcessor<>("someAccessKey", "someSecretKey", "someRegion", "someRegion")), "/whatsapp");
         ServicesRunner.newInstance().service(service).port(8080).start();
     }
 }

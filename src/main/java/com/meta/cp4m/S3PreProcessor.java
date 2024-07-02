@@ -7,6 +7,7 @@
  */
 
 package com.meta.cp4m;
+
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.Payload;
 import com.meta.cp4m.message.ThreadState;
@@ -34,14 +35,14 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
     public ThreadState<T> run(ThreadState<T> in) {
 
         switch (in.tail().payload()) {
-            case Payload.Image i ->  {
+            case Payload.Image i -> {
                 this.sendRequest(i.value(), in.userId().toString(), i.extension());
             }
             case Payload.Document i -> {
                 this.sendRequest(i.value(), in.userId().toString(), i.extension());
             }
             default -> {
-                return  in;
+                return in;
             }
         }
         return in; // TODO: remove last message
