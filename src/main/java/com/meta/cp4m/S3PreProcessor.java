@@ -40,7 +40,6 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
                 this.sendRequest(i.value(), in.userId().toString(), i.extension());
             }
             default -> {
-                System.out.println("Here");
                 return  in;
             }
         }
