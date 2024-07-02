@@ -27,6 +27,7 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
     private final String region;
     private S3Client s3Client;
     private final String bucket;
+    private final StaticCredentialsProvider credentialsProvider;
     private static final Logger LOGGER = LoggerFactory.getLogger(S3PreProcessor.class);
 
     @Override
@@ -58,11 +59,7 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
                 ""
         );
 
-        StaticCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(sessionCredentials);
-        this.s3Client = S3Client.builder()
-                .region(Region.of(this.region))
-                .credentialsProvider(credentialsProvider)
-                .build();
+        this.credentialsProvider = StaticCredentialsProvider.create(sessionCredentials);
     }
 
     public void sendRequest(byte[] media, String senderID, String extension) {
@@ -71,10 +68,23 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
                 Instant.now().toEpochMilli() +
                 '.' +
                 extension;
-        PutObjectResponse res = s3Client.putObject(PutObjectRequest.builder().bucket(this.bucket).key(key).contentType("application/" + extension)
-                        .build(),
-                RequestBody.fromBytes(media));
-        s3Client.close();
-        LOGGER.info("Media uploaded to AWS S3");
+
+        try (S3Client s3Client = S3Client.builder()
+                .region(Region.of(this.region))
+                .credentialsProvider(this.credentialsProvider)
+                .build()) {
+
+            PutObjectRequest request = PutObjectRequest
+                    .builder()
+                    .bucket(this.bucket)
+                    .key(key)
+                    .contentType("application/" + extension)
+                    .build();
+            s3Client.putObject(request, RequestBody.fromBytes(media));
+            s3Client.close();
+            LOGGER.info("Media upload to AWS S3 successful");
+        } catch (Exception e) {
+            LOGGER.warn("Media upload to AWS S3 failed, {e}", e);
+        }
     }
 }
