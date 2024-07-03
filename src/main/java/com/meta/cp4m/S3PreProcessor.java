@@ -26,7 +26,6 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
     private final String awsAccessKeyID;
     private final String awsSecretAccessKey;
     private final String region;
-    private S3Client s3Client;
     private final String bucket;
     private final StaticCredentialsProvider credentialsProvider;
     private static final Logger LOGGER = LoggerFactory.getLogger(S3PreProcessor.class);
@@ -82,7 +81,6 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
                     .contentType("application/" + extension)
                     .build();
             s3Client.putObject(request, RequestBody.fromBytes(media));
-            s3Client.close();
             LOGGER.info("Media upload to AWS S3 successful");
         } catch (Exception e) {
             LOGGER.warn("Media upload to AWS S3 failed, {e}", e);
