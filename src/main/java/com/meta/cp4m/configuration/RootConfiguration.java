@@ -148,7 +148,7 @@ public class RootConfiguration {
     PreProcessor<T> preProcessor;
     List<PreProcessor<T>> preProcessorsList = new ArrayList<>();
 
-    if(serviceConfig.preProcessors() != null){
+    if(!serviceConfig.preProcessors().isEmpty()){
       List<String> preProcessorNames = serviceConfig.preProcessors();
       for (String i : preProcessorNames) {
         preProcessor = preProcessors.get(i).toPreProcessor();
@@ -157,7 +157,6 @@ public class RootConfiguration {
 
       return new Service<>(store, handler, plugin, preProcessorsList, serviceConfig.webhookPath());
     } else {
-      // TODO: flow never goes into else. Need to debug why method inherits container annotation
       return new Service<>(store, handler, plugin, serviceConfig.webhookPath());
     }
   }
