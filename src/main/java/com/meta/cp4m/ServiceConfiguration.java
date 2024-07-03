@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -37,7 +38,7 @@ public class ServiceConfiguration {
     this.handler = Objects.requireNonNull(handler, "handler must be present");
     this.store = store;
     this.plugin = Objects.requireNonNull(plugin, "plugin must be present");
-    this.preProcessors = preProcessors;
+    this.preProcessors = preProcessors == null ? Collections.emptyList() : preProcessors;
   }
 
   public String webhookPath() {
