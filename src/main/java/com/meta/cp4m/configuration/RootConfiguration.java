@@ -149,7 +149,7 @@ public class RootConfiguration {
     List<PreProcessor<T>> preProcessorsList = new ArrayList<>();
 
     if(serviceConfig.preProcessors() != null){
-      String[] preProcessorNames = serviceConfig.preProcessors();
+      List<String> preProcessorNames = serviceConfig.preProcessors();
       for (String i : preProcessorNames) {
         preProcessor = preProcessors.get(i).toPreProcessor();
         preProcessorsList.add(preProcessor);

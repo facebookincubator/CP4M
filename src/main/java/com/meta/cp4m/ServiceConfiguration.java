@@ -12,6 +12,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 import java.util.Objects;
 
 public class ServiceConfiguration {
@@ -19,7 +21,7 @@ public class ServiceConfiguration {
   private final String handler;
   private final @Nullable String store;
   private final String plugin;
-  private final @Nullable String[] preProcessors;
+  private final @Nullable List<String> preProcessors;
 
   @JsonCreator
   ServiceConfiguration(
@@ -27,7 +29,7 @@ public class ServiceConfiguration {
       @JsonProperty("handler") String handler,
       @JsonProperty("store") @Nullable String store,
       @JsonProperty("plugin") String plugin,
-      @JsonProperty("pre_processors") @Nullable String[] preProcessors) {
+      @JsonProperty("pre_processors") @Nullable List<String> preProcessors) {
     Preconditions.checkArgument(
         webhookPath != null && webhookPath.startsWith("/"),
         "webhook_path must be present and it must start with a forward slash (/)");
@@ -42,7 +44,7 @@ public class ServiceConfiguration {
     return webhookPath;
   }
 
-  public String[] preProcessors() {
+  public List<String> preProcessors() {
     return preProcessors;
   }
 
