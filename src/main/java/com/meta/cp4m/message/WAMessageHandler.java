@@ -31,6 +31,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.net.URIBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
@@ -91,7 +92,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                           String url = this.getUrlFromID(m.image().id());
                           Content media = this.getMediaFromUrl(url);
                           payloadValue = new Payload.Image(media.asBytes(), m.image().mimeType());
-                      } catch (IOException e) {
+                      } catch (IOException | URISyntaxException e) {
                           throw new RuntimeException(e);
                       }
                   }
@@ -101,7 +102,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                       String url = this.getUrlFromID(m.document().id());
                       Content media = this.getMediaFromUrl(url);
                       payloadValue = new Payload.Document(media.asBytes(), m.document().mimeType());
-                    } catch (IOException e) {
+                    } catch (IOException | URISyntaxException e) {
                       throw new RuntimeException(e);
                     }
                   }
@@ -285,20 +286,20 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     }
   }
 
-  private String getUrlFromID(String mediaID) throws IOException {
-   try {
-     Content content = Request.get(new URIBuilder(this.baseURL).appendPath(mediaID).build())
-             .setHeader("Authorization", "Bearer " + accessToken)
-             .setHeader("appsecret_proof", appSecretProof)
-             .execute().returnContent();
-
-     String jsonResponse = content.asString();
-     JsonNode jsonNode = MAPPER.readTree(jsonResponse);
-     return jsonNode.get("url").asText();
-   } catch (URISyntaxException e) {
-      throw new RuntimeException(e);
-   }
-  }
+    private String getUrlFromID(String mediaID) throws IOException, URISyntaxException {
+        return Request.get(new URIBuilder(this.baseURL).appendPath(mediaID).build())
+                .setHeader("Authorization", "Bearer " + accessToken)
+                .setHeader("appsecret_proof", appSecretProof)
+                .execute().handleResponse(response -> {
+                    try {
+                        String jsonResponse = EntityUtils.toString(response.getEntity());
+                        JsonNode jsonNode = MAPPER.readTree(jsonResponse);
+                        return jsonNode.get("url").asText();
+                    } catch (RuntimeException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+    }
 
   private Content getMediaFromUrl(String url) throws IOException {
     try {
