@@ -286,10 +286,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
   }
 
   private String getUrlFromID(String mediaID) throws IOException {
-     String graphAPI = "https://graph.facebook.com/v20.0/";
    try {
-
-     Content content = Request.get(graphAPI + mediaID)
+     Content content = Request.get(new URIBuilder(this.baseURL).appendPath(mediaID).build())
              .setHeader("Authorization", "Bearer " + accessToken)
              .setHeader("appsecret_proof", appSecretProof)
              .execute().returnContent();
@@ -298,22 +296,19 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
      ObjectMapper objectMapper = new ObjectMapper();
      JsonNode jsonNode = objectMapper.readTree(jsonResponse);
      return jsonNode.get("url").asText();
-   } catch (IOException e) {
-     LOGGER.error("Unable to retrieve media URL from ID", e);
-     return "";
+   } catch (URISyntaxException e) {
+      throw new RuntimeException(e);
    }
   }
 
   private Content getMediaFromUrl(String url) throws IOException {
     try {
-      Content media = Request.get(url)
+        return Request.get(url)
               .setHeader("Authorization", "Bearer " + accessToken)
               .setHeader("appsecret_proof", appSecretProof)
               .execute().returnContent();
-      return media;
     } catch (IOException e) {
-      LOGGER.error("Unable to fetch media from URL", e);
-      return new Content(new byte[0], (ContentType) null );
+      throw new RuntimeException(e);
     }
   }
 }
