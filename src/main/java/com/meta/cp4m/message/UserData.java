@@ -47,6 +47,10 @@ public class UserData {
         newest.phoneNumber != null ? newest.phoneNumber : oldest.phoneNumber);
   }
 
+  Identifier userId() {
+    return userId;
+  }
+
   public Optional<String> phoneNumber() {
     return Optional.ofNullable(phoneNumber);
   }

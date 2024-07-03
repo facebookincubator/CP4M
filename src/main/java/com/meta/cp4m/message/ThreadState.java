@@ -31,15 +31,10 @@ public class ThreadState<T extends Message> {
     userData = UserData.create(this.userId());
   }
 
-  public ThreadState(List<T> messages, MessageFactory<T> messageFactory, UserData userData) {
+  private ThreadState(List<T> messages, MessageFactory<T> messageFactory, UserData userData) {
     this.messages = messages;
     this.messageFactory = messageFactory;
-    this.userData = userData;
-  }
-
-  private ThreadState(ThreadState<T> old, UserData userData) {
-    this.messages = old.messages;
-    this.messageFactory = old.messageFactory;
+    Preconditions.checkState(Objects.equals(this.userId(), userData.userId()));
     this.userData = userData;
   }
 
@@ -124,7 +119,7 @@ public class ThreadState<T extends Message> {
   }
 
   public @NewInstance ThreadState<T> withUserData(UserData userData) {
-    return new ThreadState<>(this, userData);
+    return new ThreadState<>(this.messages, this.messageFactory, userData);
   }
 
   public static <T extends Message> ThreadState<T> merge(ThreadState<T> t1, ThreadState<T> t2) {
@@ -144,6 +139,14 @@ public class ThreadState<T extends Message> {
 
   public Identifier threadId() {
     return tail().threadId();
+  }
+
+  public @NewInstance ThreadState<T> truncateMessageHistory(int value) {
+    if (value >= messages.size()) {
+      return this;
+    }
+    List<T> newMessages = messages.subList(messages.size() - value, messages.size());
+    return new ThreadState<>(ImmutableList.copyOf(newMessages), messageFactory, userData);
   }
 
   @Override

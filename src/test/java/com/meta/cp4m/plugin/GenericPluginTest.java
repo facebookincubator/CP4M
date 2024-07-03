@@ -124,7 +124,7 @@ handler = "messenger_test"
                 ThreadState.of(
                     f.newMessage(
                         messageTime,
-                        new Payload.Text("hello world!"),
+                        new Payload.Text("hello world!'\"!@#$%^&*()’"),
                         userId,
                         businessId,
                         Identifier.random(),
@@ -186,7 +186,7 @@ handler = "messenger_test"
     assertThat(body.get("messages"))
         .hasSize(1)
         .allSatisfy(m -> assertThat(m.get("type").textValue()).isEqualTo("text"))
-        .allSatisfy(m -> assertThat(m.get("value").textValue()).isEqualTo("hello world!"))
+        .allSatisfy(m -> assertThat(m.get("value").textValue()).isEqualTo(ts.tail().message()))
         .allSatisfy(
             m ->
                 assertThat(m.get("timestamp").textValue())
