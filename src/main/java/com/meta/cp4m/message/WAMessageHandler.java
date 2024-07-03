@@ -293,8 +293,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
              .execute().returnContent();
 
      String jsonResponse = content.asString();
-     ObjectMapper objectMapper = new ObjectMapper();
-     JsonNode jsonNode = objectMapper.readTree(jsonResponse);
+     JsonNode jsonNode = MAPPER.readTree(jsonResponse);
      return jsonNode.get("url").asText();
    } catch (URISyntaxException e) {
       throw new RuntimeException(e);
