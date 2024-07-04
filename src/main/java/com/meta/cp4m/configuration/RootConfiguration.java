@@ -48,6 +48,7 @@ public class RootConfiguration {
     this.port = port == null ? 8080 : port;
     this.heartbeatPath = heartbeatPath == null ? "/heartbeat" : heartbeatPath;
     stores = stores == null ? Collections.emptyList() : stores;
+    preProcessors = preProcessors == null ? Collections.emptyList(): preProcessors;
     Preconditions.checkArgument(
         this.port >= 0 && this.port <= 65535, "port must be between 0 and 65535");
 
