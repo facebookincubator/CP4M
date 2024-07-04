@@ -31,7 +31,7 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class WAMessageHandlerTest {
-
+  static String BODY_TEXT = "this is a text message!@#$%^&*()’";
   static final String VALID =
       """
 {
@@ -63,7 +63,11 @@ class WAMessageHandlerTest {
                 "timestamp": "1504902988",
                 "type": "text",
                 "text": {
-                  "body": "this is a text message"
+                  "body": """
+          + "\""
+          + BODY_TEXT
+          + "\""
+          + """
                 }
               }
             ]
@@ -200,7 +204,7 @@ class WAMessageHandlerTest {
         .hasSize(2)
         .anySatisfy(
             m -> {
-              assertThat(m.message()).isEqualTo("this is a text message");
+              assertThat(m.message()).isEqualTo(BODY_TEXT);
               assertThat(m.instanceId()).isEqualTo(Identifier.from("ABGGFlA5Fpa"));
               assertThat(m.senderId()).isEqualTo(Identifier.from("16315551181"));
               assertThat(m.recipientId()).isEqualTo(Identifier.from("123456123"));

@@ -13,7 +13,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.message.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class MemoryStoreTest {
 
@@ -60,5 +64,35 @@ class MemoryStoreTest {
     thread = memoryStore.add(message3);
     assertThat(memoryStore.list().size()).isEqualTo(2);
     assertThat(thread.messages()).hasSize(1).contains(message3);
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {1, 5, 10})
+  void historyLength(int numMessages) {
+    Identifier senderId = Identifier.random();
+    Identifier recipientId = Identifier.random();
+
+    MessageFactory<FBMessage> messageFactory = MessageFactory.instance(FBMessage.class);
+    MemoryStore<FBMessage> memoryStore = new MemoryStore<>(MemoryStoreConfig.of(1, 1, numMessages));
+    assertThat(memoryStore.list().size()).isEqualTo(0);
+
+    List<FBMessage> messages = new ArrayList<>((numMessages + 1) * 2);
+    for (int mNum = 0; mNum < (numMessages + 1) * 2; mNum++) {
+      FBMessage message =
+          messageFactory.newMessage(
+              Instant.now().plusSeconds(mNum),
+              new Payload.Text(""),
+              senderId,
+              recipientId,
+              Identifier.random(),
+              Message.Role.ASSISTANT);
+      messages.add(message);
+      ThreadState<FBMessage> thread = memoryStore.add(message);
+      assertThat(thread.messages())
+          .hasSize(Math.min(mNum + 1, numMessages))
+          //          .contains(message)
+          .containsAll(
+              messages.subList(messages.size() - Math.min(0, numMessages), messages.size()));
+    }
   }
 }
