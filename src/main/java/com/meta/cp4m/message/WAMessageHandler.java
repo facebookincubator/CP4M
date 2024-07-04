@@ -89,7 +89,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                   case TextWebhookMessage m -> payloadValue = new Payload.Text(m.text().body());
                   case ImageWebhookMessage m -> {
                       try {
-                          String url = this.getUrlFromID(m.image().id());
+                          URI url = this.getUrlFromID(m.image().id());
                           Content media = this.getMediaFromUrl(url);
                           payloadValue = new Payload.Image(media.asBytes(), m.image().mimeType());
                       } catch (IOException | URISyntaxException e) {
@@ -99,7 +99,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
 
                   case DocumentWebhookMessage m -> {
                     try {
-                      String url = this.getUrlFromID(m.document().id());
+                      URI url = this.getUrlFromID(m.document().id());
                       Content media = this.getMediaFromUrl(url);
                       payloadValue = new Payload.Document(media.asBytes(), m.document().mimeType());
                     } catch (IOException | URISyntaxException e) {
@@ -286,7 +286,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     }
   }
 
-    private String getUrlFromID(String mediaID) throws IOException, URISyntaxException {
+    private URI getUrlFromID(String mediaID) throws IOException, URISyntaxException {
         return Request.get(new URIBuilder(this.baseURL).appendPath(mediaID).build())
                 .setHeader("Authorization", "Bearer " + accessToken)
                 .setHeader("appsecret_proof", appSecretProof)
@@ -294,14 +294,14 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                     try {
                         String jsonResponse = EntityUtils.toString(response.getEntity());
                         JsonNode jsonNode = MAPPER.readTree(jsonResponse);
-                        return jsonNode.get("url").asText();
-                    } catch (RuntimeException e) {
+                        return new URIBuilder(jsonNode.get("url").asText());
+                    } catch (URISyntaxException e) {
                         throw new RuntimeException(e);
                     }
-                });
+                }).build();
     }
 
-  private Content getMediaFromUrl(String url) throws IOException {
+  private Content getMediaFromUrl(URI url) throws IOException {
     try {
         return Request.get(url)
               .setHeader("Authorization", "Bearer " + accessToken)

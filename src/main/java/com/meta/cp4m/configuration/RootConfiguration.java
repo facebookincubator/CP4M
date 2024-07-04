@@ -41,14 +41,13 @@ public class RootConfiguration {
       @JsonProperty("plugins") Collection<PluginConfig> plugins,
       @JsonProperty("stores") @Nullable Collection<StoreConfig> stores,
       @JsonProperty("handlers") Collection<HandlerConfig> handlers,
-      @JsonProperty("pre_processors") @Nullable Collection<PreProcessorConfig> preProcessors,
+      @JsonProperty("pre_processors") Collection<PreProcessorConfig> preProcessors,
       @JsonProperty("services") Collection<ServiceConfiguration> services,
       @JsonProperty("port") @Nullable Integer port,
       @JsonProperty("heartbeat_path") @Nullable String heartbeatPath) {
     this.port = port == null ? 8080 : port;
     this.heartbeatPath = heartbeatPath == null ? "/heartbeat" : heartbeatPath;
     stores = stores == null ? Collections.emptyList() : stores;
-    preProcessors = preProcessors == null ? Collections.emptyList(): preProcessors;
     Preconditions.checkArgument(
         this.port >= 0 && this.port <= 65535, "port must be between 0 and 65535");
 
@@ -148,17 +147,17 @@ public class RootConfiguration {
     PreProcessor<T> preProcessor;
     List<PreProcessor<T>> preProcessorsList = new ArrayList<>();
 
-    if(!serviceConfig.preProcessors().isEmpty()){
-      List<String> preProcessorNames = serviceConfig.preProcessors();
-      for (String i : preProcessorNames) {
+    List<String> preProcessorNames = serviceConfig.preProcessors();
+    for (String i : preProcessorNames) {
+      try {
         preProcessor = preProcessors.get(i).toPreProcessor();
         preProcessorsList.add(preProcessor);
+      } catch (NullPointerException | NoSuchElementException e) {
+        throw new RuntimeException(e);
       }
-
-      return new Service<>(store, handler, plugin, preProcessorsList, serviceConfig.webhookPath());
-    } else {
-      return new Service<>(store, handler, plugin, serviceConfig.webhookPath());
     }
+
+    return new Service<>(store, handler, plugin, preProcessorsList, serviceConfig.webhookPath());
   }
 
   public ServicesRunner toServicesRunner() {
