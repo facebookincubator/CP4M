@@ -10,7 +10,6 @@ package com.meta.cp4m.message;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.hc.client5.http.fluent.Content;
@@ -90,8 +89,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                   case ImageWebhookMessage m -> {
                       try {
                           URI url = this.getUrlFromID(m.image().id());
-                          Content media = this.getMediaFromUrl(url);
-                          payloadValue = new Payload.Image(media.asBytes(), m.image().mimeType());
+                          byte[] media = this.getMediaFromUrl(url);
+                          payloadValue = new Payload.Image(media, m.image().mimeType());
                       } catch (IOException | URISyntaxException e) {
                           throw new RuntimeException(e);
                       }
@@ -100,8 +99,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                   case DocumentWebhookMessage m -> {
                     try {
                       URI url = this.getUrlFromID(m.document().id());
-                      Content media = this.getMediaFromUrl(url);
-                      payloadValue = new Payload.Document(media.asBytes(), m.document().mimeType());
+                      byte[] media = this.getMediaFromUrl(url);
+                      payloadValue = new Payload.Document(media, m.document().mimeType());
                     } catch (IOException | URISyntaxException e) {
                       throw new RuntimeException(e);
                     }
@@ -301,14 +300,16 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                 }).build();
     }
 
-  private Content getMediaFromUrl(URI url) throws IOException {
-    try {
-        return Request.get(url)
-              .setHeader("Authorization", "Bearer " + accessToken)
-              .setHeader("appsecret_proof", appSecretProof)
-              .execute().returnContent();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  private byte[] getMediaFromUrl(URI url) throws IOException {
+    return Request.get(url)
+            .setHeader("Authorization", "Bearer " + accessToken)
+            .setHeader("appsecret_proof", appSecretProof)
+            .execute().handleResponse(response -> {
+              try {
+                return EntityUtils.toByteArray(response.getEntity());
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            });
   }
 }
