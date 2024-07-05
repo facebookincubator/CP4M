@@ -20,7 +20,6 @@ import com.meta.cp4m.plugin.PluginConfig;
 import com.meta.cp4m.store.ChatStore;
 import com.meta.cp4m.store.NullStore;
 import com.meta.cp4m.store.StoreConfig;
-
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -48,7 +47,7 @@ public class RootConfiguration {
     this.port = port == null ? 8080 : port;
     this.heartbeatPath = heartbeatPath == null ? "/heartbeat" : heartbeatPath;
     stores = stores == null ? Collections.emptyList() : stores;
-    preProcessors = preProcessors == null ? Collections.emptyList(): preProcessors;
+    preProcessors = preProcessors == null ? Collections.emptyList() : preProcessors;
     Preconditions.checkArgument(
         this.port >= 0 && this.port <= 65535, "port must be between 0 and 65535");
 
@@ -70,7 +69,8 @@ public class RootConfiguration {
         plugins.stream()
             .collect(Collectors.toUnmodifiableMap(PluginConfig::name, Function.identity()));
 
-    this.preProcessors = preProcessors.stream()
+    this.preProcessors =
+        preProcessors.stream()
             .collect(Collectors.toUnmodifiableMap(PreProcessorConfig::name, Function.identity()));
 
     Preconditions.checkArgument(
@@ -103,6 +103,11 @@ public class RootConfiguration {
           s.store() + " must be the name of a store");
       Preconditions.checkArgument(
           this.handlers.containsKey(s.handler()), s.handler() + " must be the name of a handler");
+      for (PreProcessorConfig preProcessor : preProcessors) {
+        Preconditions.checkArgument(
+            this.preProcessors.containsKey(preProcessor.name()),
+            preProcessor.name() + " must be the name of a pre-processor");
+      }
     }
     this.services = services;
   }
@@ -142,7 +147,7 @@ public class RootConfiguration {
     if (serviceConfig.store() != null) {
       store = stores.get(serviceConfig.store()).toStore();
     } else {
-      store = new NullStore<T>();
+      store = new NullStore<>();
     }
 
     PreProcessor<T> preProcessor;
@@ -150,12 +155,9 @@ public class RootConfiguration {
 
     List<String> preProcessorNames = serviceConfig.preProcessors();
     for (String i : preProcessorNames) {
-      try {
-        preProcessor = preProcessors.get(i).toPreProcessor();
-        preProcessorsList.add(preProcessor);
-      } catch (NullPointerException | NoSuchElementException e) {
-        throw new RuntimeException(e);
-      }
+      // guaranteed to return a non null value due to check in constructor
+      preProcessor = preProcessors.get(i).toPreProcessor();
+      preProcessorsList.add(preProcessor);
     }
 
     return new Service<>(store, handler, plugin, preProcessorsList, serviceConfig.webhookPath());
