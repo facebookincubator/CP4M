@@ -8,6 +8,12 @@
 
 package com.meta.cp4m.message;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.hc.client5.http.fluent.Content;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -24,6 +30,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.net.URIBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.returnsreceiver.qual.This;
@@ -79,6 +86,26 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                 Payload<?> payloadValue;
                 switch (message) {
                   case TextWebhookMessage m -> payloadValue = new Payload.Text(m.text().body());
+                  case ImageWebhookMessage m -> {
+                      try {
+                          URI url = this.getUrlFromID(m.image().id());
+                          byte[] media = this.getMediaFromUrl(url);
+                          payloadValue = new Payload.Image(media, m.image().mimeType());
+                      } catch (IOException | URISyntaxException e) {
+                          throw new RuntimeException(e);
+                      }
+                  }
+
+                  case DocumentWebhookMessage m -> {
+                    try {
+                      URI url = this.getUrlFromID(m.document().id());
+                      byte[] media = this.getMediaFromUrl(url);
+                      payloadValue = new Payload.Document(media, m.document().mimeType());
+                    } catch (IOException | URISyntaxException e) {
+                      throw new RuntimeException(e);
+                    }
+                  }
+
                   case WelcomeWebhookMessage ignored -> {
                     if (welcomeMessage != null) {
                       WAMessage welcome =
@@ -256,5 +283,33 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
       // so this is not a fatal issue
       LOGGER.error("unable to mark message as read", e);
     }
+  }
+
+    private URI getUrlFromID(String mediaID) throws IOException, URISyntaxException {
+        return Request.get(new URIBuilder(this.baseURL).appendPath(mediaID).build())
+                .setHeader("Authorization", "Bearer " + accessToken)
+                .setHeader("appsecret_proof", appSecretProof)
+                .execute().handleResponse(response -> {
+                    try {
+                        String jsonResponse = EntityUtils.toString(response.getEntity());
+                        JsonNode jsonNode = MAPPER.readTree(jsonResponse);
+                        return new URIBuilder(jsonNode.get("url").asText());
+                    } catch (URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
+                }).build();
+    }
+
+  private byte[] getMediaFromUrl(URI url) throws IOException {
+    return Request.get(url)
+            .setHeader("Authorization", "Bearer " + accessToken)
+            .setHeader("appsecret_proof", appSecretProof)
+            .execute().handleResponse(response -> {
+              try {
+                return EntityUtils.toByteArray(response.getEntity());
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            });
   }
 }

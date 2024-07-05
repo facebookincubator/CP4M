@@ -11,9 +11,7 @@ package com.meta.cp4m.configuration;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-import com.meta.cp4m.Service;
-import com.meta.cp4m.ServiceConfiguration;
-import com.meta.cp4m.ServicesRunner;
+import com.meta.cp4m.*;
 import com.meta.cp4m.message.HandlerConfig;
 import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.MessageHandler;
@@ -22,9 +20,7 @@ import com.meta.cp4m.plugin.PluginConfig;
 import com.meta.cp4m.store.ChatStore;
 import com.meta.cp4m.store.NullStore;
 import com.meta.cp4m.store.StoreConfig;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -33,6 +29,7 @@ public class RootConfiguration {
   private final Map<String, PluginConfig> plugins;
   private final Map<String, StoreConfig> stores;
   private final Map<String, HandlerConfig> handlers;
+  private final Map<String, PreProcessorConfig> preProcessors;
   private final Collection<ServiceConfiguration> services;
 
   private final int port;
@@ -43,12 +40,14 @@ public class RootConfiguration {
       @JsonProperty("plugins") Collection<PluginConfig> plugins,
       @JsonProperty("stores") @Nullable Collection<StoreConfig> stores,
       @JsonProperty("handlers") Collection<HandlerConfig> handlers,
+      @JsonProperty("pre_processors") Collection<PreProcessorConfig> preProcessors,
       @JsonProperty("services") Collection<ServiceConfiguration> services,
       @JsonProperty("port") @Nullable Integer port,
       @JsonProperty("heartbeat_path") @Nullable String heartbeatPath) {
     this.port = port == null ? 8080 : port;
     this.heartbeatPath = heartbeatPath == null ? "/heartbeat" : heartbeatPath;
     stores = stores == null ? Collections.emptyList() : stores;
+    preProcessors = preProcessors == null ? Collections.emptyList() : preProcessors;
     Preconditions.checkArgument(
         this.port >= 0 && this.port <= 65535, "port must be between 0 and 65535");
 
@@ -69,6 +68,10 @@ public class RootConfiguration {
     this.plugins =
         plugins.stream()
             .collect(Collectors.toUnmodifiableMap(PluginConfig::name, Function.identity()));
+
+    this.preProcessors =
+        preProcessors.stream()
+            .collect(Collectors.toUnmodifiableMap(PreProcessorConfig::name, Function.identity()));
 
     Preconditions.checkArgument(
         stores.size()
@@ -100,12 +103,21 @@ public class RootConfiguration {
           s.store() + " must be the name of a store");
       Preconditions.checkArgument(
           this.handlers.containsKey(s.handler()), s.handler() + " must be the name of a handler");
+      for (PreProcessorConfig preProcessor : preProcessors) {
+        Preconditions.checkArgument(
+            this.preProcessors.containsKey(preProcessor.name()),
+            preProcessor.name() + " must be the name of a pre-processor");
+      }
     }
     this.services = services;
   }
 
   Collection<PluginConfig> plugins() {
     return Collections.unmodifiableCollection(plugins.values());
+  }
+
+  Collection<PreProcessorConfig> preProcessors() {
+    return Collections.unmodifiableCollection(preProcessors.values());
   }
 
   Collection<StoreConfig> stores() {
@@ -135,9 +147,20 @@ public class RootConfiguration {
     if (serviceConfig.store() != null) {
       store = stores.get(serviceConfig.store()).toStore();
     } else {
-      store = new NullStore<T>();
+      store = new NullStore<>();
     }
-    return new Service<>(store, handler, plugin, serviceConfig.webhookPath());
+
+    PreProcessor<T> preProcessor;
+    List<PreProcessor<T>> preProcessorsList = new ArrayList<>();
+
+    List<String> preProcessorNames = serviceConfig.preProcessors();
+    for (String i : preProcessorNames) {
+      // guaranteed to return a non null value due to check in constructor
+      preProcessor = preProcessors.get(i).toPreProcessor();
+      preProcessorsList.add(preProcessor);
+    }
+
+    return new Service<>(store, handler, plugin, preProcessorsList, serviceConfig.webhookPath());
   }
 
   public ServicesRunner toServicesRunner() {

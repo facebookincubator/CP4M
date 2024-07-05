@@ -49,11 +49,20 @@ verify_token = "<your verification token here>"
 app_secret = "<your verification app secret here>"
 access_token = "<you access token here>"
 
+[[pre_processors]]
+type = "aws_s3"
+name = "aws_s3"
+aws_access_key_id="<your-aws-console-access-key>"
+aws_secret_access_key="<your-aws-console-secret-key>"
+region = "<your-aws-s3-bucket-region>"
+bucket = "<your-aws-bucket-name>"
+
 [[services]]
 webhook_path = "/<webhook-pathname>"
 plugin = "openai_test"
 store = "memory_test"
 handler = "whatsapp_test"
+pre_processors =["aws_s3"]
 ```
 
 ##### Example: Messenger & Llama 2 (via Hugging Face)
