@@ -8,16 +8,15 @@
 
 package com.meta.cp4m;
 
-import com.meta.cp4m.plugin.DummyPlugin;
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.meta.cp4m.message.WAMessage;
 import com.meta.cp4m.message.WAMessageHandler;
 import com.meta.cp4m.message.WAMessengerConfig;
+import com.meta.cp4m.plugin.DummyPlugin;
 import com.meta.cp4m.store.NullStore;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class S3PreProcessorTest {
 
@@ -25,9 +24,15 @@ class S3PreProcessorTest {
     void run() {
         WAMessageHandler waMessageHandler = WAMessengerConfig.of("verify", "SomeSecret", "someToken")
                 .toMessageHandler();
-        Service<WAMessage> service = new Service<>(new NullStore<>(), waMessageHandler,
-                new DummyPlugin<>("dummy"),
-                List.of(new S3PreProcessor<>("someAccessKey", "someSecretKey", "someRegion", "someRegion")), "/whatsapp");
+    Service<WAMessage> service =
+        new Service<>(
+            new NullStore<>(),
+            waMessageHandler,
+            new DummyPlugin<>("dummy"),
+            List.of(
+                new S3PreProcessor<>(
+                    "someAccessKey", "someSecretKey", "someRegion", "someRegion", null)),
+            "/whatsapp");
         ServicesRunner.newInstance().service(service).port(8080).start();
     }
 }
