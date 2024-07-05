@@ -18,8 +18,10 @@ import java.util.List;
 
 public class MemoryStore<T extends Message> implements ChatStore<T> {
   private final Cache<Identifier, ThreadState<T>> store;
+  private final int messageHistoryLength;
 
   MemoryStore(MemoryStoreConfig config) {
+    this.messageHistoryLength = config.messageHistoryLength();
     this.store =
         CacheBuilder.newBuilder()
             .expireAfterWrite(Duration.ofHours(config.storageDurationHours()))
@@ -40,7 +42,7 @@ public class MemoryStore<T extends Message> implements ChatStore<T> {
               if (v == null) {
                 return ThreadState.of(message);
               }
-              return v.with(message);
+              return v.with(message).truncateMessageHistory(messageHistoryLength);
             });
   }
 
@@ -52,9 +54,9 @@ public class MemoryStore<T extends Message> implements ChatStore<T> {
             threadState.threadId(),
             (k, v) -> {
               if (v == null) {
-                return threadState;
+                return threadState.truncateMessageHistory(messageHistoryLength);
               }
-              return threadState.merge(v);
+              return threadState.merge(v).truncateMessageHistory(messageHistoryLength);
             });
   }
 
