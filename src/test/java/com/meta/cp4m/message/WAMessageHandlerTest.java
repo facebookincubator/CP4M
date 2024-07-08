@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Stopwatch;
 import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Identifier;
+import com.meta.cp4m.message.webhook.whatsapp.SendResponse;
 import com.meta.cp4m.message.webhook.whatsapp.Utils;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -244,6 +245,30 @@ class WAMessageHandlerTest {
     request = harness.post(VALID).execute();
     assertThat(request.returnResponse().getCode()).isEqualTo(200);
     assertThat(harness.pollWebserver(500)).isNull();
+  }
+
+  @Test
+  void validResponseWithoutContacts() throws IOException {
+    final String sendResponse =
+        """
+{
+      "messaging_product": "whatsapp",
+      "contacts": [
+      ],
+      "messages": [
+        {
+          "id": "wamid.HBgLMTY1MDUwNzY1MjAVAgARGBI5QTNDQTVCM9Q0Q0Q2RTY3RTcA",
+          "message_status": "accepted"
+        }
+      ]
+    }""";
+    harness.dummyWebServer().response(ctx -> ctx.body().contains("\"type\""), sendResponse);
+    harness.start();
+    WAMessageHandler handler = (WAMessageHandler) harness.handler();
+    SendResponse response = handler.send(Identifier.random(), Identifier.random(), "test");
+    assertThat(response.contacts()).isEmpty();
+    assertThat(response.messages().getFirst().messageId())
+        .isEqualTo("wamid.HBgLMTY1MDUwNzY1MjAVAgARGBI5QTNDQTVCM9Q0Q0Q2RTY3RTcA");
   }
 
   @Test

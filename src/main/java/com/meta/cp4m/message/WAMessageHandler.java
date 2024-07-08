@@ -12,12 +12,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.hc.client5.http.fluent.Content;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.cp4m.Identifier;
 import com.meta.cp4m.message.webhook.whatsapp.*;
 import io.javalin.http.Context;
@@ -87,13 +81,13 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                 switch (message) {
                   case TextWebhookMessage m -> payloadValue = new Payload.Text(m.text().body());
                   case ImageWebhookMessage m -> {
-                      try {
-                          URI url = this.getUrlFromID(m.image().id());
-                          byte[] media = this.getMediaFromUrl(url);
-                          payloadValue = new Payload.Image(media, m.image().mimeType());
-                      } catch (IOException | URISyntaxException e) {
-                          throw new RuntimeException(e);
-                      }
+                    try {
+                      URI url = this.getUrlFromID(m.image().id());
+                      byte[] media = this.getMediaFromUrl(url);
+                      payloadValue = new Payload.Image(media, m.image().mimeType());
+                    } catch (IOException | URISyntaxException e) {
+                      throw new RuntimeException(e);
+                    }
                   }
 
                   case DocumentWebhookMessage m -> {
@@ -170,16 +164,20 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
       throw new UnsupportedOperationException(
           "Non-text payloads cannot be sent to Whatsapp client currently");
     }
-    @Nullable SendResponse response = null;
+    @Nullable List<SendResponse> responses = new ArrayList<>();
     for (String text : CHUNKER.chunks(message.message()).toList()) {
-      response = send(message.recipientId(), message.senderId(), text);
+      SendResponse r = send(message.recipientId(), message.senderId(), text);
+      responses.add(r);
     }
     ThreadState<WAMessage> ts = ThreadState.of(message);
-    if (response == null) {
-      return ts;
-    }
-    return ts.withUserData(
-        ts.userData().withPhoneNumber(response.contacts().getFirst().phoneNumber()));
+    return responses.stream()
+        .map(SendResponse::contacts)
+        .flatMap(List::stream)
+        .findAny()
+        .map(SendResponse.SendResponseContact::phoneNumber)
+        .map(ph -> ts.userData().withPhoneNumber(ph))
+        .map(ts::withUserData)
+        .orElse(ts);
   }
 
   private URI messagesURI(Identifier phoneNumberId) {
@@ -194,8 +192,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     }
   }
 
-  private SendResponse send(Identifier recipient, Identifier sender, String text)
-      throws IOException {
+  SendResponse send(Identifier recipient, Identifier sender, String text) throws IOException {
     ObjectNode body =
         MAPPER
             .createObjectNode()
@@ -220,16 +217,6 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
               }
             });
   }
-
-  record SendResponseContact(
-      @JsonProperty("input") String phoneNumber, @JsonProperty("wa_id") String phoneNumberId) {}
-
-  record SendResponseMessage(
-      @JsonProperty("id") String messageId, @JsonProperty("pacing_status") String pacingStatus) {}
-
-  record SendResponse(
-      @JsonProperty("messaging_product") String messagingProduct,
-      @JsonProperty List<SendResponseContact> contacts) {}
 
   @Override
   public List<RouteDetails<?, WAMessage>> routeDetails() {
@@ -285,26 +272,31 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     }
   }
 
-    private URI getUrlFromID(String mediaID) throws IOException, URISyntaxException {
-        return Request.get(new URIBuilder(this.baseURL).appendPath(mediaID).build())
-                .setHeader("Authorization", "Bearer " + accessToken)
-                .setHeader("appsecret_proof", appSecretProof)
-                .execute().handleResponse(response -> {
-                    try {
-                        String jsonResponse = EntityUtils.toString(response.getEntity());
-                        JsonNode jsonNode = MAPPER.readTree(jsonResponse);
-                        return new URIBuilder(jsonNode.get("url").asText());
-                    } catch (URISyntaxException e) {
-                        throw new RuntimeException(e);
-                    }
-                }).build();
-    }
+  private URI getUrlFromID(String mediaID) throws IOException, URISyntaxException {
+    return Request.get(new URIBuilder(this.baseURL).appendPath(mediaID).build())
+        .setHeader("Authorization", "Bearer " + accessToken)
+        .setHeader("appsecret_proof", appSecretProof)
+        .execute()
+        .handleResponse(
+            response -> {
+              try {
+                String jsonResponse = EntityUtils.toString(response.getEntity());
+                JsonNode jsonNode = MAPPER.readTree(jsonResponse);
+                return new URIBuilder(jsonNode.get("url").asText());
+              } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+              }
+            })
+        .build();
+  }
 
   private byte[] getMediaFromUrl(URI url) throws IOException {
     return Request.get(url)
-            .setHeader("Authorization", "Bearer " + accessToken)
-            .setHeader("appsecret_proof", appSecretProof)
-            .execute().handleResponse(response -> {
+        .setHeader("Authorization", "Bearer " + accessToken)
+        .setHeader("appsecret_proof", appSecretProof)
+        .execute()
+        .handleResponse(
+            response -> {
               try {
                 return EntityUtils.toByteArray(response.getEntity());
               } catch (IOException e) {
