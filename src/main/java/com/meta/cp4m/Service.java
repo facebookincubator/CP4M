@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 public class Service<T extends Message> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Service.class);
-  private final ExecutorService executorService = Executors.newCachedThreadPool();
+  private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
   private final MessageHandler<T> handler;
   private final ChatStore<T> store;
   private final Plugin<T> plugin;
@@ -101,7 +101,7 @@ public class Service<T extends Message> {
     try {
       pluginResponse = plugin.handle(preproccessed);
     } catch (IOException e) {
-      LOGGER.error("failed to communicate with LLM", e);
+      LOGGER.error("Plugin failure occurred", e);
       return;
     }
     store.add(pluginResponse);
