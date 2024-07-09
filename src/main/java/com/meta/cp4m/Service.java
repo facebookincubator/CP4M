@@ -17,10 +17,10 @@ import com.meta.cp4m.routing.Route;
 import com.meta.cp4m.store.ChatStore;
 import io.javalin.http.Context;
 import java.io.IOException;
+import java.util.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.*;
 import java.util.concurrent.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 public class Service<T extends Message> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Service.class);
-  private final ExecutorService executorService = Executors.newCachedThreadPool();
+  private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
   private final MessageHandler<T> handler;
   private final ChatStore<T> store;
   private final Plugin<T> plugin;
@@ -99,9 +99,9 @@ public class Service<T extends Message> {
 
     T pluginResponse;
     try {
-      pluginResponse = plugin.handle(thread);
+      pluginResponse = plugin.handle(preproccessed);
     } catch (IOException e) {
-      LOGGER.error("failed to communicate with LLM", e);
+      LOGGER.error("Plugin failure occurred", e);
       return;
     }
     store.add(pluginResponse);
