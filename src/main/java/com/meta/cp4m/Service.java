@@ -17,10 +17,10 @@ import com.meta.cp4m.routing.Route;
 import com.meta.cp4m.store.ChatStore;
 import io.javalin.http.Context;
 import java.io.IOException;
+import java.util.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.*;
 import java.util.concurrent.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -99,7 +99,7 @@ public class Service<T extends Message> {
 
     T pluginResponse;
     try {
-      pluginResponse = plugin.handle(thread);
+      pluginResponse = plugin.handle(preproccessed);
     } catch (IOException e) {
       LOGGER.error("failed to communicate with LLM", e);
       return;
