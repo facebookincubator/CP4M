@@ -64,10 +64,10 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
 
     switch (in.tail().payload()) {
       case Payload.Image i -> {
-        this.sendRequest(i.value(), in.userId().toString(), i.extension(), this.credentials);
+        this.sendRequest(i.value(), in.userId().toString(), i.extension());
       }
       case Payload.Document i -> {
-        this.sendRequest(i.value(), in.userId().toString(), i.extension(), this.credentials);
+        this.sendRequest(i.value(), in.userId().toString(), i.extension());
       }
       default -> {
         return in;
@@ -83,12 +83,12 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
                 Identifier.random())); // TODO: remove last message
   }
 
-  public void sendRequest(byte[] media, String senderID, String extension, AwsCredentialsProvider credentials) {
+  public void sendRequest(byte[] media, String senderID, String extension) {
     String key = senderID + '_' + Instant.now().toEpochMilli() + '.' + extension;
     try (S3Client s3Client =
         S3Client.builder()
             .region(Region.of(this.region))
-            .credentialsProvider(credentials)
+            .credentialsProvider(this.credentials)
             .build()) {
 
       PutObjectRequest request =
