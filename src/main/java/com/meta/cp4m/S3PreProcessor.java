@@ -47,16 +47,16 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
     this.bucket = bucket;
     this.textMessageAddition = textMessageAddition;
 
-    @Nullable StaticCredentialsProvider staticCredentialsProvider;
+    @Nullable StaticCredentialsProvider staticCredentials;
     if (!this.awsAccessKeyID.isEmpty() && !this.awsSecretAccessKey.isEmpty()) {
       AwsSessionCredentials sessionCredentials =
               AwsSessionCredentials.create(this.awsAccessKeyID, this.awsSecretAccessKey, "");
-      staticCredentialsProvider = StaticCredentialsProvider.create(sessionCredentials);
+      staticCredentials = StaticCredentialsProvider.create(sessionCredentials);
     } else {
-      staticCredentialsProvider = null;
+      staticCredentials = null;
     }
 
-    this.credentials = Objects.requireNonNullElse(staticCredentialsProvider, DefaultCredentialsProvider.create());
+    this.credentials = Objects.requireNonNullElse(staticCredentials, DefaultCredentialsProvider.create());
   }
 
   @Override
