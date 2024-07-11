@@ -25,6 +25,7 @@ public class ServicesRunner implements AutoCloseable {
   private final Javalin app = Javalin.create();
   private final Set<Service<?>> services = new LinkedHashSet<>();
 
+  private boolean logWebhooks = false;
   private String heartbeatPath = "/heartbeat";
   private boolean started = false;
   private int port = 8080;
@@ -74,6 +75,17 @@ public class ServicesRunner implements AutoCloseable {
       return this;
     }
 
+    if (logWebhooks) {
+      app.before(
+          ctx ->
+              LOGGER
+                  .atInfo()
+                  .addKeyValue("headers", ctx.headerMap())
+                  .addKeyValue("body", ctx.body())
+                  .addKeyValue("path", ctx.path())
+                  .addKeyValue("request_type", ctx.handlerType())
+                  .log("received webhook"));
+    }
     app.addHttpHandler(HandlerType.GET, heartbeatPath, ctx -> {});
     record RouteGroup(String path, HandlerType handlerType) {}
     Map<RouteGroup, List<Route<?>>> routeGroups = new HashMap<>();
@@ -139,5 +151,11 @@ public class ServicesRunner implements AutoCloseable {
   @Override
   public void close() {
     app.stop();
+  }
+
+  public @This ServicesRunner logWebhooks(boolean logWebhooks) {
+    Preconditions.checkState(!started, "cannot adjust logging, server already started");
+    this.logWebhooks = logWebhooks;
+    return this;
   }
 }
