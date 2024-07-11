@@ -33,7 +33,7 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
   private final String region;
   private final String bucket;
   private final @Nullable String textMessageAddition;
-  private @Nullable StaticCredentialsProvider staticCredentialsProvider;
+  private final AwsCredentialsProvider credentials;
 
   public S3PreProcessor(
           String awsAccessKeyID,
@@ -46,13 +46,17 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
     this.region = region;
     this.bucket = bucket;
     this.textMessageAddition = textMessageAddition;
-    this.staticCredentialsProvider = null;
 
+    @Nullable StaticCredentialsProvider staticCredentialsProvider;
     if (!this.awsAccessKeyID.isEmpty() && !this.awsSecretAccessKey.isEmpty()) {
       AwsSessionCredentials sessionCredentials =
               AwsSessionCredentials.create(this.awsAccessKeyID, this.awsSecretAccessKey, "");
       staticCredentialsProvider = StaticCredentialsProvider.create(sessionCredentials);
+    } else {
+      staticCredentialsProvider = null;
     }
+
+    this.credentials = Objects.requireNonNullElse(staticCredentialsProvider, DefaultCredentialsProvider.create());
   }
 
   @Override
@@ -60,10 +64,10 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
 
     switch (in.tail().payload()) {
       case Payload.Image i -> {
-        this.sendRequest(i.value(), in.userId().toString(), i.extension());
+        this.sendRequest(i.value(), in.userId().toString(), i.extension(), this.credentials);
       }
       case Payload.Document i -> {
-        this.sendRequest(i.value(), in.userId().toString(), i.extension());
+        this.sendRequest(i.value(), in.userId().toString(), i.extension(), this.credentials);
       }
       default -> {
         return in;
@@ -79,13 +83,12 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
                 Identifier.random())); // TODO: remove last message
   }
 
-  public void sendRequest(byte[] media, String senderID, String extension) {
+  public void sendRequest(byte[] media, String senderID, String extension, AwsCredentialsProvider credentials) {
     String key = senderID + '_' + Instant.now().toEpochMilli() + '.' + extension;
-    AwsCredentialsProvider credentialsProvider = Objects.requireNonNullElse(this.staticCredentialsProvider, DefaultCredentialsProvider.create());
     try (S3Client s3Client =
         S3Client.builder()
             .region(Region.of(this.region))
-            .credentialsProvider(credentialsProvider)
+            .credentialsProvider(credentials)
             .build()) {
 
       PutObjectRequest request =
