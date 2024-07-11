@@ -18,8 +18,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 public record S3PreProcessorConfig(
     String name,
-    String awsAccessKeyId,
-    String awsSecretAccessKey,
+    @Nullable String awsAccessKeyId,
+    @Nullable String awsSecretAccessKey,
     String region,
     String bucket,
     @Nullable String textMessageAddition)
@@ -30,8 +30,8 @@ public record S3PreProcessorConfig(
   @JsonCreator
   public S3PreProcessorConfig(
       @JsonProperty("name") String name,
-      @JsonProperty("aws_access_key_id") String awsAccessKeyId,
-      @JsonProperty("aws_secret_access_key") String awsSecretAccessKey,
+      @JsonProperty("aws_access_key_id") @Nullable String awsAccessKeyId,
+      @JsonProperty("aws_secret_access_key") @Nullable String awsSecretAccessKey,
       @JsonProperty("region") String region,
       @JsonProperty("bucket") String bucket,
       @JsonProperty("text_message_addition") @Nullable String textMessageAddition) {
@@ -41,10 +41,8 @@ public record S3PreProcessorConfig(
         "bucket does not match the aws region format(kebab case) or is empty");
 
     this.name = Objects.requireNonNull(name, "name is a required parameter");
-    this.awsAccessKeyId =
-        Objects.requireNonNull(awsAccessKeyId, "aws access key is a required parameter");
-    this.awsSecretAccessKey =
-        Objects.requireNonNull(awsSecretAccessKey, "aws secret access key is a required parameter");
+    this.awsAccessKeyId = Objects.requireNonNullElse(awsAccessKeyId, "");
+    this.awsSecretAccessKey = Objects.requireNonNullElse(awsSecretAccessKey, "");
     this.region = Objects.requireNonNull(region, "region is a required parameter");
     this.bucket = Objects.requireNonNull(bucket, "bucket is a required parameter");
     this.textMessageAddition = textMessageAddition;
