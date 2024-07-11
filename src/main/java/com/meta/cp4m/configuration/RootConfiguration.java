@@ -34,6 +34,7 @@ public class RootConfiguration {
 
   private final int port;
   private final String heartbeatPath;
+  private final boolean logWebhooks;
 
   @JsonCreator
   RootConfiguration(
@@ -43,9 +44,11 @@ public class RootConfiguration {
       @JsonProperty("pre_processors") Collection<PreProcessorConfig> preProcessors,
       @JsonProperty("services") Collection<ServiceConfiguration> services,
       @JsonProperty("port") @Nullable Integer port,
-      @JsonProperty("heartbeat_path") @Nullable String heartbeatPath) {
+      @JsonProperty("heartbeat_path") @Nullable String heartbeatPath,
+      @JsonProperty("log_webhooks") @Nullable Boolean logWebhooks) {
     this.port = port == null ? 8080 : port;
     this.heartbeatPath = heartbeatPath == null ? "/heartbeat" : heartbeatPath;
+    this.logWebhooks = Objects.requireNonNullElse(logWebhooks, false);
     stores = stores == null ? Collections.emptyList() : stores;
     preProcessors = preProcessors == null ? Collections.emptyList() : preProcessors;
     Preconditions.checkArgument(
@@ -155,7 +158,7 @@ public class RootConfiguration {
 
     List<String> preProcessorNames = serviceConfig.preProcessors();
     for (String i : preProcessorNames) {
-      // guaranteed to return a non null value due to check in constructor
+      // guaranteed to return a non-null value due to check in constructor
       preProcessor = preProcessors.get(i).toPreProcessor();
       preProcessorsList.add(preProcessor);
     }
@@ -164,7 +167,11 @@ public class RootConfiguration {
   }
 
   public ServicesRunner toServicesRunner() {
-    ServicesRunner runner = ServicesRunner.newInstance().port(port).heartbeatPath(heartbeatPath);
+    ServicesRunner runner =
+        ServicesRunner.newInstance()
+            .port(port)
+            .heartbeatPath(heartbeatPath)
+            .logWebhooks(logWebhooks);
     for (ServiceConfiguration service : services) {
       MessageHandler<?> handler = handlers.get(service.handler()).toMessageHandler();
       runner.service(createService(handler, service));
