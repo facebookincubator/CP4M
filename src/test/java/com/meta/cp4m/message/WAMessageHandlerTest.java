@@ -154,7 +154,7 @@ class WAMessageHandlerTest {
       assertThat(MAPPER.readTree(res.body()))
           .isEqualTo(
               MAPPER.readTree(
-                  "{\"recipient_type\":\"individual\",\"messaging_product\":\"whatsapp\",\"type\":\"text\",\"to\":\"123456123\",\"text\":{\"body\":\""
+                  "{\"recipient_type\":\"individual\",\"messaging_product\":\"whatsapp\",\"type\":\"text\",\"to\":\"16315551181\",\"text\":{\"body\":\""
                       + welcomeMessage
                       + "\"}}"));
     }
