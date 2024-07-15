@@ -106,8 +106,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                           new WAMessage(
                               message.timestamp(),
                               message.id(),
-                              message.from(),
                               phoneNumberId,
+                              message.from(),
                               welcomeMessage,
                               Message.Role.ASSISTANT);
                       asyncExecutor.submit(
