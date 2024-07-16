@@ -35,8 +35,8 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
   private final AwsCredentialsProvider credentials;
 
   public S3PreProcessor(
-      String awsAccessKeyID,
-      String awsSecretAccessKey,
+      @Nullable String awsAccessKeyID,
+      @Nullable String awsSecretAccessKey,
       String region,
       String bucket,
       @Nullable String textMessageAddition) {

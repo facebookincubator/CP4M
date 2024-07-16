@@ -81,7 +81,7 @@ public class ServicesRunner implements AutoCloseable {
                 .addKeyValue("headers", ctx.headerMap())
                 .addKeyValue("body", ctx.body())
                 .addKeyValue("path", ctx.path())
-                .addKeyValue("request_type", ctx.handlerType())
+                .addKeyValue("request_method", ctx.method())
                 .log("received webhook"));
 
     app.addHttpHandler(HandlerType.GET, heartbeatPath, ctx -> {});
