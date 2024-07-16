@@ -18,8 +18,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 public record S3PreProcessorConfig(
     String name,
-    @Nullable String awsAccessKeyId,
-    @Nullable String awsSecretAccessKey,
+    String awsAccessKeyId,
+    String awsSecretAccessKey,
     String region,
     String bucket,
     @Nullable String textMessageAddition)

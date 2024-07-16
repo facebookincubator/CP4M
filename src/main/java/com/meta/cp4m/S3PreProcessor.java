@@ -13,7 +13,6 @@ import com.meta.cp4m.message.Payload;
 import com.meta.cp4m.message.ThreadState;
 import java.time.Instant;
 import java.util.Objects;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,11 +35,11 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
   private final AwsCredentialsProvider credentials;
 
   public S3PreProcessor(
-          String awsAccessKeyID,
-          String awsSecretAccessKey,
-          String region,
-          String bucket,
-          @Nullable String textMessageAddition) {
+      @Nullable String awsAccessKeyID,
+      @Nullable String awsSecretAccessKey,
+      String region,
+      String bucket,
+      @Nullable String textMessageAddition) {
     this.awsAccessKeyID = awsAccessKeyID;
     this.awsSecretAccessKey = awsSecretAccessKey;
     this.region = region;
@@ -50,13 +49,14 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
     @Nullable StaticCredentialsProvider staticCredentials;
     if (!this.awsAccessKeyID.isEmpty() && !this.awsSecretAccessKey.isEmpty()) {
       AwsSessionCredentials sessionCredentials =
-              AwsSessionCredentials.create(this.awsAccessKeyID, this.awsSecretAccessKey, "");
+          AwsSessionCredentials.create(this.awsAccessKeyID, this.awsSecretAccessKey, "");
       staticCredentials = StaticCredentialsProvider.create(sessionCredentials);
     } else {
       staticCredentials = null;
     }
 
-    this.credentials = Objects.requireNonNullElse(staticCredentials, DefaultCredentialsProvider.create());
+    this.credentials =
+        Objects.requireNonNullElse(staticCredentials, DefaultCredentialsProvider.create());
   }
 
   @Override
@@ -64,27 +64,26 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
 
     switch (in.tail().payload()) {
       case Payload.Image i -> {
-        this.sendRequest(i.value(), in.userId().toString(), i.extension());
+        LOGGER.atDebug().addKeyValue("payload", i).log("Received image payload");
+        this.sendRequest(i.value(), in.userId().toString(), i.extension(), i.mimeType());
       }
       case Payload.Document i -> {
-        this.sendRequest(i.value(), in.userId().toString(), i.extension());
+        LOGGER.atDebug().addKeyValue("payload", i).log("Received document payload");
+        this.sendRequest(i.value(), in.userId().toString(), i.extension(), i.mimeType());
       }
       default -> {
+        LOGGER.debug("Received text payload");
         return in;
       }
     }
-
     return textMessageAddition == null
         ? in
-        : in.with(
-            in.newMessageFromUser(
-                Instant.now(),
-                textMessageAddition,
-                Identifier.random())); // TODO: remove last message
+        : in.with(in.newMessageFromUser(Instant.now(), textMessageAddition, Identifier.random()));
   }
 
-  public void sendRequest(byte[] media, String senderID, String extension) {
+  public void sendRequest(byte[] media, String senderID, String extension, String mimeType) {
     String key = senderID + '_' + Instant.now().toEpochMilli() + '.' + extension;
+    LOGGER.debug("attempting to upload \"" + key + "\" file to AWS S3");
     try (S3Client s3Client =
         S3Client.builder()
             .region(Region.of(this.region))
@@ -92,15 +91,16 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
             .build()) {
 
       PutObjectRequest request =
-          PutObjectRequest.builder()
-              .bucket(this.bucket)
-              .key(key)
-              .contentType("application/" + extension)
-              .build();
-      s3Client.putObject(request, RequestBody.fromBytes(media));
+          PutObjectRequest.builder().bucket(this.bucket).key(key).contentType(mimeType).build();
+      PutObjectResponse response = s3Client.putObject(request, RequestBody.fromBytes(media));
+      LOGGER
+          .atDebug()
+          .addKeyValue("response", response)
+          .addKeyValue("file", key)
+          .log("AWS S3 response received on successful upload");
       LOGGER.info("Media upload to AWS S3 successful");
     } catch (Exception e) {
-      LOGGER.warn("Media upload to AWS S3 failed, {e}", e);
+      LOGGER.error("Media upload to AWS S3 failed, {e}", e);
     }
   }
 }

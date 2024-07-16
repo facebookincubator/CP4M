@@ -29,16 +29,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.net.URIBuilder;
+import org.apache.logging.log4j.Level;
 import org.checkerframework.common.returnsreceiver.qual.This;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.LoggerFactory;
 
 class RootConfigurationTest {
   private static final String TOML =
       """
 port = 8081
+log_level = "INFO"
 
 [[plugins]]
 name = "openai_test"
@@ -162,6 +165,9 @@ handler = "messenger_test"
     Files.writeString(configFile, TOML);
     RootConfiguration config =
         ConfigurationUtils.tomlMapper().readValue(configFile.toFile(), RootConfiguration.class);
+    assertThat(config.logLevel()).isEqualTo(Level.INFO);
+    LoggerFactory.getLogger(RootConfigurationTest.class).atDebug().log("debug test");
+    LoggerFactory.getLogger(RootConfigurationTest.class).atInfo().log("info test");
     assertThat(config.plugins())
         .hasSize(1)
         .allSatisfy(p -> assertThat(p).isInstanceOf(OpenAIConfig.class));
