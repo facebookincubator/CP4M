@@ -12,17 +12,16 @@ import com.meta.cp4m.message.Message;
 import com.meta.cp4m.message.Payload;
 import com.meta.cp4m.message.ThreadState;
 import java.time.Instant;
-import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.*;
 
 public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
@@ -32,11 +31,11 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
   private final String region;
   private final String bucket;
   private final @Nullable String textMessageAddition;
-  private final AwsCredentialsProvider credentials;
+  private final @Nullable AwsCredentialsProvider credentials;
 
   public S3PreProcessor(
-      @Nullable String awsAccessKeyID,
-      @Nullable String awsSecretAccessKey,
+      String awsAccessKeyID,
+      String awsSecretAccessKey,
       String region,
       String bucket,
       @Nullable String textMessageAddition) {
@@ -46,17 +45,13 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
     this.bucket = bucket;
     this.textMessageAddition = textMessageAddition;
 
-    @Nullable StaticCredentialsProvider staticCredentials;
     if (!this.awsAccessKeyID.isEmpty() && !this.awsSecretAccessKey.isEmpty()) {
       AwsSessionCredentials sessionCredentials =
           AwsSessionCredentials.create(this.awsAccessKeyID, this.awsSecretAccessKey, "");
-      staticCredentials = StaticCredentialsProvider.create(sessionCredentials);
+      this.credentials = StaticCredentialsProvider.create(sessionCredentials);
     } else {
-      staticCredentials = null;
+      this.credentials = null;
     }
-
-    this.credentials =
-        Objects.requireNonNullElse(staticCredentials, DefaultCredentialsProvider.create());
   }
 
   @Override
@@ -84,14 +79,18 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
   public void sendRequest(byte[] media, String senderID, String extension, String mimeType) {
     String key = senderID + '_' + Instant.now().toEpochMilli() + '.' + extension;
     LOGGER.debug("attempting to upload \"" + key + "\" file to AWS S3");
-    try (S3Client s3Client =
-        S3Client.builder()
-            .region(Region.of(this.region))
-            .credentialsProvider(this.credentials)
-            .build()) {
+    S3ClientBuilder clientBuilder = S3Client.builder().region(Region.of(this.region));
+    if (this.credentials != null) {
+      clientBuilder = clientBuilder.credentialsProvider(this.credentials);
+    }
+    try (S3Client s3Client = clientBuilder.build()) {
 
       PutObjectRequest request =
           PutObjectRequest.builder().bucket(this.bucket).key(key).contentType(mimeType).build();
+      LOGGER
+          .atDebug()
+          .addKeyValue("request", request)
+          .log("AWS S3 request created for media upload");
       PutObjectResponse response = s3Client.putObject(request, RequestBody.fromBytes(media));
       LOGGER
           .atDebug()

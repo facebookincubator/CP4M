@@ -9,7 +9,6 @@
 package com.meta.cp4m.message;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meta.cp4m.Identifier;
@@ -82,8 +81,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                   case TextWebhookMessage m -> payloadValue = new Payload.Text(m.text().body());
                   case ImageWebhookMessage m -> {
                     try {
-                      URI url = this.getUrlFromID(m.image().id());
-                      byte[] media = this.getMediaFromUrl(url);
+                      GetMediaIdBody mediaDetails = this.mediaDetails(m.image().id());
+                      byte[] media = this.getMediaFromUrl(mediaDetails.url());
                       payloadValue = new Payload.Image(media, m.image().mimeType());
                     } catch (IOException | URISyntaxException e) {
                       throw new RuntimeException(e);
@@ -92,8 +91,8 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
 
                   case DocumentWebhookMessage m -> {
                     try {
-                      URI url = this.getUrlFromID(m.document().id());
-                      byte[] media = this.getMediaFromUrl(url);
+                      GetMediaIdBody mediaDetails = this.mediaDetails(m.document().id());
+                      byte[] media = this.getMediaFromUrl(mediaDetails.url());
                       payloadValue = new Payload.Document(media, m.document().mimeType());
                     } catch (IOException | URISyntaxException e) {
                       throw new RuntimeException(e);
@@ -272,22 +271,29 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
     }
   }
 
-  private URI getUrlFromID(String mediaID) throws IOException, URISyntaxException {
-    return Request.get(new URIBuilder(this.baseURL).appendPath(mediaID).build())
+  GetMediaIdBody mediaDetails(String mediaID) throws IOException, URISyntaxException {
+    URI getUrl = new URIBuilder(this.baseURL).appendPath(mediaID).build();
+    return Request.get(getUrl)
         .setHeader("Authorization", "Bearer " + accessToken)
         .setHeader("appsecret_proof", appSecretProof)
         .execute()
         .handleResponse(
             response -> {
+              String jsonResponse = EntityUtils.toString(response.getEntity());
+              GetMediaIdBody parsedResponse;
               try {
-                String jsonResponse = EntityUtils.toString(response.getEntity());
-                JsonNode jsonNode = MAPPER.readTree(jsonResponse);
-                return new URIBuilder(jsonNode.get("url").asText());
-              } catch (URISyntaxException e) {
+                parsedResponse = MAPPER.readValue(jsonResponse, GetMediaIdBody.class);
+              } catch (Exception e) {
+                LOGGER
+                    .atError()
+                    .addKeyValue("url", getUrl)
+                    .addKeyValue("response", jsonResponse)
+                    .setCause(e)
+                    .log("Unable to parse response from media get request");
                 throw new RuntimeException(e);
               }
-            })
-        .build();
+              return parsedResponse;
+            });
   }
 
   private byte[] getMediaFromUrl(URI url) throws IOException {
