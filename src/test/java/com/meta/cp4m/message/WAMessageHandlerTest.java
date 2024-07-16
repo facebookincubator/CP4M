@@ -15,9 +15,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Stopwatch;
 import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Identifier;
+import com.meta.cp4m.message.webhook.whatsapp.GetMediaIdBody;
 import com.meta.cp4m.message.webhook.whatsapp.SendResponse;
 import com.meta.cp4m.message.webhook.whatsapp.Utils;
+import io.javalin.http.HandlerType;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -269,6 +273,25 @@ class WAMessageHandlerTest {
     assertThat(response.contacts()).isEmpty();
     assertThat(response.messages().getFirst().messageId())
         .isEqualTo("wamid.HBgLMTY1MDUwNzY1MjAVAgARGBI5QTNDQTVCM9Q0Q0Q2RTY3RTcA");
+  }
+
+  @Test
+  void mediaFetchValid() throws IOException, URISyntaxException {
+    final String webhookResponse =
+        """
+{
+  "messaging_product": "whatsapp",
+  "url": "https://example.com/image.jpg",
+  "mime_type": "image/jpeg",
+  "sha256": "f1234567890",
+  "file_size": "111",
+  "id": "1234567890"
+}""";
+    harness.dummyWebServer().response(ctx -> ctx.method().equals(HandlerType.GET), webhookResponse);
+    harness.start();
+    WAMessageHandler handler = (WAMessageHandler) harness.handler();
+    GetMediaIdBody response = handler.mediaDetails("1234567890");
+    assertThat(response.url()).isEqualTo(new URI("https://example.com/image.jpg"));
   }
 
   @Test

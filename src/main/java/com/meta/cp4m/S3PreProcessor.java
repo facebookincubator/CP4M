@@ -92,6 +92,10 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
 
       PutObjectRequest request =
           PutObjectRequest.builder().bucket(this.bucket).key(key).contentType(mimeType).build();
+      LOGGER
+          .atDebug()
+          .addKeyValue("request", request)
+          .log("AWS S3 request created for media upload");
       PutObjectResponse response = s3Client.putObject(request, RequestBody.fromBytes(media));
       LOGGER
           .atDebug()
