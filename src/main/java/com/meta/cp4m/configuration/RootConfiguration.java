@@ -23,6 +23,11 @@ import com.meta.cp4m.store.StoreConfig;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class RootConfiguration {
@@ -34,7 +39,7 @@ public class RootConfiguration {
 
   private final int port;
   private final String heartbeatPath;
-  private final boolean logWebhooks;
+  private final Level logLevel;
 
   @JsonCreator
   RootConfiguration(
@@ -45,10 +50,17 @@ public class RootConfiguration {
       @JsonProperty("services") Collection<ServiceConfiguration> services,
       @JsonProperty("port") @Nullable Integer port,
       @JsonProperty("heartbeat_path") @Nullable String heartbeatPath,
-      @JsonProperty("log_webhooks") @Nullable Boolean logWebhooks) {
+      @JsonProperty("log_level") @Nullable Level logLevel) {
+
+    LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
+    Configuration config = ctx.getConfiguration();
+    LoggerConfig loggerConfig = config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME);
+    loggerConfig.setLevel(logLevel);
+    ctx.updateLoggers();
+
     this.port = port == null ? 8080 : port;
     this.heartbeatPath = heartbeatPath == null ? "/heartbeat" : heartbeatPath;
-    this.logWebhooks = Objects.requireNonNullElse(logWebhooks, false);
+    this.logLevel = Objects.requireNonNullElse(logLevel, Level.INFO);
     stores = stores == null ? Collections.emptyList() : stores;
     preProcessors = preProcessors == null ? Collections.emptyList() : preProcessors;
     Preconditions.checkArgument(
@@ -167,15 +179,15 @@ public class RootConfiguration {
   }
 
   public ServicesRunner toServicesRunner() {
-    ServicesRunner runner =
-        ServicesRunner.newInstance()
-            .port(port)
-            .heartbeatPath(heartbeatPath)
-            .logWebhooks(logWebhooks);
+    ServicesRunner runner = ServicesRunner.newInstance().port(port).heartbeatPath(heartbeatPath);
     for (ServiceConfiguration service : services) {
       MessageHandler<?> handler = handlers.get(service.handler()).toMessageHandler();
       runner.service(createService(handler, service));
     }
     return runner;
+  }
+
+  public Level logLevel() {
+    return logLevel;
   }
 }

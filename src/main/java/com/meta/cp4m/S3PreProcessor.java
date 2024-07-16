@@ -13,7 +13,6 @@ import com.meta.cp4m.message.Payload;
 import com.meta.cp4m.message.ThreadState;
 import java.time.Instant;
 import java.util.Objects;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,11 +75,7 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
 
     return textMessageAddition == null
         ? in
-        : in.with(
-            in.newMessageFromUser(
-                Instant.now(),
-                textMessageAddition,
-                Identifier.random())); // TODO: remove last message
+        : in.with(in.newMessageFromUser(Instant.now(), textMessageAddition, Identifier.random()));
   }
 
   public void sendRequest(byte[] media, String senderID, String extension) {
@@ -97,7 +92,7 @@ public class S3PreProcessor<T extends Message> implements PreProcessor<T> {
               .key(key)
               .contentType("application/" + extension)
               .build();
-      s3Client.putObject(request, RequestBody.fromBytes(media));
+      PutObjectResponse response = s3Client.putObject(request, RequestBody.fromBytes(media));
       LOGGER.info("Media upload to AWS S3 successful");
     } catch (Exception e) {
       LOGGER.warn("Media upload to AWS S3 failed, {e}", e);
