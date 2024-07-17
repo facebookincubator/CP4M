@@ -68,9 +68,11 @@ public interface Payload<T> {
     private final byte[] payload;
 
     public Image(byte[] payload, String mimeType) {
-      this.extension =
-          Objects.requireNonNull(
-              MIME_TO_EXTENSION.get(mimeType.strip()), "Unknown mime type " + mimeType);
+//      this.extension =
+//          Objects.requireNonNull(
+//              MIME_TO_EXTENSION.get(mimeType.strip()), "Unknown mime type " + mimeType);
+      System.out.println("Image constructor");
+      this.extension = getMimeToExt(mimeType);
       this.mimeType = mimeType;
       this.payload = payload;
     }
@@ -113,26 +115,27 @@ public interface Payload<T> {
 
   final class Document implements Payload<byte[]> {
     // https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media#document
-    private static final Map<String, String> MIME_TO_EXTENSION =
-        ImmutableMap.<String, String>builder()
-            .put("text/plain", "txt")
-            .put("application/vnd.ms-excel", "xls")
-            .put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx")
-            .put("application/msword", "doc")
-            .put("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx")
-            .put("application/vnd.ms-powerpoint", "ppt")
-            .put(
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation", "pptx")
-            .put("application/pdf", "pdf")
-            .build();
+//    private static final Map<String, String> MIME_TO_EXTENSION =
+//        ImmutableMap.<String, String>builder()
+//            .put("text/plain", "txt")
+//            .put("application/vnd.ms-excel", "xls")
+//            .put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx")
+//            .put("application/msword", "doc")
+//            .put("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx")
+//            .put("application/vnd.ms-powerpoint", "ppt")
+//            .put(
+//                "application/vnd.openxmlformats-officedocument.presentationml.presentation", "pptx")
+//            .put("application/pdf", "pdf")
+//            .build();
 
     private final String mimeType;
     private final String extension;
     private final byte[] payload;
 
     public Document(byte[] payload, String mimeType) {
-      @Nullable String extension = MIME_TO_EXTENSION.get(mimeType.strip());
-      this.extension = extension == null ? "bin" : extension; // default to binary if it's unknown
+//      @Nullable String extension = MIME_TO_EXTENSION.get(mimeType.strip());
+//      this.extension = extension == null ? "bin" : extension; // default to binary if it's unknown
+      this.extension = getMimeToExt(mimeType);
       this.mimeType = mimeType;
       this.payload = payload;
     }
@@ -171,5 +174,26 @@ public interface Payload<T> {
       result = 31 * result + Arrays.hashCode(payload);
       return result;
     }
+  }
+
+  static String getMimeToExt(String mimeType) {
+    System.out.println("getMimeToExt function");
+    final Map<String, String> MIME_TO_EXTENSION =
+            ImmutableMap.<String, String>builder()
+                    .put("text/plain", "txt")
+                    .put("application/vnd.ms-excel", "xls")
+                    .put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx")
+                    .put("application/msword", "doc")
+                    .put("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx")
+                    .put("application/vnd.ms-powerpoint", "ppt")
+                    .put("application/vnd.openxmlformats-officedocument.presentationml.presentation", "pptx")
+                    .put("application/pdf", "pdf")
+                    .put("image/jpeg", "jpeg")
+                    .put("image/png", "png")
+                    .put("image/webp", "webp")
+                    .build();
+    String ext = Objects.requireNonNullElse(MIME_TO_EXTENSION.get(mimeType.strip()), "bin");
+    System.out.println("Extension is:: " + ext);
+    return ext;
   }
 }
