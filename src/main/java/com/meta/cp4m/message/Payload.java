@@ -58,7 +58,6 @@ public interface Payload<T> {
     private final byte[] payload;
 
     public Image(byte[] payload, String mimeType) {
-      System.out.println("Image constructor");
       this.extension = MimeTypeUtils.getMimeToExt(mimeType.strip());
       this.mimeType = mimeType;
       this.payload = payload;
