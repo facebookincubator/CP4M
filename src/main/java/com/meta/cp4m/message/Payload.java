@@ -53,26 +53,13 @@ public interface Payload<T> {
   }
 
   final class Image implements Payload<byte[]> {
-    //    mime types and corresponding extensions derived from
-    // https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media#image
-
-    private static final Map<String, String> MIME_TO_EXTENSION =
-        ImmutableMap.<String, String>builder()
-            .put("image/jpeg", "jpeg")
-            .put("image/png", "png")
-            .put("image/webp", "webp")
-            .build();
-
     private final String mimeType;
     private final String extension;
     private final byte[] payload;
 
     public Image(byte[] payload, String mimeType) {
-//      this.extension =
-//          Objects.requireNonNull(
-//              MIME_TO_EXTENSION.get(mimeType.strip()), "Unknown mime type " + mimeType);
       System.out.println("Image constructor");
-      this.extension = getMimeToExt(mimeType);
+      this.extension = MimeTypeUtils.getMimeToExt(mimeType.strip());
       this.mimeType = mimeType;
       this.payload = payload;
     }
@@ -114,28 +101,12 @@ public interface Payload<T> {
   }
 
   final class Document implements Payload<byte[]> {
-    // https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media#document
-//    private static final Map<String, String> MIME_TO_EXTENSION =
-//        ImmutableMap.<String, String>builder()
-//            .put("text/plain", "txt")
-//            .put("application/vnd.ms-excel", "xls")
-//            .put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx")
-//            .put("application/msword", "doc")
-//            .put("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx")
-//            .put("application/vnd.ms-powerpoint", "ppt")
-//            .put(
-//                "application/vnd.openxmlformats-officedocument.presentationml.presentation", "pptx")
-//            .put("application/pdf", "pdf")
-//            .build();
-
     private final String mimeType;
     private final String extension;
     private final byte[] payload;
 
     public Document(byte[] payload, String mimeType) {
-//      @Nullable String extension = MIME_TO_EXTENSION.get(mimeType.strip());
-//      this.extension = extension == null ? "bin" : extension; // default to binary if it's unknown
-      this.extension = getMimeToExt(mimeType);
+      this.extension = MimeTypeUtils.getMimeToExt(mimeType.strip());
       this.mimeType = mimeType;
       this.payload = payload;
     }
@@ -176,24 +147,50 @@ public interface Payload<T> {
     }
   }
 
-  static String getMimeToExt(String mimeType) {
-    System.out.println("getMimeToExt function");
-    final Map<String, String> MIME_TO_EXTENSION =
-            ImmutableMap.<String, String>builder()
-                    .put("text/plain", "txt")
-                    .put("application/vnd.ms-excel", "xls")
-                    .put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx")
-                    .put("application/msword", "doc")
-                    .put("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx")
-                    .put("application/vnd.ms-powerpoint", "ppt")
-                    .put("application/vnd.openxmlformats-officedocument.presentationml.presentation", "pptx")
-                    .put("application/pdf", "pdf")
-                    .put("image/jpeg", "jpeg")
-                    .put("image/png", "png")
-                    .put("image/webp", "webp")
-                    .build();
-    String ext = Objects.requireNonNullElse(MIME_TO_EXTENSION.get(mimeType.strip()), "bin");
-    System.out.println("Extension is:: " + ext);
-    return ext;
+  final class MimeTypeUtils {
+    // MIME types and corresponding extensions
+    private static final Map<String, String> MIME_TO_EXTENSION =
+      ImmutableMap.<String, String>builder()
+      .put("application/gzip", "gz")
+      .put("application/json", "json")
+      .put("application/msword", "doc")
+      .put("application/pdf", "pdf")
+      .put("application/rtf", "rtf")
+      .put("application/vnd.amazon.ebook", "azw")
+      .put("application/vnd.ms-excel", "xls")
+      .put("application/vnd.ms-powerpoint", "ppt")
+      .put("application/vnd.oasis.opendocument.presentation", "odp")
+      .put("application/vnd.oasis.opendocument.spreadsheet", "ods")
+      .put("application/vnd.oasis.opendocument.text", "odt")
+      .put("application/vnd.openxmlformats-officedocument.presentationml.presentation", "pptx")
+      .put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx")
+      .put("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx")
+      .put("application/vnd.rar", "rar")
+      .put("application/x-abiword", "abw")
+      .put("application/x-bzip", "bz")
+      .put("application/x-bzip2", "bz2")
+      .put("application/x-freearc", "arc")
+      .put("application/x-tar", "tar")
+      .put("application/xml", "xml")
+      .put("application/zip", "zip")
+      .put("image/apng", "apng")
+      .put("image/avif", "avif")
+      .put("image/bmp", "bmp")
+      .put("image/gif", "gif")
+      .put("image/jpeg", "jpeg")
+      .put("image/png", "png")
+      .put("image/svg+xml", "svg")
+      .put("image/tiff", "tif")
+      .put("image/webp", "webp")
+      .put("text/calendar", "ics")
+      .put("text/csv", "csv")
+      .put("text/html", "html")
+      .put("text/plain", "txt")
+      .build();
+
+    // Static method to get the file extension based on MIME type
+    public static String getMimeToExt(String mimeType) {
+      return Objects.requireNonNullElse(MIME_TO_EXTENSION.get(mimeType), "bin");
+    }
   }
 }
