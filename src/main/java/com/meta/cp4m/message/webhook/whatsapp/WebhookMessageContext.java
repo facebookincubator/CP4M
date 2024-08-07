@@ -29,13 +29,13 @@ public final class WebhookMessageContext {
 
   @JsonCreator
   public WebhookMessageContext(
-      @JsonProperty("forwarded") boolean forwarded,
-      @JsonProperty("frequently_forwarded") boolean frequentlyForwarded,
+      @JsonProperty("forwarded") @Nullable Boolean forwarded,
+      @JsonProperty("frequently_forwarded") @Nullable Boolean frequentlyForwarded,
       @JsonProperty("from") String from,
       @JsonProperty("id") String id,
       @JsonProperty("referred_product") @Nullable ReferredProduct referredProduct) {
-    this.forwarded = forwarded;
-    this.frequentlyForwarded = frequentlyForwarded;
+    this.forwarded = Objects.requireNonNullElse(forwarded, false);
+    this.frequentlyForwarded = Objects.requireNonNullElse(frequentlyForwarded, false);
     this.from = Identifier.from(Objects.requireNonNull(from));
     this.id = Identifier.from(Objects.requireNonNull(id));
     this.referredProduct = referredProduct;
