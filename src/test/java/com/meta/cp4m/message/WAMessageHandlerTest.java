@@ -15,9 +15,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Stopwatch;
 import com.meta.cp4m.DummyWebServer.ReceivedRequest;
 import com.meta.cp4m.Identifier;
-import com.meta.cp4m.message.webhook.whatsapp.GetMediaIdBody;
-import com.meta.cp4m.message.webhook.whatsapp.SendResponse;
-import com.meta.cp4m.message.webhook.whatsapp.Utils;
+import com.meta.cp4m.message.webhook.whatsapp.*;
 import io.javalin.http.HandlerType;
 import java.io.IOException;
 import java.net.URI;
@@ -32,11 +30,57 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class WAMessageHandlerTest {
-  static String BODY_TEXT = "this is a text message!@#$%^&*()’";
+  static final String VALID2 =
+      """
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "362118040319556",
+      "changes": [
+        {
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "13137829971",
+              "phone_number_id": "390095987512130"
+            },
+            "contacts": [
+              {
+                "profile": {
+                  "name": "Benjamin Broadstone"
+                },
+                "wa_id": "12027330824"
+              }
+            ],
+            "messages": [
+              {
+                "context": {
+                  "from": "13137829971",
+                  "id": "wamid.HBgLMTIwMjczMzA4MjQVAgARGBJCRjg3QkEwRjZGRTY5MERBMTUA"
+                },
+                "from": "12027330824",
+                "id": "wamid.HBgLMTIwMjczMzA4MjQVAgASGBQzQUFFNTkxMDIzQjk5RjNFQjQ5MgA=",
+                "timestamp": "1723063165",
+                "text": {
+                  "body": "Cool"
+                },
+                "type": "text"
+              }
+            ]
+          },
+          "field": "messages"
+        }
+      ]
+    }
+  ]
+}
+""";
   static final String VALID =
       """
 {
@@ -68,11 +112,7 @@ class WAMessageHandlerTest {
                 "timestamp": "1504902988",
                 "type": "text",
                 "text": {
-                  "body": """
-          + "\""
-          + BODY_TEXT
-          + "\""
-          + """
+                  "body": \"this is a text message!@#$%^&*()’\"
                 }
               }
             ]
@@ -164,8 +204,13 @@ class WAMessageHandlerTest {
     }
   }
 
-  @Test
-  void valid() throws IOException, InterruptedException {
+  static Stream<String> validWAPayloads() {
+    return Stream.of(VALID, VALID2);
+  }
+
+  @ParameterizedTest
+  @MethodSource("validWAPayloads")
+  void valid(String payload) throws IOException, InterruptedException {
     final String sendResponse =
         """
 {
@@ -183,9 +228,13 @@ class WAMessageHandlerTest {
         }
       ]
     }""";
+
+    // make sure we can parse the payload
+    WebhookPayload payloadParsed = Utils.JSON_MAPPER.readValue(payload, WebhookPayload.class);
+
     harness.dummyWebServer().response(ctx -> ctx.body().contains("\"type\""), sendResponse);
     harness.start();
-    Response request = harness.post(VALID).execute();
+    Response request = harness.post(payload).execute();
     assertThat(request.returnResponse().getCode()).isEqualTo(200);
 
     Collection<ReceivedRequest> responses =
@@ -205,25 +254,32 @@ class WAMessageHandlerTest {
     List<ThreadState<WAMessage>> threads = harness.chatStore().list();
     assertThat(threads).hasSize(1);
     ThreadState<WAMessage> thread = threads.get(0);
+    Value valueParsed =
+        payloadParsed.entry().stream().findAny().orElseThrow().changes().stream()
+            .findAny()
+            .orElseThrow()
+            .value();
+    TextWebhookMessage parsedMessage =
+        (TextWebhookMessage) valueParsed.messages().stream().findAny().orElseThrow();
     assertThat(thread.messages())
         .hasSize(2)
         .anySatisfy(
             m -> {
-              assertThat(m.message()).isEqualTo(BODY_TEXT);
-              assertThat(m.instanceId()).isEqualTo(Identifier.from("ABGGFlA5Fpa"));
-              assertThat(m.senderId()).isEqualTo(Identifier.from("16315551181"));
-              assertThat(m.recipientId()).isEqualTo(Identifier.from("123456123"));
+              assertThat(m.message()).isEqualTo(parsedMessage.text().body());
+              assertThat(m.instanceId()).isEqualTo(parsedMessage.id());
+              assertThat(m.senderId()).isEqualTo(parsedMessage.from());
+              assertThat(m.recipientId()).isEqualTo(valueParsed.metadata().phoneNumberId());
               assertThat(m.role()).isEqualTo(Message.Role.USER);
             })
         .anySatisfy(
             m -> {
               assertThat(m.role()).isEqualTo(Message.Role.ASSISTANT);
-              assertThat(m.senderId()).isEqualTo(Identifier.from("123456123"));
-              assertThat(m.recipientId()).isEqualTo(Identifier.from("16315551181"));
+              assertThat(m.senderId()).isEqualTo(valueParsed.metadata().phoneNumberId());
+              assertThat(m.recipientId()).isEqualTo(parsedMessage.from());
             });
     String testUserName =
         MAPPER
-            .readTree(VALID)
+            .readTree(payload)
             .get("entry")
             .get(0)
             .get("changes")
@@ -246,7 +302,7 @@ class WAMessageHandlerTest {
         .satisfies(u -> assertThat(u.phoneNumber()).get().isEqualTo("16315551181"));
 
     // repeat and show that it is not processed again because it is a duplicate
-    request = harness.post(VALID).execute();
+    request = harness.post(payload).execute();
     assertThat(request.returnResponse().getCode()).isEqualTo(200);
     assertThat(harness.pollWebserver(500)).isNull();
   }
