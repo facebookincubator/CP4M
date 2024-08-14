@@ -78,7 +78,8 @@ public final class Status {
   public enum StatusType {
     DELIVERED,
     READ,
-    SENT;
+    SENT,
+    FAILED;
 
     public String toString() {
       return this.name().toLowerCase();
