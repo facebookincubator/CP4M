@@ -232,7 +232,7 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
                 try {
                   payload = MAPPER.readValue(bodyString, WebhookPayload.class);
                   return Optional.of(payload);
-                } catch (Exception e) {
+                } catch (Throwable e) {
                   LOGGER.atWarn().setCause(e).log("unable to parse payload");
                   return Optional.empty();
                 }
