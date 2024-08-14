@@ -79,7 +79,8 @@ public final class Status {
     DELIVERED,
     READ,
     SENT,
-    FAILED;
+    FAILED,
+    WARNING;
 
     public String toString() {
       return this.name().toLowerCase();

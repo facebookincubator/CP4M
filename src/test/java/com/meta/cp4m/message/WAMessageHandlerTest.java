@@ -123,7 +123,49 @@ class WAMessageHandlerTest {
   ]
 }
 """;
-  static final String NO_MESSAGES =
+  static final String VALID_WITH_ERROR =
+      """
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "355432333211112",
+      "changes": [
+        {
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "15555559999",
+              "phone_number_id": "15555559999"
+            },
+            "statuses": [
+              {
+                "id": "wamid.lBgLMTI0ODk5MagXZMzgVAgARGDIwQ0FDRENCODA3RjczNUYxNzQA",
+                "status": "failed",
+                "timestamp": "1222493493",
+                "recipient_id": "15555558888",
+                "errors": [
+                  {
+                    "code": 131047,
+                    "title": "Re-engagement message",
+                    "message": "Re-engagement message",
+                    "error_data": {
+                      "details": "Message failed to send because more than 24 hours have passed since the customer last replied to this number."
+                    },
+                    "href": "https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes/"
+                  }
+                ]
+              }
+            ]
+          },
+          "field": "messages"
+        }
+      ]
+    }
+  ]
+}
+""";
+  static final String VALID_NO_MESSAGES =
       """
 {
   "object": "whatsapp_business_account",
@@ -368,10 +410,15 @@ class WAMessageHandlerTest {
         .isEqualTo("read");
   }
 
-  @Test
-  void noMessages() throws IOException, InterruptedException {
+  static Stream<String> validPayloadsWithNoResponse() {
+    return Stream.of(VALID_WITH_ERROR, VALID_NO_MESSAGES);
+  }
+
+  @ParameterizedTest
+  @MethodSource("validPayloadsWithNoResponse")
+  void noMessages(String payload) throws IOException, InterruptedException {
     harness.start();
-    Response request = harness.post(NO_MESSAGES).execute();
+    Response request = harness.post(payload).execute();
     assertThat(request.returnResponse().getCode()).isEqualTo(200);
     assertThat(harness.pollWebserver(250)).isNull();
     assertThat(harness.chatStore().list()).hasSize(0);
