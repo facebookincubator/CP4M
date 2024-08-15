@@ -21,6 +21,7 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
@@ -71,7 +72,17 @@ public class WAMessageHandler implements MessageHandler<WAMessage> {
         .flatMap(e -> e.changes().stream())
         .forEachOrdered(
             change -> {
+              Stream.concat(
+                      change.value().statuses().stream().flatMap(s -> s.errors().stream()),
+                      change.value().errors().stream())
+                  .forEach(
+                      e ->
+                          LOGGER
+                              .atError()
+                              .addKeyValue("body", ctx.body())
+                              .log("Whatsapp Error: " + e));
               Identifier phoneNumberId = change.value().metadata().phoneNumberId();
+
               for (WebhookMessage message : change.value().messages()) {
                 if (messageDeduplicator.addAndGetIsDuplicate(message.id())) {
                   continue; // message is a duplicate
